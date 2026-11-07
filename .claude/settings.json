@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/inbox.sh",
+            "timeout": 20,
+            "statusMessage": "Checking agent inbox"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(gh issue list *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue create *)",
+      "Bash(gh issue comment *)",
+      "Bash(gh issue edit *)",
+      "Bash(gh issue close *)",
+      "Bash(scripts/inbox.sh)",
+      "Bash(./scripts/inbox.sh)",
+      "Bash(scripts/teammates.sh)",
+      "Bash(./scripts/teammates.sh)"
+    ]
+  }
+}
