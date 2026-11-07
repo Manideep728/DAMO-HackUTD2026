@@ -1,0 +1,29 @@
+# Secrets — never commit API keys (Nemotron, Discord, etc.)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Personal Claude Code settings (shared settings live in .claude/settings.json)
+.claude/settings.local.json
