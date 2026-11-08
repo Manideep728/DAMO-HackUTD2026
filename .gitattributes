@@ -2,3 +2,5 @@
 legacy/ttu/** -text
 *.sh text eol=lf
 backend/app/ttu/shims/* text eol=lf
+# Retrofit site inputs are sha256-pinned; CRLF conversion on Windows breaks the pins
+backend/app/retrofit/sites/** -text
