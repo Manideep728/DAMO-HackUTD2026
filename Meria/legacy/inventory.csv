@@ -1,0 +1,11 @@
+rack,row,status,pdu,cooling_unit,gpu,decommissioned_on
+A1,A,active,PDU A-1,CU-A,no,
+A4,A,active,PDU A-1,CU-A,no,
+B6,B,active,PDU B-2,CU-B,no,
+B7,B,active,PDU B-2,CU-B,no,
+B8,B,active,PDU B-2,CU-B,no,
+D6,D,active,PDU D-2,CU-D,yes,
+D7,D,active,PDU D-2,CU-D,yes,
+D8,D,active,PDU D-2,CU-D,yes,
+D10,D,decommissioned,,,no,2024-03-18
+D11,D,active,PDU D-2,CU-D,yes,

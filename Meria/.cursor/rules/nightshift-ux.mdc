@@ -1,0 +1,108 @@
+---
+description: Worker-first UX rules for every screen and component.
+globs: src/**/*.tsx
+alwaysApply: true
+---
+
+
+# Night-shift UX
+
+The person using this has been awake for 18 hours, has already seen 40 alerts tonight, and is the only one in the room. Every rule below exists because of that person.
+
+## 1. The 5-second rule
+
+Within 5 seconds of looking at any operations screen, the user must know:
+1. **What this is** (which check, which step)
+2. **What it found** (or that it's clean)
+3. **What to do** (one button)
+
+Test every screen by covering everything except the top 40% and asking whether those three are answered.
+
+## 2. Hierarchy for any finding card
+
+Always in this order, top to bottom:
+1. Severity word + icon + plain-English title
+2. Two sentences: what is wrong and why we think so
+3. The one action (`Accept` creates the work order; `Dismiss` takes a reason)
+4. One line of provenance: `Found by: <detector>` · `Nemotron Nano wrote this sentence`
+5. Everything else, collapsed: evidence chart, detector numbers, raw legacy pages
+
+Never put evidence above the action. Never show a raw metric name, OID or exit code in a heading.
+
+## 3. Humans decide
+
+- The system **proposes**. A finding becomes a work order only when a person accepts it. Rules are signed off by a person. Nothing is retired without a click.
+- The primary button names the exact thing: `Accept: replace B7 sensor`, `Sign off check_rack_inlet`, never `OK` or `Confirm`.
+- After accepting: a **10-second undo** toast (`U`), then the work order number and time on the card.
+- Dismissal takes one tap with reasons: `Known` · `Not a problem` · `Already fixed` · `Other…`. A reason is optional, never blocking.
+- A **decision log** (who, what, when) is reachable from every screen and feeds the handoff.
+- Copy never says "auto", "automatically fixed" or "self-healing".
+
+## 4. Trust cues
+
+- **Untrusted sensor:** dashed outline on the rack tile, reading struck through, neighbour estimate beside it, and an icon with the tooltip `Disagrees with neighbours and its own outlet`. Same treatment everywhere B7 appears: map, sheet, card, handoff.
+- **Data freshness:** `Last reading 1 s ago`. After 10 s without data: `Stale · last reading 14 s ago` in warning style.
+- **Live / Cached / Mock badge** in the top bar and on every agent output. A cached agent response is labelled where it appears, not just in a corner.
+- **Model and timing on agent work:** `Nemotron Nano · 7 tool calls · 11.4 s`.
+- **Predicted numbers say "predicted"**: `Peak 29.4 °C (predicted)`.
+
+## 5. Calm by default
+
+- Grey floor map. Colour appears only when something is off-normal.
+- Red only for real danger: above 35 °C, a breaker predicted to trip within 15 minutes, or a rack lost.
+- No pulsing, flashing or sound by default. A newly found critical finding may get one 600 ms highlight, then it stays still. Respect `prefers-reduced-motion`.
+- Fold the flood: `214 legacy pages → 6 findings`. Raw pages are one click away, never on top.
+- The calm state is a designed screen, not an empty div: `6 legacy checks · 1 retired · 1 signed off · 1 blocked`.
+
+## 6. Status words, always
+
+Every colour comes with a word and an icon: `OK`, `Watch`, `Warning`, `Critical`, `Untrusted`, `Offline`, `Decommissioned`. Someone who is colour-blind, using a projector or squinting must lose nothing.
+
+## 7. Typing is a failure
+
+- Handoffs, work orders and pages are written by the agent and **reviewed**, not typed.
+- Editing is allowed (click to edit a sentence) but never required.
+- Search exists (`/`) but no workflow depends on it.
+
+## 8. Keyboard and touch
+
+| Key | Action |
+|---|---|
+| `1`–`5` | Switch screens |
+| `A` | Accept the focused finding |
+| `D` | Dismiss (opens reasons) |
+| `S` | Sign off (Prove screen, when unblocked) |
+| `U` | Undo (during the 10 s window) |
+| `→` | Continue to the next step |
+| `Enter` / `Space` | Activate focused control |
+| `Esc` | Close sheet, overlay or dialog |
+| `H` | Open handoff |
+| `?` | Shortcut sheet |
+| `Ctrl+Shift+D` | Director panel (demo only) |
+
+Targets at least 44×44 px. Visible focus rings (2 px, offset 2 px). The tablet layout keeps the action bar at the bottom within thumb reach.
+
+## 9. Copy voice
+
+- Short, specific, present tense. Numbers with units. Names, not roles, where known.
+- Good: `B5–B9 reach 35 °C in 18 min.` · `Paged Luis O. (on-call tech) at 03:16.` · `Move 2 jobs to D6. 41% power headroom.`
+- Bad: `Potential thermal anomaly detected in zone B.` · `An AI-generated recommendation is available.` · `Click here to learn more.`
+- Errors say what still works: `Agent offline. Legacy checks are still running. Last plan saved at 03:12.`
+- Agent text is at most 2 sentences in the card; longer reasoning lives in the trace.
+
+## 10. Every state, every screen
+
+For each component, design: **normal**, **active**, **streaming** (agent working: show each step as it lands, never a bare spinner), **empty**, **error**, **stale**, **cached**. A bare spinner with no words fails the review.
+
+## 11. The shift change
+
+The handoff is a first-class screen, not a modal. Order: **Open (needs you) → Changed → Timeline**. Each open item has an owner, a next check time and a watch condition. Acknowledge stamps a name and a time.
+
+## 12. Ten-second review before you call a screen done
+
+- Can I tell what this is, what it found, and what to do in 5 seconds?
+- Is there exactly one primary button?
+- Does anything get accepted, signed off or retired without a click? (It must not.)
+- Does every colour have a word?
+- Would this read on a projector from 3 metres?
+- Is there any jargon in a heading? (PromQL, OID, exit code: move it to evidence.)

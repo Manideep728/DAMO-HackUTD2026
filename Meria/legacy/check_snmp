@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+"""Drop-in stand-in for Monitoring Plugins check_snmp, used only when the real binary isn't installed.
+Implements the same threshold range semantics and exit codes (0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN).
+Reads the value from GAUNTLET_SNMP_VALUE (the test harness) instead of the network.
+On the demo machine: apt install monitoring-plugins-basic and set LEGACY_PLUGIN=/usr/lib/nagios/plugins/check_snmp."""
+import os, sys
+def parse_range(r):
+    inv = r.startswith('@'); r = r.lstrip('@')
+    if ':' in r:
+        lo, hi = r.split(':', 1); lo = -float('inf') if lo == '~' else float(lo or 0); hi = float(hi) if hi else float('inf')
+    else: lo, hi = 0.0, float(r)
+    return lo, hi, inv
+def outside(v, rng):
+    lo, hi, inv = rng; out = v < lo or v > hi
+    return (not out) if inv else out
+args = sys.argv[1:]; w = c = None
+for i, a in enumerate(args):
+    if a == '-w': w = parse_range(args[i+1])
+    if a == '-c': c = parse_range(args[i+1])
+raw = os.environ.get('GAUNTLET_SNMP_VALUE', '')
+if raw in ('', 'timeout'): print('SNMP problem - No data received from host'); sys.exit(3)
+if raw in ('noSuchObject', 'non-numeric'): print('SNMP UNKNOWN - %s' % raw); sys.exit(3)
+try: v = float(raw)
+except ValueError: print('SNMP UNKNOWN - non-numeric'); sys.exit(3)
+if c and outside(v, c): print('SNMP CRITICAL - *%s* C' % raw); sys.exit(2)
+if w and outside(v, w): print('SNMP WARNING - *%s* C' % raw); sys.exit(1)
+print('SNMP OK - %s C' % raw); sys.exit(0)

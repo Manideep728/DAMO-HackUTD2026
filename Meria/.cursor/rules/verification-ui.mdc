@@ -1,0 +1,149 @@
+---
+description: The Prove screen: coverage strip, counterexamples, certificate, tombstone.
+globs: src/screens/Prove*, src/components/Coverage*, src/fixtures/verify*
+alwaysApply: false
+---
+
+
+# Verification UI
+
+**Why this screen exists:** the 8090 judges said they want something that is **guaranteed right at the end** and that **you can't get by pasting a script into an LLM**. This screen is the answer. Its job is to make the **certificate** feel real, precise and earned, and to show a one-shot LLM translation **failing** the same verifier.
+
+The user is **Sam**, a cautious monitoring engineer. His question: *"Can I turn this old check off without losing anything?"* Design for his caution: scope stated precisely, evidence one click away, a human sign-off before anything is retired.
+
+## 1. Copy rules for this screen
+
+- Say exactly what was checked: `Every value the sensor can report from −40.0 to 125.0 °C, in 0.1 °C steps (1,651 values), plus 3 error cases`.
+- Never say "proven correct", "100% safe" or "guaranteed" without the scope next to it. The certificate header reads: `Equivalence certificate: on the domain and timing model below`.
+- Name the limit on the certificate itself: `Not covered: behaviour outside the listed domain; Nagios flap detection (disabled in this config).`
+- "Verified by execution" means the **real legacy plugin binary was run**. Use that phrase only for that.
+
+## 2. Retirement table fixtures (`verifyFixtures.ts`)
+
+| Check | Plugin | Watches | Stage | Values | Traces | Open CEX | Intentional diffs | Action |
+|---|---|---|---|---|---|---|---|---|
+| `check_rack_inlet` | check_snmp | Inlet °C, 39 racks | Verified | 1,654 / 1,654 | 500 / 500 | 0 | 2 | **Sign off** |
+| `check_pdu_load` | check_snmp | PDU %, 8 PDUs | Parallel run | 1,001 / 1,001 | 312 / 500 | 0 | 1 | Running… |
+| `check_cu_status` | check_snmp | CU running flag | Verified | 3 / 3 | 500 / 500 | 0 | 1 (adds cooling-effectiveness rule) | **Sign off** |
+| `check_ups_battery` | check_apc (Perl) | UPS charge % | Blocked | 101 / 101 | 497 / 500 | **1** | 0 | Open counterexample |
+| `check_rack_inlet_d10` | check_snmp | Inlet °C, D10 | **Drop** | — | — | — | — | Retire without replacement (`D10 not in inventory since 2024-03`) |
+| `check_room_humidity` | check_snmp | RH % | Audit | — | — | — | — | Auditing… |
+
+The stepper per row: `Audit → Parallel run → Verified → Signed off → Retired`. "Blocked" is shown as a critical outline on the current step, with its reason inline: `Blocked: 1 counterexample (trace #212, flapping at 20%)`.
+
+## 3. Prove screen layout (route `/prove/:checkId`, default `check_rack_inlet`)
+
+Header: `check_rack_inlet` · `check_snmp v2.4 (unmodified)` · stage stepper · `Parallel run day 1` · Live/Cached badge.
+
+Sections, top to bottom, each collapsible but open by default:
+
+### 3.1 Rule card (summary; the full card with execution checks lives on the Read screen)
+Two columns.
+- Left, "What the old check does": `Pages when a rack inlet reading is outside 0–27 °C (warning) or outside 0–32 °C (critical), after 3 consecutive failed checks 1 minute apart. Pages UNKNOWN if the sensor doesn't answer.`
+- Right, "What it ignores": `Trends · Neighbouring racks · Whether the sensor agrees with the outlet · Cooling unit power`.
+- Badge: `ShieldCheck Verified by execution · 6/6 statements matched the real plugin`.
+- Planned failure variant (toggle in Director): `FileWarning Card flagged: card said "critical above 30 °C"; the plugin returned CRITICAL only above 32 °C. Card regenerated.`
+
+### 3.2 Source ↔ rules traceability
+Split view. Left: legacy source, read-only (Nagios command definition + service definition + the plugin invocation), monospace, line numbers. Right: the generated Prometheus rules YAML. Hovering or clicking a rule highlights the source lines it replaces (accent bar in the gutter); each rule has a `replaces:` label. Show this YAML (illustrative, but it must look idiomatic):
+
+```yaml
+groups:
+  - name: check_rack_inlet            # replaces Nagios service "Inlet" on 39 racks
+    rules:
+      - alert: RackInletWarning
+        expr: rack_inlet_celsius > 27 or rack_inlet_celsius < 0   # Nagios range "27" = outside 0..27
+        for: 2m                                                   # max_check_attempts=3, retry_interval=1m
+        labels: { severity: warning, replaces: "check_rack_inlet:-w 27", kind: must-keep }
+      - alert: RackInletCritical
+        expr: rack_inlet_celsius > 32 or rack_inlet_celsius < 0
+        for: 2m
+        labels: { severity: critical, replaces: "check_rack_inlet:-c 32", kind: must-keep }
+      - alert: RackInletUnknown
+        expr: rack_inlet_read_ok == 0                             # SNMP timeout -> UNKNOWN
+        for: 2m
+        labels: { severity: warning, replaces: "notification_options u", kind: must-keep }
+      - alert: RackInletTrendBreach
+        expr: predict_linear(rack_inlet_celsius[5m], 900) > 35
+        labels: { severity: warning, found_by: "fault:fan_degraded", kind: improvement }
+```
+
+### 3.3 Value coverage strip (the hero visual)
+- A full-width SVG with **three stacked bands**, 14 px each, over the value axis −40.0 … 125.0 °C, plus 3 extra cells at the right end: `timeout`, `noSuchObject`, `non-numeric`.
+  - Band 1, **Legacy (real plugin)**: the colour of the exit state per value: OK (muted), WARNING (warning), CRITICAL (critical), UNKNOWN (untrusted).
+  - Band 2, **New rules (promtool)**: same encoding.
+  - Band 3, **Match**: a thin ok tick per matching value, critical for a mismatch. With 0 mismatches it reads as one calm line, which is the point.
+- Draw contiguous runs as single rects (not 1,654 elements). Hover shows the exact value: `27.0 °C → legacy OK · new OK ✓` · `27.1 °C → legacy WARNING · new WARNING ✓`.
+- Below it, a **zoom lens** on 24–36 °C at 0.1 °C resolution so the 27.0/27.1 and 32.0/32.1 boundaries are visible.
+- Summary line in large type: `1,654 of 1,654 inputs match · 0 mismatches · real plugin run 1,654 times in 41 s`.
+
+### 3.4 Timing tests
+- `500 generated reading sequences · 0 mismatches · seed 7 · shrinking on`.
+- Show 6 small step charts as examples (ramp, step, flap at the threshold, two bad readings then recovery, dropout, slow drift), each tagged `match ✓`.
+- Explain the model in one line: `Old side: real plugin decisions + Nagios soft/hard state model (checked against real Nagios Core on 10 traces). New side: promtool test rules.`
+
+### 3.5 One-shot vs Gauntlet (the 8090 moment)
+Two columns with identical structure. Left header: `One-shot translation · Nemotron Super, 1 call, no tools`. Right header: `Gauntlet loop · Nemotron Super + verifier, 3 rounds`.
+
+- Left: its own coverage strip, with a **red block over −40.0 … −0.1 °C**, plus summary `3 counterexamples · 400 value mismatches · 1 timing mismatch · 1 error-case mismatch`.
+- Right: an all-green strip, `0 counterexamples`.
+- Under the left column, three **counterexample cards** (minimal inputs found by shrinking):
+
+| # | Minimal input | Legacy did | One-shot rule did | Why |
+|---|---|---|---|---|
+| 1 | Reading `−0.1 °C` (sensor error value) | CRITICAL | OK | Nagios range `32` means *outside 0..32*; the rule only checked `> 32` |
+| 2 | Readings `26, 33, 33, 26` (1 min apart) | No page (soft state, 2 of 3 attempts) | Paged at the first 33 | Behaviour lives in `max_check_attempts=3`, which isn't in the script; the rule had no `for:` |
+| 3 | SNMP `timeout` | UNKNOWN, paged on-call | Silent | `notification_options` includes `u`; the rule had no case for missing data |
+
+- A round timeline under the right column: `Round 1: 3 counterexamples → Round 2: 1 (soft state) → Round 3: 0 · 2 min 14 s`. Each round is expandable to show the counterexample fed back to the model.
+- The caption under both columns, in large type: **`Same model both times. The difference is the proof.`**
+
+### 3.6 Intentional differences
+A list where each item has a justification and evidence link:
+1. `Adds RackInletTrendBreach`: fires earlier on rising trends; never removes a legacy alert. Evidence: `fault: fan_degraded, 9 min earlier`.
+2. `Routes alerts from B7 to "Sensor fault" until the sensor is replaced`: the alert is still raised (parity holds), but it goes to the right queue. Evidence: accepted finding #1.
+3. `Pages go to the on-call roster instead of rkowalski@`. Evidence: accepted finding #5.
+
+Every intentional difference must point at an **accepted** finding from the Find screen. A dismissed or open finding never changes the rules.
+
+### 3.8 Certificate
+A printable card (`ScrollText` icon), light background even in dark theme so it reads as a document:
+
+```
+EQUIVALENCE CERTIFICATE: check_rack_inlet → Prometheus rules
+Domain            −40.0 … 125.0 °C in 0.1 °C steps (1,651 values) + timeout, noSuchObject, non-numeric
+Timing model      check_interval 1m · retry_interval 1m · max_check_attempts 3 · notification_options w,u,c,r
+Traces            500 generated (seed 7), 0 mismatches
+Counterexamples   3 found during generation, 3 fixed, 0 open
+Intentional diffs 2 (listed, each with evidence)
+Not covered       values outside the domain; flap detection (disabled in config)
+Legacy source     sha256 9f2c…a41e   Rules sha256 3b77…0c19
+Reproduce         $ gauntlet verify check_rack_inlet --seed 7
+Signed off        —
+```
+
+Buttons: `Sign off (human)` primary (opens a confirm: `I've reviewed the certificate and intentional differences. Sign off as Sam T.`) · `Export evidence pack` secondary · `Copy verify command` ghost.
+
+### 3.9 Tombstone
+Appears **only after sign-off**: a small SVG headstone with `check_rack_inlet · 2014–2026 · retired by proof`, and the Retirement row moves to `Signed off`, with Cutover enabled. Planned-failure variant: on `check_ups_battery` the Sign off button is disabled with `Blocked: 1 open counterexample` and a link to it.
+
+## 4. Verification types
+
+```ts
+export type ExitState = 'OK'|'WARNING'|'CRITICAL'|'UNKNOWN';
+export interface CoverageRun { from: number; to: number; legacy: ExitState; candidate: ExitState; match: boolean; }
+export interface ErrorCase { name: 'timeout'|'noSuchObject'|'non-numeric'; legacy: ExitState; candidate: ExitState; match: boolean; }
+export interface Counterexample { id: number; input: string; legacy: string; candidate: string; why: string; round: number; }
+export interface VerifyResult {
+  checkId: string; candidate: 'one-shot'|'gauntlet';
+  domain: { min: number; max: number; step: number; count: number };
+  runs: CoverageRun[]; errorCases: ErrorCase[];
+  traces: { total: number; mismatches: number; seed: number };
+  counterexamples: Counterexample[];
+  rounds?: { round: number; open: number; durationSec: number }[];
+  pluginExecutions: number; elapsedSec: number;
+}
+export interface Certificate { checkId: string; domainText: string; timingModel: string; traces: string; counterexamples: string; intentionalDiffs: string[]; notCovered: string[]; legacySha: string; rulesSha: string; command: string; signedOffBy?: string; signedOffAt?: string; }
+```
+
+Build the `runs` arrays by computing legacy and candidate results from the threshold logic in the fixture (don't hand-type 1,654 cells): legacy = outside-range semantics; one-shot = `> 27` / `> 32` only; gauntlet = matches legacy.

@@ -1,0 +1,4 @@
+You are reading a legacy Nagios check. Describe exactly what it does, in plain English a night-shift technician would understand.
+Rules: cite file and line range for every statement. Use Nagios range semantics: a bare threshold `27` means alert when the value is outside 0..27. Describe when it actually pages, including max_check_attempts, retry_interval and UNKNOWN handling. Cross-check targets against inventory.csv and contacts against oncall_roster.csv. End with what the check ignores.
+Output JSON only: {"statements":[{"section":"checks|thresholds|pages_when|pages_who|ignores","text":"...","source":[{"file":"services.cfg","from":5,"to":5}],"tests":[{"input":"27.1","expected":"WARNING"}]}]}
+"tests" are concrete inputs the real plugin will be run on to verify the statement; give 2-4 per threshold statement, none for config-only statements.

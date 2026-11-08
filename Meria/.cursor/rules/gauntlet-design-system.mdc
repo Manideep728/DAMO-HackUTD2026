@@ -1,0 +1,102 @@
+---
+description: Tokens, components, floor-map rendering, themes.
+globs: src/**/*.tsx, src/**/*.css, tailwind.config.*
+alwaysApply: false
+---
+
+
+# Gauntlet design system
+
+Industrial, calm, legible. Think control-room instrument panel, not SaaS dashboard. Flat surfaces, thin borders, no gradients, no glassmorphism, no drop shadows except on overlays.
+
+## 1. Themes and colour tokens
+
+Implement as CSS custom properties on `:root[data-theme="dark"]` and `:root[data-theme="light"]`, mapped into the Tailwind theme. **Dark is the default** (dim NOC rooms). Light is for projectors and daylight.
+
+| Token | Dark | Light | Use |
+|---|---|---|---|
+| `--bg` | `#0E1116` | `#F6F7F9` | App background |
+| `--surface` | `#151A21` | `#FFFFFF` | Cards, panels |
+| `--surface-2` | `#1C232C` | `#EEF1F4` | Raised or nested |
+| `--border` | `#2A323D` | `#D5DAE1` | Hairlines |
+| `--text` | `#E6EAF0` | `#151A21` | Primary text |
+| `--text-muted` | `#9AA4B2` | `#5B6573` | Secondary text |
+| `--accent` | `#4CC2FF` | `#0A6EBD` | **The Gauntlet / new guard**, primary buttons, focus |
+| `--legacy` | `#7D8794` | `#7D8794` | **Old guard** (Nagios), always neutral grey |
+| `--ok` | `#3FB68B` | `#1E8A63` | OK (use sparingly, mostly for words) |
+| `--watch` | `#C9B458` | `#8C7A1E` | Watch: trend rising, still normal |
+| `--warning` | `#E0A33A` | `#B26B00` | Warning (27–32 °C, PDU ≥ 80%) |
+| `--critical` | `#E5534B` | `#C62828` | Danger only (≥ 35 °C, trip predicted, rack lost) |
+| `--untrusted` | `#B392F0` | `#6F42C1` | Untrusted sensor (always with a dashed outline) |
+| `--predicted` | `#4CC2FF` at 40% | `#0A6EBD` at 40% | Ghost and preview overlays |
+
+Rules:
+- **Accent = new guard; grey = old guard.** Never swap them.
+- Status colours always appear with a word and an icon (`CircleCheck`, `Eye`, `TriangleAlert`, `OctagonAlert`, `HelpCircle` for untrusted, `WifiOff` for offline).
+- Check contrast: body text ≥ 4.5:1, large text and icons ≥ 3:1, in both themes.
+
+## 2. Typography
+
+- **UI:** `Inter`, or a system sans fallback (bundle locally, no CDN).
+- **Readings, IDs, logs:** `JetBrains Mono` or `IBM Plex Mono`, with `font-variant-numeric: tabular-nums` everywhere numbers change.
+- Scale (px): 12 caption · 14 secondary · 16 body · 18 card title · 22 section · 28 page title · **32 coverage summary** · 20–24 map readings at 1440 wide.
+- Weights: 400 body, 600 titles and labels. No 300 weights (unreadable on dark).
+- Headings in sentence case. No all-caps except severity words (`CRITICAL`, `WARNING`) at 12–13 px, 600 weight, +0.04em letter spacing.
+
+## 3. Spacing, radius, elevation
+
+- 4 px base grid. Common steps: 4, 8, 12, 16, 24, 32.
+- Radius: 6 px for controls, 10 px for cards, 999 px for pills.
+- Borders: 1 px `--border`. Focus ring: 2 px `--accent`, offset 2 px.
+- Elevation: only sheets, toasts and overlays get a shadow (`0 8px 24px rgb(0 0 0 / .35)` dark, `.12` light).
+
+## 4. Components (build all into `/kitchen-sink`)
+
+| Component | Spec |
+|---|---|
+| **Button** | Primary (accent fill, dark text), Secondary (outline), Ghost, Danger (critical outline; fill only for destructive confirm). Height 40 (44 on touch). An optional shortcut hint chip on the right (`A`). |
+| **StatusPill** | Icon + word, tinted background at 14% of the status colour, text at full colour. Sizes sm (20 px) and md (24 px). |
+| **Badge** | Small neutral label: `Live`, `Cached`, `Mock`, `Predicted`, `Recommended`, `Nemotron Nano`. |
+| **Card** | `--surface`, 1 px border, radius 10, padding 16. The header row holds a severity pill, the title and right-aligned metadata. |
+| **FindingCard** | Collapsed and expanded variants; order per `nightshift-ux` §2. Severity pill, title, two sentences, `Found by` line, Accept / Dismiss. Expanded adds the evidence Sparkline, detector numbers and the model badge. Accepted = ok left border + `Work order #482 · 03:16 · Maya R.`; dismissed = muted with the reason. |
+| **RuleCardStatement** | One row: statement text, source-range chip (`services.cfg:14–17`), verification cell: pending / running / `Verified by execution` (ok) / `Flagged` (critical) with the runs listed (`27.1 → WARNING ✓`). |
+| **CodeView** | Line-numbered, read-only, mono 13 px; supports highlighted ranges (accent gutter bar + 8% accent fill) driven by hover elsewhere. |
+| **ReplayBar** | Progress with a climbing counter (`30,240 plugin runs`), then a 21-day strip of legacy page ticks (grey) with detector hits (accent dots). |
+| **Sparkline** | 120×32 SVG polyline; optional threshold line (dashed) and a "neighbour estimate" second line (muted, dashed). |
+| **TraceStep** | Left timeline dot + line; tool name in mono; human label; duration; model badge; expandable raw call. States: running (dot animates once), done, error (critical dot, "Retried" or "Nemotron offline: showing cached"). Used for Read steps, detector runs and fix-loop rounds. |
+| **Stepper** | Horizontal stages for retirement: `Audit → Parallel run → Verified → Signed off → Retired`. Current = accent, done = filled, blocked = critical outline with reason. |
+| **Toast** | Bottom centre; an undo toast has a progress bar for 10 s and a `Undo (U)` button. |
+| **Sheet** | Right-side panel, 420 px, for rack details. `Esc` closes. |
+| **Table** | Dense (40 px rows), sticky header, zebra off, row hover `--surface-2`. |
+| **LegacyLine** | Mono 13 px, `--legacy` colour, timestamp prefix; `PROBLEM` / `RECOVERY` keywords in 600 weight. |
+| **CoverageStrip** | See `verification-ui`. |
+
+## 5. Floor map rendering
+
+- Pure SVG, `viewBox` sized for 4 rows × 10 racks plus labels and aisles. Scale to its container.
+- **Rack tile:** 56×72 units, radius 4. Shows the ID (12 px, muted) at the top and the reading (18–20 px mono) in the middle.
+  - Normal: `--surface-2` fill, `--border` stroke, reading in `--text-muted`.
+  - Watch: stroke `--watch`, 1.5 px.
+  - Warning: fill `--warning` at 18%, stroke `--warning`.
+  - Critical (≥ 35 °C): fill `--critical` at 28%, stroke `--critical`, reading in `--text`.
+  - **Untrusted:** stroke `--untrusted`, 1.5 px, `stroke-dasharray: 4 3`; reading struck through; a small `est 25.8` line under it in `--untrusted`.
+  - Decommissioned: diagonal hatch pattern, the word `Decom.`
+  - Lost (shut down): critical fill at 60%, the word `DOWN`.
+- **Cooling unit:** a wider tile at the row end, `CU-B`, with a status word. It says `Running` in neutral text; when finding #2 is selected, an accent marker `Cooling per kW −15%` appears beside it.
+- **PDUs:** a thin bar under each half-row with % fill; warning at ≥ 80%.
+- **Aisles:** labelled bands, `Cold aisle` (very faint accent tint) and `Hot aisle` (very faint warning tint), both under 6% opacity.
+- **Selected finding:** its rack, unit or row gets a 2 px accent outline and a floating label with the finding title; everything else stays grey. On Find, the map is a pointer, not a dashboard.
+- **Untrusted sensor (B7):** always dashed `--untrusted` outline with the reading struck through and `est 26.1` under it, whether or not it is selected.
+- Colour transitions: 400 ms ease. No transition at all when `prefers-reduced-motion` is set.
+
+## 6. Layout grid
+
+- App shell: left rail 72 px (icons + labels at 12 px), top bar 56 px.
+- Read: source `55%` | rule card `45%`, gap 24.
+- Find: findings list `2fr` | map `1.75fr` | evidence `1.25fr`.
+- Prove: single column, sections stacked; source ↔ rules split `1fr 1fr`; one-shot vs Gauntlet `1fr 1fr`.
+- Tablet (≤ 1024): Find stacks list → map → evidence; Accept / Dismiss bar sticky at the bottom.
+
+## 7. Iconography (lucide-react)
+
+`Thermometer` inlet · `Fan` cooling unit · `Zap` power/PDU · `Server` rack · `ShieldCheck` verified · `FileWarning` counterexample · `ScrollText` certificate · `Headstone`: lucide has no headstone icon, so draw a tiny SVG tombstone · `BellRing` page · `ClipboardCheck` runbook · `Undo2` undo · `Cpu` model badge.

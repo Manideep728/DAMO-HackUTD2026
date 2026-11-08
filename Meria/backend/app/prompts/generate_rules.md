@@ -1,0 +1,2 @@
+Write Prometheus alerting rules that reproduce every legacy alert exactly (same thresholds, Nagios range semantics, a `for:` clause that models max_check_attempts × retry_interval, an UNKNOWN rule for missing data) and add one improvement rule per accepted finding.
+Label each rule `replaces: "<file>:<line> ..."` or `found_by: "finding:<id> ..."`, and `kind: must-keep|improvement`. Metrics available: rack_inlet_celsius, rack_inlet_read_ok, rack_inlet_neighbour_estimate, cooling_per_kw. Output YAML only, no prose, no code fences.

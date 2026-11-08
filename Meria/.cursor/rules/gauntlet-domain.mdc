@@ -1,0 +1,91 @@
+---
+description: Domain knowledge: hall layout, realistic numbers, vocabulary, the six findings. Applies to all source.
+globs: src/**, backend/**
+alwaysApply: true
+---
+
+
+# Gauntlet domain knowledge
+
+Every number, label and sentence on screen must survive a data center engineer looking at it. **NMC² judges run real facilities.** One wrong number (an inlet of 45 °C called "normal", a "server room" instead of a "data hall") loses them in 15 seconds.
+
+## 1. The product
+
+Old monitoring scripts go in. Verified new ones come out. Along the way, the process finds real problems in the hall that the old scripts were hiding.
+
+- **Read:** Nemotron Super reads a legacy Nagios check (plugin + config) and writes a rule card. The real plugin is run to confirm each statement.
+- **Find:** the old check is replayed over 21 days of recorded hall readings. Deterministic detectors find what it hid. Nemotron Nano writes each finding as two sentences and an action. Staff accept (work order) or dismiss.
+- **Prove:** Nemotron Super writes Prometheus rules. The verifier runs the real plugin on every value the sensor can report and on generated timing traces. A one-shot translation fails; the Gauntlet loop passes. Certificate, human sign-off, tombstone.
+
+Nemotron writes sentences and rules. Execution decides whether they're right.
+
+## 2. The hall
+
+- **Hall 1**, 4 rows **A–D**, 10 racks each (`A1`…`D10`, 40 racks).
+- **Cold aisles** between A|B and C|D; **hot aisles** behind. Label them.
+- **Cooling units:** one per row at the row end: `CU-A`…`CU-D`.
+- **PDUs:** 2 per row, `PDU A-1` (racks 1–5), `PDU A-2` (racks 6–10).
+- **D10 is decommissioned** (hatched, "Decom."). A legacy check still watches it.
+- `D6`–`D8` are GPU racks (hotter, 20–35 kW).
+
+## 3. Realistic numbers
+
+| Quantity | Normal | Legacy warning | Legacy critical / danger |
+|---|---|---|---|
+| Rack inlet | 18–27 °C (typical 22–24) | > 27 °C | > 32 °C; throttle ≈ 35 °C; shutdown 40 °C |
+| Outlet | inlet + 8–14 °C | — | — |
+| Rack load | 4–12 kW (GPU 20–35) | — | — |
+| PDU load | 30–65% | ≥ 80% | trip 100% |
+| Cooling unit power | 18–24 kW running | — | — |
+| Cooling per kW trend (CU-B) | flat | — | down 15% over 3 weeks = filter or refrigerant |
+
+Legacy check config (use these exact values): `check_interval 1m`, `retry_interval 1m`, `max_check_attempts 3`, `notification_options w,u,c,r`, contact `rkowalski@` (left in 2023).
+
+## 4. Vocabulary
+
+| Use | Avoid |
+|---|---|
+| data hall, row, rack, cold aisle, hot aisle | server room, zone |
+| cooling unit (CU-B); CRAC as secondary label only | AC |
+| inlet temperature, outlet temperature | "temp" in headings |
+| PDU, breaker | — |
+| page, on-call, shift, handoff, work order | notification (in headings) |
+| finding, accept, dismiss | anomaly, alert (for findings) |
+| untrusted / faulty sensor | bad data |
+| retire, parallel run, cutover, decommission, tombstone | rewrite, migrate code |
+| certificate, counterexample, coverage, verified by execution | proven correct, 100% safe (without scope) |
+
+## 5. The legacy checks (Checks table)
+
+| Check | Plugin | Watches | Stage in demo |
+|---|---|---|---|
+| `check_rack_inlet` | check_snmp | Inlet °C, 39 racks | The demo check: Read → Find → Prove live |
+| `check_cu_status` | check_snmp | CU running flag | Signed off |
+| `check_pdu_load` | check_snmp | PDU %, 8 PDUs | Parallel run (traces 312/500) |
+| `check_ups_battery` | check_apc (Perl) | UPS charge % | Blocked: 1 open counterexample |
+| `check_rack_inlet_d10` | check_snmp | Inlet °C, D10 | Drop (D10 decommissioned 2024-03) |
+| `check_room_humidity` | check_snmp | RH % | Audit (not started) |
+
+## 6. The six findings (exact copy)
+
+Replay header: `Replayed check_rack_inlet over 21 days · 30,240 runs of the real plugin · it paged 214 times · 196 were the same false alarm`.
+
+| # | Severity | Title | Sentences (Nemotron Nano) | Found by | Suggested action | Evidence chart |
+|---|---|---|---|---|---|---|
+| 1 | Critical | B7 inlet sensor is faulty | "B7 reports 10 °C above its neighbours and above its own outlet, which is physically impossible. The rack is at about 26 °C; the sensor is wrong, not the rack." | neighbour-disagreement + inlet/outlet-gap detectors | Replace B7 inlet sensor; suppress paging on B7 until replaced | B7 reported (36 °C) vs neighbour estimate (26 °C) vs B7 outlet, 21 days |
+| 2 | Warning | CU-B is losing cooling effectiveness | "CU-B still reports Running, but its cooling per kW has fallen 15% over three weeks. That pattern usually means a clogged filter or low refrigerant." | cooling-effectiveness-trend detector | Schedule filter change on CU-B; inspect refrigerant | Cooling per kW, 21 days, a slow slope down; legacy status flat `OK` |
+| 3 | Watch | Row C pages every night at 02:00 | "A batch job warms row C by 2 °C at 02:00 and it recovers by 02:40. The old check paged 19 nights in a row and nobody acted." | periodic-false-alarm detector | Add a 30-minute hold during the batch window, or move the job | 21 nightly spikes, all under 30 °C |
+| 4 | Info | D10 is still monitored | "D10 was decommissioned in March 2024 and is not in the inventory. This check watches an empty rack." | inventory cross-check | Retire `check_rack_inlet_d10` without replacement | Inventory row vs config line |
+| 5 | Critical | Pages go to a mailbox nobody reads | "Every page from this check goes to rkowalski@, who is not on the on-call roster. Nobody has received these pages since 2023." | roster cross-check | Route to the on-call roster | Contact line vs roster |
+| 6 | Warning | A4's sensor drops out | "A4's sensor failed to answer 3% of the time over three weeks. The old check returned UNKNOWN and paged, but the pages went to the dead mailbox." | missing-data detector | Check A4 sensor cabling; page on missing data to the roster | Timeout count per day |
+
+Accepted in the demo: 1, 2, 5 (work orders #482, #483, #484). Dismissed: 3 ("Known"). 4 and 6 left for the judge to click.
+
+## 7. People
+
+Maya R. (night-shift operator) · Luis O. (on-call facilities tech) · Dev K. (day shift lead) · Priya S. (thermal engineer) · Sam T. (monitoring engineer, owns retirement).
+
+## 8. Legacy vs new on screen
+
+- **Legacy = grey, monospace, raw:** `[02:03] PROBLEM: B7 Inlet is CRITICAL - SNMP CRITICAL - *35.8* C`
+- **New = accent, plain English, structured:** `Critical · B7 inlet sensor is faulty · Found by neighbour-disagreement detector`

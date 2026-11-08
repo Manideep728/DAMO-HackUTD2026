@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sse-starlette
+openai
+pydantic
+hypothesis
+pyyaml
+python-dotenv
+httpx

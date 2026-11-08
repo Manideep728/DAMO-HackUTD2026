@@ -1,0 +1,81 @@
+---
+description: Self-review checklist and judge click-paths. Run after every phase.
+globs: 
+alwaysApply: false
+---
+
+
+# Mock-up QA
+
+You will be biased toward what you just built. Review it as a tired night-shift operator and as a skeptical judge would. Fix what you find before moving on.
+
+## 1. Look at it
+
+If you can run a browser (Playwright, or your tool's preview), **take screenshots** of every screen you touched at 1440×900, and of Console and Verify at 1920×1080 and 1024×768. Look at them, not at the code. If you can't take screenshots, say so in your report, and describe the risk areas you couldn't check.
+
+Suggested Playwright snippet:
+
+```ts
+import { chromium } from 'playwright';
+const routes = ['/', '/read/check_rack_inlet', '/find/check_rack_inlet', '/prove/check_rack_inlet', '/handoff'];
+const sizes = [[1440, 900], [1920, 1080], [1024, 768]];
+const b = await chromium.launch();
+for (const [w, h] of sizes) {
+  const p = await b.newPage({ viewport: { width: w, height: h } });
+  for (const r of routes) { await p.goto(`http://localhost:5173${r}?seek=end`); await p.screenshot({ path: `shots/${w}${r.replace(/\//g, '_') || '_root'}.png` }); }
+}
+await b.close();
+```
+
+Support `?seek=end` so screenshots show the finished state of each screen.
+
+## 2. The 5-second test (every screen)
+
+- [ ] Cover the bottom 60% of the screen. Can you still tell which check and step this is, what it found, and what to do?
+- [ ] Exactly one primary button is visible per screen.
+- [ ] Each finding card reads in two sentences plus one action.
+- [ ] Nothing in a heading is jargon (PromQL, OID, exit code, tool name).
+- [ ] The Checks page calm state looks intentional, not empty.
+
+## 3. Trust and safety
+
+- [ ] Nothing is accepted, signed off or retired without a click. Let every playback run to the end with no clicks: all findings stay open, the certificate stays unsigned.
+- [ ] Undo works within 10 s of Accept and removes the work order.
+- [ ] Every Nemotron sentence sits beside what verified it: execution rows on the rule card, `Found by` on findings, coverage counts on rules.
+- [ ] B7 looks untrusted on the map, on finding #1 and in the handoff.
+- [ ] Every Nemotron output shows Live, Cached or Mock.
+
+## 4. States
+
+For every screen, force and check: idle · streaming (mid-playback) · done · empty · error (Nemotron offline, verifier still works) · cached · the planned failures (flagged statement, blocked sign-off). A bare spinner anywhere fails.
+
+## 5. Accessibility
+
+- [ ] Every status colour has a word and an icon.
+- [ ] Contrast meets AA in both themes (spot-check text on tinted rack tiles and status pills).
+- [ ] Every interactive element is reachable by Tab, with a visible focus ring.
+- [ ] All shortcuts work: `1`–`5`, `A`, `D`, `S`, `U`, `→`, `Esc`, `?`, `H`, `Ctrl+Shift+D`.
+- [ ] `prefers-reduced-motion` removes the transitions and the arrow animation.
+- [ ] New critical findings announce through an `aria-live="assertive"` region; other playback steps are `polite`.
+
+## 6. Realism (an NMC² engineer is watching)
+
+- [ ] Normal inlets are 18–27 °C; nothing "normal" sits above 27.
+- [ ] Vocabulary matches `gauntlet-domain` (cooling unit, inlet, data hall, work order, handoff).
+- [ ] Legacy source and raw pages look like real Nagios config and output.
+- [ ] Replay numbers (30,240 runs, 214 pages, 196 same false alarm) come from the fixtures, not literals in components.
+
+## 7. Judge click-paths (each must run without a single error)
+
+- **Core (2 min):** Checks → Read (`Read with Nemotron`, statements verify by execution) → Find (replay, six findings; accept #1, #2, #5, dismiss #3; work order #482 opens) → Prove (rules, coverage strip, one-shot fails with 3 counterexamples, Gauntlet passes) → Sign off → tombstone.
+- **NMC² minute:** read finding #2 (clogged filter) and #5 (dead mailbox) aloud → Accept #6 live → Handoff shows accepted findings with owners and what to watch → Acknowledge.
+- **8090 minute:** click a rule to its source lines → hover the coverage strip at 27.0 / 27.1 and −0.1 → open counterexample #2 (soft state) → `check_ups_battery`: Sign off blocked by one open counterexample → the flagged rule-card statement on Read.
+- **NVIDIA minute:** expand the Read steps (tools, Super, timer) → the fix-loop rounds with the counterexample fed back → toggle Live and run one finding sentence live → name which model does which job.
+
+## 8. Projector check
+
+At 1920×1080 with the light theme, from about 3 m away (or the screenshot at 50% zoom): finding titles, the replay numbers, the coverage-strip summary and the `Same model both times` caption must all be readable.
+
+## 9. Report
+
+After the review, list: what passed, what you fixed, and what's still open (with a reason). Don't claim you checked anything you didn't look at.

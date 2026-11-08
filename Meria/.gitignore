@@ -1,0 +1,8 @@
+node_modules/
+dist/
+backend/.env
+backend/cache/
+backend/bin/promtool
+__pycache__/
+.hypothesis/
+*.pyc

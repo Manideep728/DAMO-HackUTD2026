@@ -1,0 +1,74 @@
+---
+description: How to call NVIDIA Nemotron on build.nvidia.com from the backend: client, models, streaming, structured output, caching, fallback. Applies to all backend code.
+globs: backend/**
+alwaysApply: false
+---
+
+# Nemotron via the NVIDIA API
+
+All model calls go through `backend/`. The browser never holds the API key.
+
+## 1. Setup
+
+- Key from https://build.nvidia.com (free tier). Put it in `backend/.env` as `NVIDIA_API_KEY=nvapi-...`. `.env` is in `.gitignore`. Never log it.
+- Endpoint is OpenAI-compatible: `base_url = "https://integrate.api.nvidia.com/v1"`. Use the `openai` Python package.
+- **Model IDs change. Before coding, open build.nvidia.com, find the current Nemotron models, and paste their exact IDs into `backend/app/models.py`.** Two roles:
+  - `SUPER`: the largest Nemotron available with reasoning (rule card, rules generation, fix loop, one-shot baseline)
+  - `NANO`: the smallest/fastest Nemotron (finding sentences, handoff text)
+- Verify both with `python -m app.smoke` before building anything else. If tool calling or JSON mode misbehaves on a model, switch models now, not at 2 AM.
+
+```python
+# backend/app/llm.py
+import os, json, time
+from openai import OpenAI
+from .models import SUPER, NANO
+
+client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=os.environ["NVIDIA_API_KEY"])
+
+def chat(messages, *, model=NANO, tools=None, json_schema=None, stream=False, temperature=0.2, max_tokens=2048):
+    kwargs = dict(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, stream=stream)
+    if tools: kwargs["tools"] = tools; kwargs["tool_choice"] = "auto"
+    if json_schema: kwargs["response_format"] = {"type": "json_schema", "json_schema": json_schema}
+    return client.chat.completions.create(**kwargs)
+```
+
+If `response_format` with `json_schema` is rejected by a model, fall back to: ask for JSON in the system prompt, extract the first `{...}` block, validate with Pydantic, and re-ask once on failure.
+
+## 2. The four calls
+
+| Call | Model | Input | Output (Pydantic) | Notes |
+|---|---|---|---|---|
+| `rule_card(check)` | SUPER | plugin invocation, commands.cfg, services.cfg, contacts.cfg, inventory.csv, oncall_roster.csv | `RuleCard` (statements with `source` line ranges) | Give it tools `read_file`, `read_table`; cap at 12 tool calls. Each statement must cite file + line range; reject and re-ask if a cited line doesn't contain the quoted text. |
+| `finding_text(detector_hit)` | NANO | detector name, numbers, target, legacy behaviour | `{sentences: str (≤2 sentences), action: str}` | No tools. Temperature 0.3. Reject if > 2 sentences or if it invents a number not in the input. |
+| `generate_rules(card, accepted_findings, feedback=None)` | SUPER | rule card, accepted findings, metric names, reference rules as a style example, and on later rounds the counterexamples | `{rules_yaml: str, rationale: str}` | Must pass `promtool check rules`. Feed promtool errors or counterexamples back as `feedback`. Max 3 rounds. |
+| `oneshot_rules(check)` | SUPER | plugin source + config only, one prompt, no tools, no findings | `{rules_yaml: str}` | The honest baseline. Same temperature and model as above. Don't tune its prompt to fail. |
+
+## 3. Streaming to the UI
+
+Use **Server-Sent Events** from FastAPI (`sse-starlette`). Each endpoint emits the same `EngineEvent` shapes the frontend already consumes:
+
+```
+POST /api/read/{check_id}   → events: step(running/done) ..., ruleCard, statementVerified ×N
+POST /api/find/{check_id}   → events: replay, step(detector) ..., finding ×6
+POST /api/prove/{check_id}  → events: step, rules, verify(oneshot), round ×N, verify(gauntlet), certificate
+```
+
+Emit a `step` event *before* each model call with `model` and start time, and a `done` event with `durationMs` after, so the UI shows the model name and a real timer.
+
+## 4. Caching and fallback
+
+- Every model response is cached to `backend/cache/{check_id}/{call}/{sha256(prompt)}.json` with the model ID and timestamp. Cache hits are served with `mode: "cached"`; misses with `mode: "live"`. The frontend shows the badge; never hide it.
+- `GAUNTLET_MODE=live|cached|mock` in `.env`. `cached` never calls the API (demo with Wi-Fi off). `mock` serves the frontend's fixtures through the same endpoints. Default `live` with automatic fallback to `cached` on any API error or a 20 s timeout.
+- Before the demo, run `python -m app.warm` to populate the cache for every check and the one-shot baseline.
+- Retries: 2, exponential backoff, on 429 and 5xx. Log the status, never the key.
+
+## 5. Execution checks are not the model's job
+
+The verifier (`backend/app/verify/`) runs the **real plugin binary** (or the fallback scripts) and `promtool`. Nemotron never reports its own correctness. Anything Nemotron asserts about thresholds or behaviour is checked by `verify/sweep.py` (every value) and `verify/traces.py` (Hypothesis). The frontend labels those rows `Verified by execution`.
+
+## 6. Prompts (keep in `backend/app/prompts/*.md`, not inline)
+
+- `rule_card.md`: "You are reading a legacy Nagios check. Describe exactly what it does. Cite file and line for every statement. Use Nagios range semantics: a bare threshold `27` means alert when the value is outside 0..27. Describe when it actually pages, including retries and UNKNOWN. List what it ignores."
+- `finding_text.md`: "Write two sentences a night-shift technician can act on. Use only the numbers given. Name the likely cause and one action. No hedging words."
+- `generate_rules.md`: "Write Prometheus alerting rules that reproduce every legacy alert and add one rule per accepted finding. Use `for:` to model retries. Label each rule `replaces` or `found_by`. Output YAML only."
+- `oneshot.md`: "Translate this Nagios check into Prometheus alerting rules." (deliberately plain)
