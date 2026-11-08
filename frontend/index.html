@@ -14,6 +14,8 @@
     <script>
       // Apply the saved theme before first paint (light "paper" is the brand default).
       try { var t = localStorage.getItem('theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) {}
+      // Routes live in the hash (#/preflight). A plain path such as /preflight (shared link, typed URL) becomes its hash route.
+      if (location.pathname !== '/' && location.pathname !== '/index.html' && !location.hash) location.replace('/#' + location.pathname + location.search);
     </script>
   </head>
   <body>

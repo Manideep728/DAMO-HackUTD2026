@@ -3,5 +3,6 @@
   "framework": null,
   "installCommand": "npm ci --prefix frontend",
   "buildCommand": "npm run build --prefix frontend",
-  "outputDirectory": "frontend/dist"
+  "outputDirectory": "frontend/dist",
+  "rewrites": [{ "source": "/((?!api/|assets/|brand/).*)", "destination": "/index.html" }]
 }
