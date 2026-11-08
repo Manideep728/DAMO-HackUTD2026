@@ -148,3 +148,11 @@ Rule: every animation shows something real happening (a reading changing, an eva
 | v8 | Console 10 · Preflight 10 | Console: story line, full-width race hero, solid alarm header with glow, hall key as caption. Preflight: Why panel (root-cause chain + automatic Nemotron check), docked on desktop, beside a re-fitted map on iPad | The comparison was buried, alarms blended in, the root cause and agent steps were hidden in tabs |
 
 **To reach a true 10:** the same flows driven live (install the tools and the NVIDIA key, so the matrix and agent panels show "live"), and a recorded backup run.
+
+### v9: technician audit fixes (8 Nov 2026)
+- **One facility:** the console hall is Preflight's H1. Same rack and feed IDs everywhere; chips deep-link to `#/preflight?focus=<id>`.
+- **Alarm first:** incident top-left; the race is a white chip in the alarm header; the primary action sits above any detail; the event log is under the incident, the full race below the hall.
+- **Model optional:** "Skip, dispatch now"; offline shows a banner, never a disabled main button; a skipped step reads "skipped" in the lifecycle.
+- **Touch rules (new, binding):** every target ≥ 48 px (`h-12`) on touch, with a `(pointer: coarse)` min-size safety net. Text ≥ 12 px, body 14 px. State words never truncate or break mid-word (use a shorter whole word on small tiles: HOT, WARN, STALE). Keyboard hints are hidden on touch. Inline IDs are chips, not underlined text.
+- **Map camera:** fit, but never below the zoom where nodes are 48 px (`READABLE = 48 / NODE_H`); the whole site is left-aligned when it overflows; when Why opens, frame only the affected equipment. Re-fit on row expand and collapse.
+- **iPad Preflight:** panels in a bottom sheet (handle bottom-right of the map); Why and Trace coexist; Plan picks from the map and sliders; admin actions in an Admin menu; explanations via tap tips (`Tip`).

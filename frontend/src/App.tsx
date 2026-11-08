@@ -6,13 +6,7 @@ import Landing from './screens/Landing';
 import Console from './console/Console';
 import Verify from './console/Verify';
 import Preflight from './preflight/Preflight';
-import Checks from './screens/Checks';
-import Read from './screens/Read';
-import Find from './screens/Find';
-import Prove from './screens/Prove';
-import Handoff from './screens/Handoff';
 import { M1Import, M2Recover, M3Generate, M4Test, M5Release } from './modern/Modernize';
-import { OpsAlerts, OpsInvestigate, OpsHandoff } from './modern/Operate';
 
 export default function App() {
   return (
@@ -32,15 +26,8 @@ export default function App() {
               <Route path="/modernize/generate" element={<M3Generate />} />
               <Route path="/modernize/test" element={<M4Test />} />
               <Route path="/modernize/release" element={<M5Release />} />
-              <Route path="/operate" element={<OpsAlerts />} />
-              <Route path="/operate/investigate" element={<OpsInvestigate />} />
-              <Route path="/operate/handoff" element={<OpsHandoff />} />
-              {/* Earlier check_rack_inlet demo, kept reachable but out of the main nav */}
-              <Route path="/checks" element={<Checks />} />
-              <Route path="/read/:checkId" element={<Read />} />
-              <Route path="/find/:checkId" element={<Find />} />
-              <Route path="/prove/:checkId" element={<Prove />} />
-              <Route path="/handoff" element={<Handoff />} />
+              {/* Retired screens (old R1–R5 operate flow, check_rack_inlet demo) contradicted the console; their links land on the live console */}
+              {['/operate/*', '/checks', '/read/*', '/find/*', '/prove/*', '/handoff'].map((p) => <Route key={p} path={p} element={<Navigate to="/" replace />} />)}
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

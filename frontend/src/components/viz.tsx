@@ -28,7 +28,7 @@ export function Sparkline({ series, width = 420, height = 120, showAxis = true }
 }
 
 export function Legend({ series }: { series: Series[] }) {
-  return <div className="flex flex-wrap gap-3 text-[11.5px] text-muted">{series.map((s) => <span key={s.id} className="inline-flex items-center gap-1.5"><span className="inline-block w-4 border-t-2" style={{ borderColor: colorVar(s.color), borderStyle: s.dashed ? 'dashed' : 'solid' }} />{s.label}</span>)}</div>;
+  return <div className="flex flex-wrap gap-3 text-[12px] text-muted">{series.map((s) => <span key={s.id} className="inline-flex items-center gap-1.5"><span className="inline-block w-4 border-t-2" style={{ borderColor: colorVar(s.color), borderStyle: s.dashed ? 'dashed' : 'solid' }} />{s.label}</span>)}</div>;
 }
 
 const stateColor: Record<ExitState, string> = { OK: 'var(--surface-2)', WARNING: 'var(--warning)', CRITICAL: 'var(--critical)', UNKNOWN: 'var(--untrusted)' };
@@ -89,7 +89,7 @@ export function ReplayTimeline({ pageTicks, hits, days }: { pageTicks: number[];
         {pageTicks.map((t, i) => <line key={i} x1={X(t)} x2={X(t)} y1={4} y2={H - 4} stroke="var(--legacy)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" opacity={0.8} />)}
       </svg>
       <div className="relative h-0">{hits.map((h, i) => <span key={i} className="absolute -top-[18px] h-2 w-2 -ml-1 rounded-full bg-accent" style={{ left: `${(h.t / T) * 100}%` }} />)}</div>
-      <div className="flex justify-between text-[11px] text-muted mt-1"><span>day 1</span><span>day {days}</span></div>
+      <div className="flex justify-between text-[12px] text-muted mt-1"><span>day 1</span><span>day {days}</span></div>
     </div>
   );
 }

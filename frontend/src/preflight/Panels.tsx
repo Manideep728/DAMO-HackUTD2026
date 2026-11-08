@@ -6,7 +6,7 @@ import type { CutSets, Evidence, ModelRead, Transient, Finding, Findings, PlanEv
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
 export function ImpactPanel({ sim, red, transient, onPick }: { sim: SimResult | null; red: ServiceRed[]; transient: Transient | null; onPick: (nodes: string[]) => void }) {
-  if (!sim) return <p className="text-muted text-[13px]">Simulating…</p>;
+  if (!sim) return <p className="text-muted text-[14px]">Simulating…</p>;
   const traced = Object.entries(sim.traces);
   return (
     <div className="grid gap-5">
@@ -18,7 +18,7 @@ export function ImpactPanel({ sim, red, transient, onPick }: { sim: SimResult | 
       </div>
       {transient && transient.events.length > 0 && <TransientTimeline t={transient} onPick={onPick} />}
       <section>
-        <h3 className="text-[13px] font-semibold mb-2">Redundancy of critical services</h3>
+        <h3 className="text-[14px] font-semibold mb-2">Redundancy of critical services</h3>
         <p className="text-[12px] text-muted mb-2">Capacity asks whether there are enough suppliers. Independence asks how many failures it takes to lose them all. Click a row to show its shared dependencies.</p>
         <table className="w-full text-[12.5px]">
           <thead><tr className="text-muted text-left"><th className="py-1 font-medium">Service</th><th className="font-medium">Capacity</th><th className="font-medium">Independent paths</th><th className="font-medium">Effective</th></tr></thead>
@@ -37,7 +37,7 @@ export function ImpactPanel({ sim, red, transient, onPick }: { sim: SimResult | 
       </section>
       {traced.length > 0 && (
         <section>
-          <h3 className="text-[13px] font-semibold mb-2">Why it failed</h3>
+          <h3 className="text-[14px] font-semibold mb-2">Why it failed</h3>
           {traced.slice(0, 3).map(([id, steps]) => (
             <ol key={id} className="mb-3 border-l-2 border-critical/40 pl-3 grid gap-1 text-[12px]">
               {steps.map((s, i) => (
@@ -60,7 +60,7 @@ function TransientTimeline({ t, onPick }: { t: Transient; onPick: (nodes: string
   const bad = (what: string) => /exhausted|exceed|drops/.test(what);
   return (
     <section>
-      <h3 className="text-[13px] font-semibold mb-1 flex items-center gap-2">First minutes after the failure <Badge>simplified</Badge></h3>
+      <h3 className="text-[14px] font-semibold mb-1 flex items-center gap-2">First minutes after the failure <Badge>simplified</Badge></h3>
       <p className="text-[12px] text-muted mb-2">Steady-state snapshots with default timings, not a dynamic simulation. Click an event to show its equipment.</p>
       {onlyDuring.length > 0 && (
         <p className="text-[12.5px] text-critical mb-2" role="alert">
@@ -90,14 +90,14 @@ function TransientTimeline({ t, onPick }: { t: Transient; onPick: (nodes: string
 function Stat({ label, value, tone }: { label: string; value: string | number; tone: 'ok' | 'warning' | 'critical' }) {
   return (
     <div className="rounded-lg border hairline px-3 py-2" data-testid={`stat-${label}`}>
-      <div className="text-[11.5px] text-muted">{label}</div>
+      <div className="text-[12px] text-muted">{label}</div>
       <div className={cx('mono text-[15px] font-semibold', tone === 'critical' ? 'text-critical' : tone === 'warning' ? 'text-warning' : 'text-text')}>{value}</div>
     </div>
   );
 }
 
 export function CutSetPanel({ cuts, maintenance, picked, onPick }: { cuts: CutSets | null; maintenance: string[]; picked: string; onPick: (nodes: string[]) => void }) {
-  if (!cuts) return <p className="text-muted text-[13px]">Searching weak points…</p>;
+  if (!cuts) return <p className="text-muted text-[14px]">Searching weak points…</p>;
   return (
     <div className="grid gap-3">
       <p className="text-[12.5px] text-muted">
@@ -116,22 +116,23 @@ export function CutSetPanel({ cuts, maintenance, picked, onPick }: { cuts: CutSe
                 <span className={cx('mono font-semibold mr-2', c.order === 1 && 'text-critical')}>order {c.order}</span>
                 <span className="mono">{c.nodes.join(' + ')}</span>
                 {c.was_order && c.was_order > c.order && <Badge tone="critical">was order {c.was_order}</Badge>}
-                <span className="block text-muted text-[11.5px]">loses {c.lost_services.slice(0, 4).join(', ')}{c.lost_services.length > 4 ? ` +${c.lost_services.length - 4}` : ''} · {Math.round(c.lost_kw)} kW</span>
+                <span className="block text-muted text-[12px]">loses {c.lost_services.slice(0, 4).join(', ')}{c.lost_services.length > 4 ? ` +${c.lost_services.length - 4}` : ''} · {Math.round(c.lost_kw)} kW</span>
               </button>
             </li>
           );
         })}
       </ul>
-      {cuts.notes.map((n) => <p key={n} className="text-[11.5px] text-faint">{n}</p>)}
+      {cuts.notes.map((n) => <p key={n} className="text-[12px] text-faint">{n}</p>)}
     </div>
   );
 }
 
 export function FindingsPanel({ data, onDecide, onShow, onModelRead }: { data: Findings | null; onDecide: (f: Finding, d: 'confirmed' | 'rejected', actor: string, note: string) => Promise<void>; onShow: (nodes: string[]) => void; onModelRead: () => Promise<void> }) {
-  const [actor, setActor] = useState(() => { try { return localStorage.getItem('pf-actor') ?? ''; } catch { return ''; } });
+  // Prefilled with the signed-in engineer, so deciding needs no keyboard; still editable and logged with every decision.
+  const [actor, setActor] = useState(() => { try { return localStorage.getItem('pf-actor') || 'Maya R.'; } catch { return 'Maya R.'; } });
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
-  if (!data) return <p className="text-muted text-[13px]">Reading records…</p>;
+  if (!data) return <p className="text-muted text-[14px]">Reading records…</p>;
   const open = data.findings.filter((f) => f.classification !== 'confirms');
   const confirms = data.findings.filter((f) => f.classification === 'confirms' && f.status !== 'superseded');
   const decide = async (f: Finding, d: 'confirmed' | 'rejected') => {
@@ -149,8 +150,8 @@ export function FindingsPanel({ data, onDecide, onShow, onModelRead }: { data: F
   };
   return (
     <div className="grid gap-4">
-      <label className="flex items-center gap-2 text-[12.5px]">Engineer
-        <input id="pf-actor" value={actor} onChange={(e) => setActor(e.target.value)} placeholder="your name" className="h-8 px-2 rounded-md border hairline bg-surface flex-1" />
+      <label className="flex items-center gap-2 text-[14px]">Decided by
+        <input id="pf-actor" value={actor} onChange={(e) => setActor(e.target.value)} placeholder="your name" className="h-12 px-3 rounded-xl border hairline bg-surface flex-1 min-w-0" />
       </label>
       {error && <p className="text-critical text-[12.5px]">{error}</p>}
       {data.records > 0 && (
@@ -166,7 +167,7 @@ export function FindingsPanel({ data, onDecide, onShow, onModelRead }: { data: F
             <Badge>{pct(f.confidence)} confidence</Badge>
             <Badge tone={f.status === 'confirmed' ? 'ok' : f.status === 'rejected' ? 'neutral' : 'accent'}>{f.status === 'open' ? 'Suspected' : f.status}</Badge>
           </div>
-          <button type="button" className="text-left font-semibold text-[13.5px] hover:underline" onClick={() => onShow([f.consumer, f.supplier])}>{f.claim}</button>
+          <button type="button" className="text-left font-semibold text-[14px] hover:underline" onClick={() => onShow([f.consumer, f.supplier])}>{f.claim}</button>
           {f.impact.new_single_points && f.impact.new_single_points.length > 0 && (
             <p className="text-[12.5px] text-critical">If true: <span className="mono">{f.impact.new_single_points.join(', ')}</span> becomes a single point of failure; {f.impact.services_downgraded?.length ?? 0} critical services drop to N.</p>
           )}
@@ -190,8 +191,8 @@ export function FindingsPanel({ data, onDecide, onShow, onModelRead }: { data: F
         <ul className="mt-2 grid gap-1">{confirms.map((f) => <li key={f.id} className="mono">{f.consumer} ← {f.supplier} <span className="text-muted">({f.supporting.map((s) => s.doc_id).join(', ')})</span></li>)}</ul>
       </details>
       {data.metrics
-        ? <p className="text-[11.5px] text-faint">On the labelled demo corpus: precision {data.metrics.precision}, recall {data.metrics.recall}.</p>
-        : <p className="text-[11.5px] text-faint">{data.records ? `${data.records} records read; no labels to score against.` : 'No maintenance records are loaded for this facility.'}</p>}
+        ? <p className="text-[12px] text-faint">On the labelled demo corpus: precision {data.metrics.precision}, recall {data.metrics.recall}.</p>
+        : <p className="text-[12px] text-faint">{data.records ? `${data.records} records read; no labels to score against.` : 'No maintenance records are loaded for this facility.'}</p>}
     </div>
   );
 }
@@ -233,7 +234,7 @@ export function PlanResults({ res, compare, onToggleCompare }: { res: PlanSearch
       {all.map(({ p, top }, i) => (
         <label key={`${p.start}-${p.mitigations.join(',')}-${i}`} className={cx('rounded-lg border px-3 py-2 text-[12.5px] grid gap-0.5 cursor-pointer', top ? (i === 0 ? 'border-ok' : 'hairline') : 'hairline opacity-80')}>
           <span className="flex items-center gap-2">
-            <input type="checkbox" checked={compare.includes(i)} onChange={() => onToggleCompare(i)} />
+            <input type="checkbox" checked={compare.includes(i)} onChange={() => onToggleCompare(i)} className="h-5 w-5 shrink-0" />
             {top ? (i === 0 ? <StatusPill kind="ok" word="Recommended" size="sm" /> : <Badge>Alternative</Badge>) : <Badge tone="warning">Rejected</Badge>}
             <span className="mono font-semibold">hour {p.start}–{p.end}</span>
             {p.mitigations.length > 0 && <span className="text-muted">with {p.mitigations.join(', ').replaceAll('_', ' ')}</span>}

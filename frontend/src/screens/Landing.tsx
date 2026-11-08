@@ -36,27 +36,27 @@ export default function Landing() {
     <div className="min-h-full bg-bg text-text">
       <header className="sticky top-0 z-20 border-b hairline bg-bg/90 backdrop-blur-sm">
         <div className="mx-auto max-w-[1200px] px-5 h-16 flex items-center gap-8">
-          <Link to="/" className="flex items-center" aria-label="Damo, home"><img src="/brand/damo-logo.png" alt="Damo" className="brand-light h-[34px] w-auto" /><img src="/brand/damo-logo-light.png" alt="Damo" className="brand-dark h-[34px] w-auto" /></Link>
-          <nav className="hidden md:flex items-center gap-6 text-[13.5px] text-muted">
-            <a href="#modernize" className="hover:text-text t">Modernize</a><a href="#operate" className="hover:text-text t">Operate</a><a href="#trust" className="hover:text-text t">Trust</a><a href="#who" className="hover:text-text t">Who it's for</a>
+          <Link to="/" className="h-12 flex items-center" aria-label="Damo, home"><img src="/brand/damo-logo.png" alt="Damo" className="brand-light h-[34px] w-auto" /><img src="/brand/damo-logo-light.png" alt="Damo" className="brand-dark h-[34px] w-auto" /></Link>
+          <nav className="hidden md:flex items-center gap-6 text-[14px] text-muted">
+            <a href="#modernize" className="hover:text-text t inline-flex items-center h-12 px-2">Modernize</a><a href="#operate" className="hover:text-text t inline-flex items-center h-12 px-2">Operate</a><a href="#trust" className="hover:text-text t inline-flex items-center h-12 px-2">Trust</a><a href="#who" className="inline-flex items-center h-12 px-1 hover:text-text t">Who it's for</a>
           </nav>
-          <Link to="/modernize/import" className="ml-auto btn btn-primary h-9 px-4 rounded-lg inline-flex items-center gap-2 text-[13.5px] font-medium">Open the demo <ArrowRight size={15} /></Link>
+          <Link to="/modernize/import" className="ml-auto btn btn-primary h-12 px-4 rounded-lg inline-flex items-center gap-2 text-[14px] font-medium">Open the demo <ArrowRight size={15} /></Link>
         </div>
       </header>
 
       <section className="mx-auto max-w-[1200px] px-5 pt-20 pb-16 md:pt-28">
-        <p className="text-[13.5px] text-muted mb-5">For data center monitoring and operations teams</p>
+        <p className="text-[14px] text-muted mb-5">For data center monitoring and operations teams</p>
         <h1 className="text-[44px] md:text-[64px] font-semibold tracking-[-0.045em] leading-[1.02] max-w-[900px]">Retire the monitoring you inherited, without missing a page.</h1>
         <p className="text-[17px] md:text-[19px] text-muted mt-6 max-w-[680px] leading-relaxed">Damo reads your old Nagios checks, recovers what they really do, writes the replacement and proves it on the whole alert path. Then it runs the alerts, the investigation and the shift handoff.</p>
         <div className="flex flex-wrap gap-3 mt-9">
-          <Link to="/modernize/import" className="btn btn-primary h-11 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium">See modernization <ArrowRight size={16} /></Link>
-          <Link to="/operate" className="btn h-11 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium border hairline bg-surface hover:bg-surface-2">See operations</Link>
+          <Link to="/modernize/import" className="btn btn-primary h-12 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium">See modernization <ArrowRight size={16} /></Link>
+          <Link to="/" className="btn h-12 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium border hairline bg-surface hover:bg-surface-2">See operations</Link>
         </div>
         <Preview />
       </section>
 
       <section className="border-y hairline bg-surface">
-        <div className="mx-auto max-w-[1200px] px-5 py-6 flex flex-wrap items-center gap-x-10 gap-y-3 text-[13.5px] text-muted">
+        <div className="mx-auto max-w-[1200px] px-5 py-6 flex flex-wrap items-center gap-x-10 gap-y-3 text-[14px] text-muted">
           <span className="text-faint">Works with what you run</span>
           {['Nagios Core plugins', 'Redfish / BMC', 'Prometheus', 'Alertmanager', 'NVIDIA Nemotron'].map((x) => <span key={x} className="font-medium text-text/80">{x}</span>)}
         </div>
@@ -88,7 +88,7 @@ export default function Landing() {
       <section id="who" className="border-t hairline bg-surface">
         <div className="mx-auto max-w-[1200px] px-5 py-24 grid lg:grid-cols-[1fr_1.4fr] gap-12">
           <div><h2 className="text-[32px] font-semibold tracking-[-0.035em] leading-tight">Every role keeps its own decision.</h2><p className="text-[15px] text-muted mt-4 leading-relaxed">Ownership comes from your owner and shift map, never from the model.</p></div>
-          <div className="grid sm:grid-cols-2 gap-px rounded-2xl overflow-hidden border hairline bg-border">{roles.map(([r, d]) => <div key={r} className="bg-bg p-5"><div className="font-medium text-[14.5px]">{r}</div><div className="text-[13.5px] text-muted mt-1">{d}</div></div>)}</div>
+          <div className="grid sm:grid-cols-2 gap-px rounded-2xl overflow-hidden border hairline bg-border">{roles.map(([r, d]) => <div key={r} className="bg-bg p-5"><div className="font-medium text-[14.5px]">{r}</div><div className="text-[14px] text-muted mt-1">{d}</div></div>)}</div>
         </div>
       </section>
 
@@ -96,7 +96,7 @@ export default function Landing() {
         <img src="/brand/damo-mark.png" alt="" className="brand-light mx-auto h-12 w-auto mb-6" /><img src="/brand/damo-mark-light.png" alt="" className="brand-dark mx-auto h-12 w-auto mb-6" />
         <h2 className="text-[34px] md:text-[44px] font-semibold tracking-[-0.04em] leading-tight">Bring one real check.<br /><span className="text-muted">Leave with a tested replacement.</span></h2>
         <div className="flex flex-wrap justify-center gap-3 mt-9">
-          <Link to="/modernize/import" className="btn btn-primary h-11 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium">Start the demo <ArrowRight size={16} /></Link>
+          <Link to="/modernize/import" className="btn btn-primary h-12 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium">Start the demo <ArrowRight size={16} /></Link>
         </div>
       </section>
 
@@ -115,15 +115,15 @@ function Flow({ id, kicker, title, sub, items, cta }: { id: string; kicker: stri
     <section id={id} className="border-t hairline">
       <div className="mx-auto max-w-[1200px] px-5 py-24">
         <div className="flex flex-wrap items-end gap-6 mb-12">
-          <div className="max-w-[720px]"><p className="text-[13.5px] text-muted mb-3">{kicker}</p><h2 className="text-[32px] md:text-[40px] font-semibold tracking-[-0.035em] leading-tight">{title}</h2><p className="text-[15.5px] text-muted mt-4 leading-relaxed">{sub}</p></div>
-          <Link to={cta.to} className="md:ml-auto btn h-10 px-4 rounded-lg inline-flex items-center gap-2 text-[14px] font-medium border hairline bg-surface hover:bg-surface-2">{cta.label} <ArrowRight size={15} /></Link>
+          <div className="max-w-[720px]"><p className="text-[14px] text-muted mb-3">{kicker}</p><h2 className="text-[32px] md:text-[40px] font-semibold tracking-[-0.035em] leading-tight">{title}</h2><p className="text-[15.5px] text-muted mt-4 leading-relaxed">{sub}</p></div>
+          <Link to={cta.to} className="md:ml-auto btn h-12 px-4 rounded-lg inline-flex items-center gap-2 text-[14px] font-medium border hairline bg-surface hover:bg-surface-2">{cta.label} <ArrowRight size={15} /></Link>
         </div>
         <ol className="grid md:grid-cols-5 gap-px rounded-2xl overflow-hidden border hairline bg-border">
           {items.map(({ k, t, d, I }) => (
             <li key={k} className="bg-surface p-6">
               <div className="flex items-center justify-between mb-6"><I size={18} className="text-muted" aria-hidden /><span className="mono text-[12px] text-faint">{k}</span></div>
               <div className="font-semibold text-[15px] tracking-[-0.01em] mb-2">{t}</div>
-              <p className="text-[13.5px] text-muted leading-relaxed">{d}</p>
+              <p className="text-[14px] text-muted leading-relaxed">{d}</p>
             </li>))}
         </ol>
       </div>
@@ -142,13 +142,13 @@ function Preview() {
   ];
   return (
     <div className="mt-16 card overflow-hidden shadow-[var(--shadow)]">
-      <div className="flex items-center gap-3 px-5 h-12 border-b hairline text-[13px]">
+      <div className="flex items-center gap-3 px-5 h-12 border-b hairline text-[14px]">
         <span className="font-semibold">M4 · Test the whole alert path</span>
         <span className="text-muted">ttu-redfish-temperature · candidate v2</span>
         <span className="ml-auto inline-flex items-center gap-1.5 text-ok"><Check size={14} /> 6/6 cases · 3/3 held-out</span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-[13px] min-w-[720px]">
+        <table className="w-full text-[14px] min-w-[720px]">
           <thead className="text-left border-b hairline"><tr><th className="th pl-5 h-10">Case</th><th className="th">Expected</th>{['Missed / extra', 'Severity', 'Timing', 'Recipient', 'Recovery'].map((h) => <th key={h} className="th text-center">{h}</th>)}</tr></thead>
           <tbody>{rows.map(([c, e, v]) => <tr key={c} className="border-b hairline last:border-0"><td className="pl-5 py-3 font-medium">{c}</td><td className="text-muted">{e}</td>{v.map((x, i) => <td key={i} className="text-center">{x ? <Check size={15} className="inline text-ok" strokeWidth={2.5} /> : <X size={15} className="inline text-critical" />}</td>)}</tr>)}</tbody>
         </table>

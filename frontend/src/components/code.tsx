@@ -11,7 +11,7 @@ export function CodeView({ file, highlights, compact }: { file: SourceFile; high
   highlights?.filter((h) => h.file === file.file).forEach((h) => { for (let i = h.from; i <= h.to; i++) hi.add(i); });
   return (
     <div className="rounded-md border hairline overflow-hidden bg-surface">
-      <div className="px-3 h-8 flex items-center text-[11.5px] text-muted border-b hairline mono">{file.file}</div>
+      <div className="px-3 h-8 flex items-center text-[12px] text-muted border-b hairline mono">{file.file}</div>
       <pre className={cx('overflow-auto text-[12.5px] leading-[1.5] m-0', compact ? 'max-h-48' : 'max-h-[440px]')}>
         {lines.map((l, i) => { const n = i + 1, on = hi.has(n); return (
           <div key={n} className={cx('flex t', on && 'bg-accent/10')}>
@@ -27,7 +27,7 @@ export function YamlView({ yaml, onHoverLine, activeLine }: { yaml: string; onHo
   const lines = yaml.replace(/\n$/, '').split('\n');
   return (
     <div className="rounded-md border hairline overflow-hidden bg-surface">
-      <div className="px-3 h-8 flex items-center text-[11.5px] text-muted border-b hairline mono">generated/check_rack_inlet.rules.yml</div>
+      <div className="px-3 h-8 flex items-center text-[12px] text-muted border-b hairline mono">generated/check_rack_inlet.rules.yml</div>
       <pre className="overflow-auto text-[12.5px] leading-[1.5] m-0 max-h-[440px]">
         {lines.map((l, i) => { const isRule = /^\s*- alert:/.test(l); const name = isRule ? l.split('alert:')[1].trim() : null; return (
           <div key={i} className={cx('flex t', isRule && 'cursor-pointer hover:bg-accent/10', activeLine && name === activeLine && 'bg-accent/15')} onMouseEnter={() => name && onHoverLine?.(name)} onMouseLeave={() => name && onHoverLine?.(null)}>
@@ -50,7 +50,7 @@ export function Trace({ steps, title }: { steps: StepState[]; title?: string }) 
           </span>
           <div className="min-w-0">
             <div className={cx(s.status === 'error' && 'text-critical')}>{s.label}</div>
-            <div className="flex flex-wrap gap-2 text-[11px] text-muted mt-0.5">
+            <div className="flex flex-wrap gap-2 text-[12px] text-muted mt-0.5">
               {s.tool && <span className="mono">{s.tool}</span>}
               {s.model && <ModelBadge model={s.model} />}
               {s.durationMs && s.status === 'done' && <span className="num">{(s.durationMs / 1000).toFixed(1)} s</span>}

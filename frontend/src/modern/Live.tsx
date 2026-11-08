@@ -35,7 +35,7 @@ export function AgentRun({ job, seed, onDone, title }: { job: 'recover' | 'repai
   return (
     <Card className="mb-6" header={<>
       {finished ? <Check size={14} className="text-ok" /> : <Loader2 size={14} className="animate-spin text-accent" />}
-      <span className="font-semibold text-[13px]">{title}</span>
+      <span className="font-semibold text-[14px]">{title}</span>
       {start && <Badge tone={start.mode === 'live' ? 'ok' : 'warning'}>{start.mode === 'live' ? 'live' : `cached replay · recorded ${String(start.recorded_at)}`}</Badge>}
       {start?.model ? <Badge tone="accent"><Cpu size={11} /> {String(start.model)}</Badge> : null}
       <span className="ml-auto text-[12px] text-muted num">{tools} tool calls</span>
@@ -47,7 +47,7 @@ export function AgentRun({ job, seed, onDone, title }: { job: 'recover' | 'repai
             <div className="min-w-0">
               {e.type === 'tool' ? <>
                 <div><span className="mono font-medium">{String(e.name)}</span><span className="mono text-muted"> {String(e.args)}</span><span className="text-faint num"> · model {String(e.model_ms)} ms · tool {String(e.tool_ms)} ms</span></div>
-                <div className="mono text-[11.5px] text-muted break-all">→ {String(e.result)}</div>
+                <div className="mono text-[12px] text-muted break-all">→ {String(e.result)}</div>
               </> : <span className={cx(e.type === 'error' ? 'text-critical' : 'text-muted')}>{String(e.text)}</span>}
             </div>
           </li>))}
@@ -72,7 +72,7 @@ export function LiveReportView({ r }: { r: LiveReport }) {
         <span className="text-muted">old: {executed ? `TTU plugin executed on ${executed} BMC responses` : 'plugin modelled (jq not installed)'} + Nagios scheduling from templates.cfg ({String(r.legacy_config.max_check_attempts)} attempts, {String(r.legacy_config.retry_interval)} min retry) · new: promtool + amtool · {r.elapsed_s} s</span>
       </div>
       <div className="card overflow-x-auto">
-        <table className="w-full text-[13px]">
+        <table className="w-full text-[14px]">
           <thead className="text-left border-b hairline"><tr><th className="th pl-5 pr-3 h-11">Case</th><th className="th px-3">Old check (Nagios + plugin)</th><th className="th px-3">Candidate (promtool)</th>{DIMS.map(([, l]) => <th key={l} className="th px-3 text-center whitespace-nowrap">{l}</th>)}</tr></thead>
           <tbody>{r.cases.map((c) => (
             <tr key={c.id} className="border-b hairline last:border-0 align-top">
@@ -85,14 +85,14 @@ export function LiveReportView({ r }: { r: LiveReport }) {
         </table>
       </div>
       <div className="grid md:grid-cols-3 gap-4">
-        <Card header={<><Lock size={14} className="text-muted" /><span className="font-semibold text-[13px]">Held-out cases</span><span className="text-[12px] text-muted ml-auto">sealed</span></>}>
-          <ul className="grid gap-2 text-[13px]">{r.held_out.map((h) => <li key={h.id} className="flex items-center gap-2">{h.pass ? <Check size={15} className="text-ok" /> : <X size={15} className="text-critical" />}{h.name}</li>)}</ul>
+        <Card header={<><Lock size={14} className="text-muted" /><span className="font-semibold text-[14px]">Held-out cases</span><span className="text-[12px] text-muted ml-auto">sealed</span></>}>
+          <ul className="grid gap-2 text-[14px]">{r.held_out.map((h) => <li key={h.id} className="flex items-center gap-2">{h.pass ? <Check size={15} className="text-ok" /> : <X size={15} className="text-critical" />}{h.name}</li>)}</ul>
           <p className="text-[12px] text-faint mt-3">Only pass/fail leaves the harness; the repair agent sees a count.</p>
         </Card>
-        <Card header={<><ShieldAlert size={14} className="text-muted" /><span className="font-semibold text-[13px]">Harness sanity</span></>}>
-          <ul className="grid gap-2 text-[13px]">{r.sanity.map((s) => <li key={s.name} className="flex gap-2">{s.rejected ? <Check size={15} className="text-ok shrink-0 mt-0.5" /> : <X size={15} className="text-critical shrink-0 mt-0.5" />}<span>{s.name}: <b>{s.rejected ? 'rejected' : 'NOT rejected'}</b> <span className="text-muted">({s.failed_cases.length} cases)</span></span></li>)}</ul>
+        <Card header={<><ShieldAlert size={14} className="text-muted" /><span className="font-semibold text-[14px]">Harness sanity</span></>}>
+          <ul className="grid gap-2 text-[14px]">{r.sanity.map((s) => <li key={s.name} className="flex gap-2">{s.rejected ? <Check size={15} className="text-ok shrink-0 mt-0.5" /> : <X size={15} className="text-critical shrink-0 mt-0.5" />}<span>{s.name}: <b>{s.rejected ? 'rejected' : 'NOT rejected'}</b> <span className="text-muted">({s.failed_cases.length} cases)</span></span></li>)}</ul>
         </Card>
-        <Card header={<><Terminal size={14} className="text-muted" /><span className="font-semibold text-[13px]">Plugin executions</span></>}>
+        <Card header={<><Terminal size={14} className="text-muted" /><span className="font-semibold text-[14px]">Plugin executions</span></>}>
           <ul className="grid gap-1.5 text-[12px] mono">{r.plugin.map((p) => <li key={p.bmc_health}><span className="text-muted">{p.bmc_health}</span> → <b>{p.state}</b> <span className="text-faint">{p.how === 'executed' ? `${p.ms} ms` : 'modelled'}</span></li>)}</ul>
           <p className="text-[12px] text-faint mt-3">Old notifications go to {r.legacy_recipient} (contacts.cfg).</p>
         </Card>

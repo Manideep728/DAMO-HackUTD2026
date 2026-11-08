@@ -25,8 +25,8 @@ function Stepper() {
           {({ isActive }) => (
             <div className="flex items-center gap-2.5 min-w-0">
               {done[st.key] ? <span className="h-5 w-5 shrink-0 grid place-items-center rounded-full bg-ok/15 text-ok"><Check size={12} strokeWidth={3} /></span>
-                : <span className={cx('h-5 w-5 shrink-0 grid place-items-center rounded-full border mono text-[10.5px]', isActive ? 'border-text text-text' : 'border-border-strong text-faint')}>{st.n}</span>}
-              <span className="min-w-0"><span className="block mono text-[10.5px] text-faint">M{st.n}</span><span className={cx('block text-[13px] font-medium truncate', isActive ? 'text-text' : 'text-muted group-hover:text-text')}>{st.label}</span></span>
+                : <span className={cx('h-5 w-5 shrink-0 grid place-items-center rounded-full border mono text-[12px]', isActive ? 'border-text text-text' : 'border-border-strong text-faint')}>{st.n}</span>}
+              <span className="min-w-0"><span className="block mono text-[12px] text-faint">M{st.n}</span><span className={cx('block text-[14px] font-medium leading-tight', isActive ? 'text-text' : 'text-muted group-hover:text-text')}>{st.label}</span></span>
             </div>
           )}
         </NavLink>
@@ -41,8 +41,8 @@ function RunLog({ k, title }: { k: string; title: string }) {
   const { busy } = useModern();
   if (!busy || busy.key !== k) return null;
   return (
-    <Card className="mb-6" header={<><Loader2 size={14} className="animate-spin text-accent" /><span className="font-semibold text-[13px]">{title}</span></>}>
-      <ol className="grid gap-1.5 text-[13px]">{busy.log.map((l, i) => <li key={i} className="flex items-start gap-2"><Check size={14} className="text-ok mt-0.5 shrink-0" /><span className="mono text-[12.5px]">{l}</span></li>)}</ol>
+    <Card className="mb-6" header={<><Loader2 size={14} className="animate-spin text-accent" /><span className="font-semibold text-[14px]">{title}</span></>}>
+      <ol className="grid gap-1.5 text-[14px]">{busy.log.map((l, i) => <li key={i} className="flex items-start gap-2"><Check size={14} className="text-ok mt-0.5 shrink-0" /><span className="mono text-[12.5px]">{l}</span></li>)}</ol>
     </Card>
   );
 }
@@ -50,7 +50,7 @@ function RunLog({ k, title }: { k: string; title: string }) {
 function Code({ title, code, tone }: { title: string; code: string; tone?: 'old' | 'new' }) {
   return (
     <div className="rounded-xl border hairline overflow-hidden bg-surface">
-      <div className="px-4 h-9 flex items-center gap-2 text-[12px] text-muted border-b hairline mono"><FileCode2 size={13} />{title}{tone && <span className={cx('ml-auto text-[11px] font-sans', tone === 'old' ? 'text-legacy' : 'text-accent')}>{tone === 'old' ? 'legacy' : 'generated'}</span>}</div>
+      <div className="px-4 h-9 flex items-center gap-2 text-[12px] text-muted border-b hairline mono"><FileCode2 size={13} />{title}{tone && <span className={cx('ml-auto text-[12px] font-sans', tone === 'old' ? 'text-legacy' : 'text-accent')}>{tone === 'old' ? 'legacy' : 'generated'}</span>}</div>
       <pre className="overflow-auto text-[12.5px] leading-[1.6] p-4 m-0 max-h-[360px]"><code>{code}</code></pre>
     </div>
   );
@@ -71,9 +71,9 @@ export function M1Import() {
       <RunLog k="m1" title="Importing" />
       {!s.mod.imported && !s.busy && <Empty icon={Download} title="Nothing imported yet" body={`Baseline: the public TTU Nagios–Redfish temperature check (${REPO}). It maps BMC health and returns Unknown when the temperature feed is lost. It does not set a Celsius threshold.`} action={<Button variant="primary" onClick={start}><Download size={15} /> Import TTU Redfish check</Button>} />}
       {s.mod.imported && <>
-        <div className="flex flex-wrap gap-2 mb-4 text-[13px]"><Badge tone="ok"><Check size={11} /> {counts.pinned} pinned</Badge><Badge tone="warning"><AlertTriangle size={11} /> {counts.gaps} missing, unsupported or flagged</Badge><a className="text-[12.5px] text-muted hover:text-text underline-offset-2 hover:underline ml-auto" href={REPO_URL} target="_blank" rel="noreferrer">{REPO} ↗</a></div>
+        <div className="flex flex-wrap gap-2 mb-4 text-[14px]"><Badge tone="ok"><Check size={11} /> {counts.pinned} pinned</Badge><Badge tone="warning"><AlertTriangle size={11} /> {counts.gaps} missing, unsupported or flagged</Badge><a className="text-[12.5px] text-muted hover:text-text underline-offset-2 hover:underline ml-auto inline-flex items-center min-h-12" href={REPO_URL} target="_blank" rel="noreferrer">{REPO} ↗</a></div>
         <div className="card overflow-x-auto mb-8">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-[14px]">
             <thead className="text-left border-b hairline"><tr>{['Input', 'Type', 'Status', 'Source', 'What we know'].map((h) => <th key={h} className="th px-4 h-11 whitespace-nowrap">{h}</th>)}</tr></thead>
             <tbody>{inputs.map((i) => (
               <tr key={i.id} className="border-b hairline last:border-0 align-top">
@@ -92,7 +92,7 @@ export function M1Import() {
         </div>
         <SectionHeader title="Asset and owner map" subtitle="Stable asset IDs replace bare IP addresses. Demo data for this site." />
         <div className="card overflow-x-auto">
-          <table className="w-full text-[13px]"><thead className="text-left border-b hairline"><tr>{['Asset ID', 'Host', 'BMC', 'Rack', 'Owner', 'On-call primary', 'Fallback', 'Workload owner'].map((h) => <th key={h} className="th px-4 h-11 whitespace-nowrap">{h}</th>)}</tr></thead>
+          <table className="w-full text-[14px]"><thead className="text-left border-b hairline"><tr>{['Asset ID', 'Host', 'BMC', 'Rack', 'Owner', 'On-call primary', 'Fallback', 'Workload owner'].map((h) => <th key={h} className="th px-4 h-11 whitespace-nowrap">{h}</th>)}</tr></thead>
             <tbody>{assets.map((a) => <tr key={a.id} className="border-b hairline last:border-0"><td className="px-4 py-3 mono">{a.id}</td><td className="px-4">{a.host}</td><td className="px-4 mono text-muted">{a.bmc}</td><td className="px-4 text-muted">{a.rack}</td><td className="px-4">{a.owner}</td><td className="px-4">{a.primary}</td><td className="px-4 text-muted">{a.fallback}</td><td className="px-4 text-muted">{a.workload}</td></tr>)}</tbody>
           </table>
         </div>
@@ -133,8 +133,8 @@ export function M2Recover() {
           <SectionHeader title="Recorded behavior" subtitle={liveBehaviors.length ? 'Recorded by Nemotron in this run, each with its source.' : 'Each line is backed by a source and, where it can run, by executing the plugin.'} />
           <div className="card divide-y divide-[var(--border)]">{(liveBehaviors.length ? liveBehaviors.map((b, i) => ({ ...b, id: `l${i}` })) : behaviors).map((b) => (
             <div key={b.id} className="px-5 py-4">
-              <div className="flex items-center gap-2 mb-1.5"><span className="text-[12px] font-medium text-muted">{b.area}</span><span className="ml-auto mono text-[11.5px] text-faint">{b.source}</span></div>
-              <p className="text-[13.5px] leading-relaxed">{b.text}</p>
+              <div className="flex items-center gap-2 mb-1.5"><span className="text-[12px] font-medium text-muted">{b.area}</span><span className="ml-auto mono text-[12px] text-faint">{b.source}</span></div>
+              <p className="text-[14px] leading-relaxed">{b.text}</p>
             </div>))}
           </div>
         </section>
@@ -145,16 +145,16 @@ export function M2Recover() {
             return (
               <div key={d.id} className={cx('card p-5', stillBlocking && 'border-critical/50')}>
                 <div className="flex items-start gap-2 mb-1"><span className="font-semibold text-[14px] flex-1">{d.title}</span>{d.critical && <Badge tone={stillBlocking ? 'critical' : 'ok'}>{stillBlocking ? 'Critical · blocks acceptance' : 'Critical · resolved'}</Badge>}</div>
-                <p className="text-[13px] text-muted mb-3">{d.detail}</p>
+                <p className="text-[14px] text-muted mb-3">{d.detail}</p>
                 <div className="grid gap-2">{d.options.map((o) => (
-                  <button key={o.id} onClick={() => s.decide(d.id, o.id)} className={cx('text-left rounded-lg border px-3 py-2.5 text-[13px] flex items-center gap-2.5 t', v === o.id ? 'border-text bg-surface-2' : 'border-border hover:border-border-strong')}>
+                  <button key={o.id} onClick={() => s.decide(d.id, o.id)} className={cx('text-left rounded-lg border px-3 py-2.5 text-[14px] flex items-center gap-2.5 t', v === o.id ? 'border-text bg-surface-2' : 'border-border hover:border-border-strong')}>
                     <span className={cx('h-4 w-4 rounded-full border grid place-items-center shrink-0', v === o.id ? 'border-text' : 'border-border-strong')}>{v === o.id && <span className="h-2 w-2 rounded-full bg-text" />}</span>
                     <span className="flex-1">{o.label}</span>
-                    <span className={cx('text-[11px]', o.kind === 'change' ? 'text-accent' : 'text-muted')}>{o.kind === 'change' ? 'deliberate change' : 'preserve'}</span>
-                    {o.id === d.recommended && <span className="text-[11px] text-faint">recommended</span>}
+                    <span className={cx('text-[12px]', o.kind === 'change' ? 'text-accent' : 'text-muted')}>{o.kind === 'change' ? 'deliberate change' : 'preserve'}</span>
+                    {o.id === d.recommended && <span className="text-[12px] text-faint">recommended</span>}
                   </button>))}
                 </div>
-                {v && <div className="text-[11.5px] text-faint mt-2.5">Confirmed by Maya R. (operations lead) · source, owner and test recorded</div>}
+                {v && <div className="text-[12px] text-faint mt-2.5">Confirmed by Maya R. (operations lead) · source, owner and test recorded</div>}
               </div>);
           })}</div>
         </section>
@@ -179,8 +179,8 @@ export function M3Generate() {
       {!s.mod.generated && !s.busy && <Empty icon={FileCode2} title={ready ? 'No candidate yet' : 'Confirm M2 decisions first'} body="The candidate is built only from recorded behavior and confirmed decisions, so every line can be traced back." action={ready ? <Button variant="primary" onClick={start}><Sparkles size={15} /> Generate candidate</Button> : <Button onClick={() => nav('/modernize/recover')}>Go to M2</Button>} />}
       {s.mod.generated && <>
         <div className="grid md:grid-cols-2 gap-4 mb-8">
-          <Card header={<><Check size={14} className="text-ok" /><span className="font-semibold text-[13px]">Preserved</span><span className="text-[12px] text-muted ml-auto">{preserved.length}</span></>}><ul className="grid gap-2 text-[13.5px]">{preserved.map((p) => <li key={p} className="flex gap-2"><span className="text-faint">–</span>{p}</li>)}</ul></Card>
-          <Card header={<><GitCompare size={14} className="text-accent" /><span className="font-semibold text-[13px]">Intentionally changed</span><span className="text-[12px] text-muted ml-auto">{changed.length}</span></>}><ul className="grid gap-2 text-[13.5px]">{changed.map((p) => <li key={p} className="flex gap-2"><span className="text-faint">–</span>{p}</li>)}</ul></Card>
+          <Card header={<><Check size={14} className="text-ok" /><span className="font-semibold text-[14px]">Preserved</span><span className="text-[12px] text-muted ml-auto">{preserved.length}</span></>}><ul className="grid gap-2 text-[14px]">{preserved.map((p) => <li key={p} className="flex gap-2"><span className="text-faint">–</span>{p}</li>)}</ul></Card>
+          <Card header={<><GitCompare size={14} className="text-accent" /><span className="font-semibold text-[14px]">Intentionally changed</span><span className="text-[12px] text-muted ml-auto">{changed.length}</span></>}><ul className="grid gap-2 text-[14px]">{changed.map((p) => <li key={p} className="flex gap-2"><span className="text-faint">–</span>{p}</li>)}</ul></Card>
         </div>
         <div className="grid lg:grid-cols-2 gap-4">
           <Code title={`rules/ttu-redfish-temperature.yml · v${v}`} code={v === 2 ? rulesV2 : rulesV1} tone="new" />
@@ -223,15 +223,15 @@ export function M4Test() {
         meta={run ? <><Badge>candidate v{run}</Badge><Badge tone={fails ? 'critical' : 'ok'}>{6 - fails}/6 acceptance cases</Badge><Badge tone={hFails ? 'critical' : 'ok'}>{3 - hFails}/3 held-out</Badge></> : undefined}
         actions={!s.mod.generated ? next('/modernize/generate', 'Generate first', nav) : run === ver ? next('/modernize/release', run === 2 ? 'Review and release' : 'Repair failures', nav) : <Button variant="primary" disabled={!!s.busy || testing} onClick={start}>{testing ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />} Run tests on v{ver}</Button>} />
       <LiveStrip need={['tools', 'plugin']} />
-      {testing && <Card className="mb-6" header={<><Loader2 size={14} className="animate-spin text-accent" /><span className="font-semibold text-[13px]">Running the real harness</span></>}><p className="text-[13px] text-muted">Old: TTU plugin against the Redfish mock + Nagios scheduling. New: promtool test rules + amtool routing. Then the wrong-recipient mutant, the decoy, and the sealed held-out cases.</p></Card>}
-      {liveErr && <div className="card px-5 py-3 mb-6 text-[13px] border-warning/50 flex gap-2"><AlertTriangle size={15} className="text-warning shrink-0 mt-0.5" />Live run failed, showing the scripted result instead: {liveErr}</div>}
+      {testing && <Card className="mb-6" header={<><Loader2 size={14} className="animate-spin text-accent" /><span className="font-semibold text-[14px]">Running the real harness</span></>}><p className="text-[14px] text-muted">Old: TTU plugin against the Redfish mock + Nagios scheduling. New: promtool test rules + amtool routing. Then the wrong-recipient mutant, the decoy, and the sealed held-out cases.</p></Card>}
+      {liveErr && <div className="card px-5 py-3 mb-6 text-[14px] border-warning/50 flex gap-2"><AlertTriangle size={15} className="text-warning shrink-0 mt-0.5" />Live run failed, showing the scripted result instead: {liveErr}</div>}
       <RunLog k="m4" title="Testing" />
       {!run && !s.busy && <Empty icon={FlaskConical} title={s.mod.generated ? 'No test run yet' : 'Generate a candidate first'} body="Acceptance cases: normal, sustained Critical, brief spike, missing temperature feed, recovery, and a correct alert sent to the wrong recipient." action={s.mod.generated ? <Button variant="primary" onClick={start}><Play size={15} /> Run tests on v{ver}</Button> : undefined} />}
       {liveReport && <LiveReportView r={liveReport} />}
       {run > 0 && !liveReport && <>
         <div className="text-[12.5px] text-muted mb-3">Scripted result (the live harness needs promtool and amtool).</div>
         <div className="card overflow-x-auto mb-6">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-[14px]">
             <thead className="text-left border-b hairline"><tr><th className="th pl-5 pr-3 h-11">Case</th><th className="th px-3">Old check (Nagios)</th><th className="th px-3">Expected</th>{dims.map(([, l]) => <th key={l} className="th px-3 text-center whitespace-nowrap">{l}</th>)}</tr></thead>
             <tbody>{rows.map(({ c, r }) => (
               <tr key={c.id} className="border-b hairline last:border-0 align-top">
@@ -244,17 +244,17 @@ export function M4Test() {
           </table>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
-          <Card header={<><Lock size={14} className="text-muted" /><span className="font-semibold text-[13px]">Held-out cases</span><span className="text-[12px] text-muted ml-auto">sealed</span></>}>
-            <ul className="grid gap-2 text-[13px]">{heldOut.map((h) => <li key={h.id} className="flex items-center gap-2"><V v={run === 2 ? h.v2 : h.v1} />{h.name}</li>)}</ul>
+          <Card header={<><Lock size={14} className="text-muted" /><span className="font-semibold text-[14px]">Held-out cases</span><span className="text-[12px] text-muted ml-auto">sealed</span></>}>
+            <ul className="grid gap-2 text-[14px]">{heldOut.map((h) => <li key={h.id} className="flex items-center gap-2"><V v={run === 2 ? h.v2 : h.v1} />{h.name}</li>)}</ul>
             <p className="text-[12px] text-faint mt-3">Expectations are fixed and hashed before generation. The agent sees pass/fail counts only, never the cases.</p>
           </Card>
-          <Card header={<><ShieldAlert size={14} className="text-muted" /><span className="font-semibold text-[13px]">Harness sanity</span></>}>
-            <ul className="grid gap-2 text-[13px]"><li className="flex gap-2"><Check size={15} className="text-ok shrink-0 mt-0.5" /><span>Wrong-recipient mutant <b>failed</b> as required</span></li><li className="flex gap-2"><Check size={15} className="text-ok shrink-0 mt-0.5" /><span>{decoy.name} <b>failed</b></span></li></ul>
+          <Card header={<><ShieldAlert size={14} className="text-muted" /><span className="font-semibold text-[14px]">Harness sanity</span></>}>
+            <ul className="grid gap-2 text-[14px]"><li className="flex gap-2"><Check size={15} className="text-ok shrink-0 mt-0.5" /><span>Wrong-recipient mutant <b>failed</b> as required</span></li><li className="flex gap-2"><Check size={15} className="text-ok shrink-0 mt-0.5" /><span>{decoy.name} <b>failed</b></span></li></ul>
             <p className="text-[12px] text-faint mt-3">{decoy.result}</p>
           </Card>
-          <Card header={<><Eye size={14} className="text-muted" /><span className="font-semibold text-[13px]">Verdict</span></>}>
-            {fails || hFails ? <><div className="text-[15px] font-semibold text-critical mb-1">{fails} case{fails === 1 ? '' : 's'} and {hFails} held-out failing</div><p className="text-[13px] text-muted">Not releasable. Nemotron inspects the failures in M5.</p></>
-              : <><div className="text-[15px] font-semibold text-ok mb-1">All cases pass</div><p className="text-[13px] text-muted">Bounded evidence on these scenarios, not universal equivalence. Engineer review, shadow and rollback come next.</p></>}
+          <Card header={<><Eye size={14} className="text-muted" /><span className="font-semibold text-[14px]">Verdict</span></>}>
+            {fails || hFails ? <><div className="text-[15px] font-semibold text-critical mb-1">{fails} case{fails === 1 ? '' : 's'} and {hFails} held-out failing</div><p className="text-[14px] text-muted">Not releasable. Nemotron inspects the failures in M5.</p></>
+              : <><div className="text-[15px] font-semibold text-ok mb-1">All cases pass</div><p className="text-[14px] text-muted">Bounded evidence on these scenarios, not universal equivalence. Engineer review, shadow and rollback come next.</p></>}
           </Card>
         </div>
       </>}
@@ -288,7 +288,7 @@ export function M5Release() {
       <ol className="grid gap-4">
         <Gate n={1} title="Inspect failures and revise" done={m.repaired} body={m.repaired ? 'Candidate v2 written from the visible failures only. Held-out cases stayed sealed.' : 'v1 failed 5 of 6 acceptance cases and all 3 held-out cases.'}
           action={!m.repaired && <Button variant="primary" disabled={!!s.busy} onClick={repair}><Sparkles size={15} /> Repair with Nemotron</Button>}>
-          <div className="grid md:grid-cols-2 gap-3 mt-4">{repairNotes.map((r) => <div key={r.failure} className="rounded-lg border hairline p-4 text-[13px]"><div className="text-critical font-medium mb-1">{r.failure}</div><div className="text-muted mb-1">{r.diagnosis}</div><div><span className="text-faint">Fix:</span> {r.fix}</div></div>)}</div>
+          <div className="grid md:grid-cols-2 gap-3 mt-4">{repairNotes.map((r) => <div key={r.failure} className="rounded-lg border hairline p-4 text-[14px]"><div className="text-critical font-medium mb-1">{r.failure}</div><div className="text-muted mb-1">{r.diagnosis}</div><div><span className="text-faint">Fix:</span> {r.fix}</div></div>)}</div>
         </Gate>
         <Gate n={2} title="Re-test v2" done={passing} locked={!m.repaired} body={passing ? '6/6 acceptance cases, 3/3 held-out; the wrong-recipient mutant and the alert-everything decoy were rejected.' : 'Run the same suite again on v2.'}
           action={m.repaired && !passing && <Button variant="primary" onClick={() => nav('/modernize/test')}><Play size={15} /> Open tests</Button>} />
@@ -303,8 +303,8 @@ export function M5Release() {
         <Gate n={6} title="Release" done={m.released} locked={!m.rollback} body={m.released ? 'ttu-redfish-temperature v1.0.0 · rules, routes, collector, evidence pack, rollback plan. The old check keeps running until cutover.' : 'The operations lead approves a versioned update with test evidence and rollback.'}
           action={m.rollback && !m.released && <Button variant="primary" disabled={!!s.busy} onClick={release}><Rocket size={15} /> Approve and release as Maya R.</Button>} />
       </ol>
-      <p className="text-[13px] text-muted mt-6 flex items-start gap-2"><AlertTriangle size={15} className="shrink-0 mt-0.5 text-warning" />Passing cases is bounded evidence on the stated scenarios, not universal equivalence. The evidence pack says what is not covered.</p>
-      {m.released && <div className="mt-6 flex gap-2"><Button variant="primary" onClick={() => nav('/operate')}>Operate the new alerts <ArrowRight size={15} /></Button></div>}
+      <p className="text-[14px] text-muted mt-6 flex items-start gap-2"><AlertTriangle size={15} className="shrink-0 mt-0.5 text-warning" />Passing cases is bounded evidence on the stated scenarios, not universal equivalence. The evidence pack says what is not covered.</p>
+      {m.released && <div className="mt-6 flex gap-2"><Button variant="primary" onClick={() => nav('/')}>Operate the new alerts <ArrowRight size={15} /></Button></div>}
     </Page>
   );
 }
@@ -315,7 +315,7 @@ function Gate({ n, title, body, done, locked, action, children }: { n: number; t
       <div className="flex items-start gap-4">
         {done ? <span className="h-7 w-7 shrink-0 grid place-items-center rounded-full bg-ok/15 text-ok"><Check size={14} strokeWidth={3} /></span>
           : <span className="h-7 w-7 shrink-0 grid place-items-center rounded-full border border-border-strong mono text-[12px] text-muted">{locked ? <Lock size={12} /> : n}</span>}
-        <div className="flex-1 min-w-0"><div className="font-semibold text-[15px]">{title}</div><p className="text-[13.5px] text-muted mt-0.5">{body}</p></div>
+        <div className="flex-1 min-w-0"><div className="font-semibold text-[15px]">{title}</div><p className="text-[14px] text-muted mt-0.5">{body}</p></div>
         {action && <div className="shrink-0">{action}</div>}
       </div>
       {children}
