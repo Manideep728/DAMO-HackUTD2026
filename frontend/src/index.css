@@ -169,3 +169,19 @@ pre, code { font-family: var(--font-mono); }
 @keyframes typeIn { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 .type-in { animation: typeIn .5s steps(28, end) both; }
 @media (prefers-reduced-motion: reduce) { .scan-line, .head-ping, .clock-colon { display: none; animation: none !important; } }
+
+/* ---------- Preflight facility map (dark instrument panel) */
+.fm .react-flow__pane, .fm .react-flow { background: var(--panel); }
+.fm-node { background: var(--panel-2); color: var(--panel-text); border: 1px solid var(--panel-border); transition: background-color .45s ease, border-color .45s ease, opacity .25s ease, transform .18s ease; }
+.fm-node:hover { border-color: #6b685f; }
+.fm-node .fm-bar { background: var(--panel-ok); transition: width .5s ease, background-color .45s ease; }
+.fm-degraded { border-color: var(--warning); background: color-mix(in srgb, var(--warning) 14%, var(--panel-2)); }
+.fm-degraded .fm-bar { background: var(--warning); }
+.fm-maint { border-color: var(--warning); background-image: repeating-linear-gradient(45deg, color-mix(in srgb, var(--warning) 22%, transparent) 0 4px, transparent 4px 9px); }
+.fm-down { border-color: var(--critical); background: color-mix(in srgb, var(--critical) 26%, var(--panel-2)); }
+.fm-down .fm-bar { background: var(--critical); }
+.fm-selected { outline: 2px solid var(--panel-text); outline-offset: 2px; }
+.fm-picked { box-shadow: 0 0 0 2px var(--untrusted); }
+.fm-dim { opacity: .22; }
+.fm .react-flow__controls { box-shadow: none; }
+.fm .react-flow__controls-button { background: var(--panel-2); border-color: var(--panel-border); fill: var(--panel-text); }

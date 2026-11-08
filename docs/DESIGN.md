@@ -101,6 +101,19 @@ Rule: every animation shows something real happening (a reading changing, an eva
 6. Don't let a grid column grow past the viewport: use `min-w-0` on grid children that hold code.
 7. No toast or popup notifications. Events show up in place: the incident card, the status ribbon and the event log.
 
+## 10. Preflight (dependency map)
+
+**Job:** "I'm about to take X offline. What breaks, what becomes a single point of failure, and when is the safest time?"
+
+- **Layout:** compact header (title, one-line model disclaimer, zone filter, reset) → [dark map panel | 400 px rail]. On mobile the rail comes first (scenarios and verdict), and the map follows at 70vh.
+- **Map (`preflight/FacilityMap.tsx`, React Flow):** power and cooling flow **left to right**, one column per layer (Utility, Transfer, Switchgear, UPS · MCC, PDU · plant, CHW loop, CRAH, Racks, Workloads). Each layer is spread over the height of the tallest one, so links fan out instead of crossing. Nodes are 106×38 with a type icon, a mono ID, a critical-service dot and a headroom bar.
+- **Node states:** OK (neutral, green bar) · degraded (amber tint) · maintenance (amber hatch) · down or lost (red tint, red bar) · selected (white outline) · picked from a panel (purple ring) · out of the focused chain (22% opacity).
+- **Links:** power is `--panel-muted`, cooling `--panel-accent`, links suspected from records are purple dashed with a "suspected · 97%" label, and lost supply is red dashed. Links are faint (20%) by default. **Hover or select a node** to light up its whole upstream and downstream chain at 95% with animated flow; everything else fades.
+- **Cascade:** when the scenario changes, each node's state transition is delayed by 120 ms per hop downstream of the changed equipment, so a failure visibly ripples outward.
+- **Interaction:** click selects, and the rail shows Maintenance / Fail / In service plus state, spare kW, and feeds and needs. Hover is debounced at 140 ms (never re-render mid-click). Map labels are presentation-only, not buttons.
+- **Rail order:** one-click scenarios (safe, at risk, and the two outage cases) → selected equipment → **verdict** → tabs (Impact, Weak points, Findings, Plan, Ask; all original functionality kept).
+- **Verdict:** Outage (red) when services are lost, showing load lost · "Safe, but exposed" (amber) when nothing is lost but services drop to N or headroom is under 10% · Safe (green). New single points of failure appear as purple chips that highlight on the map, plus "show all".
+
 ## 9. Iteration log
 
 | Version | Rating | What changed | Why |
@@ -114,5 +127,9 @@ Rule: every animation shows something real happening (a reading changing, an eva
 | v6 | 9.5 | Motion layer: tweened readings, blinking clock, evaluation sweep, rack tooltips, live chart heads with area, toasts, staged delivery sequence, lifecycle fills, stage transitions, Nemotron switch, Verify progress, counter and typed diff | Make the console feel like live equipment |
 | v6.1 | 9.5 | Affected-rack tooltip shows CPU and fan, not inlet | The inlet tooltip contradicted "critical" |
 | v6.2 | 9.5 | Toasts removed | Too popup-heavy; the incident card, ribbon and log already show every event in place |
+
+| P0 | Preflight 4 | Baseline (PR #8): top-down map of 43 boxes about 40 px wide, 110 crossing lines, click-to-cycle, insight buried in a table | Starting point |
+| P1 | Preflight 8 | Left-to-right layered map, supply-chain highlight on hover, cascade ripple, one-click scenarios, verdict card, explicit state buttons; all 11 functional checks pass | Readable, interactive, answers the planner's question |
+| P2 | Preflight 9.5 | Map below the scenario bar; outage verdict shows load lost (not "Tightest 90%"); IDs fit; rail first on mobile; label nodes not buttons; debounced hover fixes the swallowed first click | Fixes from screenshots and the functional test (see docs/preflight-test-log.md) |
 
 **To reach a true 10:** the same flows driven live (install the tools and the NVIDIA key, so the matrix and agent panels show "live"), and a recorded backup run.
