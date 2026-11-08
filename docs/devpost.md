@@ -4,7 +4,7 @@
 
 DAMO reads the records an operating hall runs on, finds where they disagree, and tests every integration change before anyone touches the floor. Nemotron does the reading. Deterministic checks decide whether it was right.
 
-`NMC²` · `NVIDIA Nemotron` · `8090` · `MLH Best Use of Tiger Data`
+`NMC²` · `NVIDIA Nemotron` · `8090` · `MLH Best Use of Tiger Data` · `MLH Best Use of Vultr`
 
 > *Cover image:* `docs/screenshots/6-preflight/04-scenario-ats-1-fails.png`
 
@@ -53,10 +53,12 @@ The night shift on the retrofitted hall. GPU-07 passes every health check (61 °
 
 | Nemotron does | Checked by |
 |---|---|
-| Proposes "X is fed from Y" from work orders and logs | A quote validator: the quote must appear in the record word for word, parse as a feed in that direction, and name two real inventory nodes |
-| Answers Preflight questions with 8 tools (`simulate`, `find_cut_sets`, `evaluate_plan`, `search_plans`, `search_docs`, `get_node`, `get_neighbors`, `propose_dependency`) | A citation validator that rejects any node or number not present in the tool results the answer cites |
-| Recovers legacy behaviour, writes and repairs rules | A harness that runs the original plugin, `promtool` and `amtool`, with held-out cases, a wrong-recipient mutant and an alert-everything decoy so the suite can actually fail |
-| Investigates incidents | Nothing: investigation is optional, and alerting runs without it |
+| Proposes "X is fed from Y" from work orders and logs | A quote validator. The quote must appear in the record word for word, read as a feed in that direction, and name two real inventory nodes. |
+| Answers Preflight questions through eight engine tools | A citation validator. Any node or number not present in the tool results the answer cites is rejected. |
+| Recovers legacy behaviour, then writes and repairs rules | A harness that runs the original plugin, promtool and amtool. Held-out cases, a wrong-recipient mutant and an alert-everything decoy make sure the suite can fail. |
+| Investigates incidents | Kept out of the alert path. Rules, paging and work orders run with the model switched off. |
+
+The Preflight agent's tools: simulate, find cut sets, evaluate plan, search plans, search docs, get node, get neighbors, and propose dependency.
 
 ### Engine
 (`backend/engine/`, pure Python, no model). Requirement groups (`all`, `any`, `k_of_n`, `capacity`) over a power and cooling graph. Support is computed as a least fixpoint, so dependency cycles are safe. Overloaded suppliers shed the lowest-criticality load first, and every failed node gets a causal trace. Minimal cut sets come from MOCUS expansion up to order 3, cross-checked against brute-force enumeration in the tests.
@@ -64,8 +66,11 @@ The night shift on the retrofitted hall. GPU-07 passes every health check (61 °
 ### Tiger Data
 Meter readings live in a TimescaleDB hypertable with an hourly continuous aggregate. The load profile Preflight plans against is the worst hourly average at each hour of the week over four weeks. Reconciliation correlates each meter's unexplained load with candidate consumers to catch equipment wired to a different supplier than documented.
 
+### Vultr
+DAMO runs on a Vultr server with Docker Compose: an API container and a web container behind the server's Caddy, which terminates HTTPS. The API image downloads promtool 3.2.1, amtool 0.28.1 and jq 1.7.1 from their release pages and verifies each against its published SHA-256 before installing it. That matters for the demo: on a laptop without those tools the Verify harness falls back to scripted results and says so, while the Vultr image has everything it needs to run the real checks. Secrets live in an env file on the server, never in the repository, and SQLite state, the meter snapshot and recorded model replies sit on named volumes so they survive redeploys.
+
 ### Stack
-FastAPI backend, React + Vite + Tailwind frontend, NVIDIA Nemotron through build.nvidia.com's OpenAI-compatible API, with every live response cached so the demo replays offline and labels itself when it does. Deployed with Docker Compose on Vultr behind Caddy. 168 backend tests, a 24-question agent eval, and a Playwright rehearsal that clicks through the demo and checks every number.
+FastAPI backend, React + Vite + Tailwind frontend, NVIDIA Nemotron through build.nvidia.com's OpenAI-compatible API, with every live response cached so the demo replays offline and labels itself when it does. 168 backend tests, a 24-question agent eval, and a Playwright rehearsal that clicks through the demo and checks every number.
 
 ## Challenges we ran into
 
