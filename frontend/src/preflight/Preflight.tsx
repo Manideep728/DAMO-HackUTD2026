@@ -3,7 +3,7 @@ import { Info, RotateCcw, Send, Wrench, Zap, CircleCheck, OctagonAlert, Triangle
 import { Badge, Button, cx } from '../components/ui';
 import { FacilityMap, LAYERS, TONE_WORD, toneOf, rowOf, groupId, type Tone } from './FacilityMap';
 import { defaultZone, visibleNodes } from './mapView';
-import { CutSetPanel, FindingsPanel, ImpactPanel, PlanResults, planOf } from './Panels';
+import { CutSetPanel, FindingsPanel, ImpactPanel, LoadSourceLine, PlanResults, planOf } from './Panels';
 import { pf, type Transient, type AgentEvent, type CutSets, type Facility, type Findings, type PlanSearch, type ServiceRed, type SimResult, type Toggle } from './api';
 
 type Tab = 'impact' | 'weak' | 'findings' | 'plan' | 'agent';
@@ -328,6 +328,7 @@ function PlanPanel({ facility, preset }: { facility: Facility; preset: string[] 
         <label className="grid gap-1">Window (hour from–to)<span className="flex gap-1"><input id="pf-plan-from" type="number" min={0} value={earliest} onChange={(e) => setEarliest(Number(e.target.value))} className="h-8 w-full px-2 rounded-md border hairline bg-surface" /><input id="pf-plan-to" type="number" min={1} value={latest} onChange={(e) => setLatest(Number(e.target.value))} className="h-8 w-full px-2 rounded-md border hairline bg-surface" /></span></label>
       </div>
       <Button variant="primary" onClick={run} disabled={busy}>{busy ? 'Simulating windows…' : 'Find the safest window'}</Button>
+      <LoadSourceLine src={facility.load_source} />
       {error && <p className="text-critical">{error}</p>}
       {res && <Timeline res={res} windows={facility.windows} from={earliest} to={latest} />}
       {res && <PlanResults res={res} compare={compare} onToggleCompare={(i) => setCompare((c) => c.includes(i) ? c.filter((x) => x !== i) : [...c, i].slice(-2))} />}

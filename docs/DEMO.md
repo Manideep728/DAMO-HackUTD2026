@@ -22,6 +22,8 @@ The agent badge says which mode is running:
 
 Rehearse the *Ask* questions once with the key set. Every live turn is saved under `backend/cache/agent/`. If the venue Wi-Fi drops, set `GAUNTLET_MODE=cached` in `backend/.env` and restart: the same questions replay through the same tools and checker, and anything never recorded falls back to the scripted planner with a notice.
 
+Meters (optional): with `METERS_DATABASE_URL` set and `make meters-seed` run once, the app pulls measured load and meter evidence from Tiger at startup. Check the line under **Find the safest window** before going on stage: "Load: measured … (synced …)". Venue Wi-Fi often blocks Tiger's port; sync once on a hotspot (`make meters-sync`) and the app runs from the local snapshot after that. `make rehearse` always runs with meters off, so it checks the hand-written-profile numbers below.
+
 Between rehearsals, **Reset scenario** clears the toggles. Finding decisions live in SQLite (`backend/.work/preflight.sqlite`). Delete that file to reopen the ATS-1 finding.
 
 ## Script
@@ -35,6 +37,7 @@ Between rehearsals, **Reset scenario** clears the toggles. Finding decisions liv
    - Contradicting: OLD-001, the one-line.
    - Not counted, and why. WO-3920 describes a temporary cable that was later removed. WO-5108 proposes feeding PUMP-C, which was never installed.
    - *If true*: ATS-1 becomes a new single point of failure. All 8 racks in R1 and WL-INFER drop to N.
+   - *With meters:* confidence is 0.99, and a fourth supporting line comes from the meters, not a document: "ATS-1 carries 16.7 kW more than its documented loads and ATS-2 is short by about as much; both gaps track MCC-B's meter (r = 0.96 and -0.97 over 14 days)." "Three records and the meters agree. The meter data is synthetic; the reconciliation is what runs on a real site's meters."
 
    *Optional (20 s), needs the key:* **Read with Nemotron**. Nemotron reads all 12 records and proposes feeds. The line under the button says how many it proposed, how many were kept, and how many were rejected because the quote isn't in the record or doesn't say that feed. Quotes it read are tagged on the finding. "The model reads; the checks decide what counts." Live numbers: ⟦⟧.
 
@@ -47,6 +50,8 @@ Between rehearsals, **Reset scenario** clears the toggles. Finding decisions liv
 6. **Pick the window (40 s).** *Plan* tab: PUMP-A, 6 hours, hours 0–48 → **Find the safest window**. Recommended: **hour 6 to hour 12**, out of 61 options simulated. Every window lists a single point of failure, because with one pump out, the other pump's whole feed chain carries the plant. Switching MCC-B back doesn't help here, so the planner doesn't suggest it.
 
    Now the utility breaker test: UTIL-A, 6 hours → **Find the safest window**. Recommended: **hour 0–6 with MCC-B switched back to its documented feed** (ATS-2). The same hour without that switch is rejected, "cut-set order 1 vs 2", because ATS-1 and GEN-1 would be single points. "The finding turns into the first step of the work order."
+
+   *With meters:* on a weekend the UTIL-A test moves to **hour 6–12** (still with MCC-B switched back). The meters show weekend batch training running at about 1.84× nameplate overnight, against 1.6× in the hand-written profile, and CRAH-3's headroom at hour 0–6 falls to 17%, under the planner's 20% bar. Hour 6–12 has 48%. Monday to Friday the measured load gives the same answer as the hand-written profile (hour 0–6). The Pump A answer (hour 6–12) is the same every day.
 
 7. **Ask (30 s).** *Ask* tab: "Are Pump A and Pump B independent?" The tool log streams `get_neighbors` for each pump, then `find_cut_sets` and `search_docs`. The answer is "PUMP-A and PUMP-B share a single point of failure: ATS-1", and each claim cites the tool calls it came from. A claim that names a node or number not in those results gets the answer sent back to the model. (Asked before step 4, the agent finds the record evidence and calls `propose_dependency` instead.)
 
