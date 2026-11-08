@@ -6,7 +6,7 @@ DAMO reads the records an operating hall runs on, finds where they disagree, and
 
 `NMC²` · `NVIDIA Nemotron` · `8090` · `MLH Best Use of Tiger Data` · `MLH Best Use of Vultr`
 
-![Preflight: ATS-1 fails and takes out both pumps, the chilled-water loop and 18 racks](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/6-preflight/04-scenario-ats-1-fails.png)
+![Preflight: ATS-1 fails and takes out both pumps, the chilled-water loop and 18 racks](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/devpost/ats-1-cascade.png)
 
 ---
 
@@ -38,22 +38,22 @@ Neither one shows up on a dashboard. Both show up when you read every record sid
 DAMO takes a retrofit from scattered records to a tested handover, then carries that record into operations.
 
 ### Retrofit setup
-![Retrofit setup: cooling and power map with the LD-2 conflict and its sources](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/readme/setup-site-map.png)
+![Retrofit setup: cooling and power map with the LD-2 conflict and its sources](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/devpost/ld-2-conflict.png)
 
 Six steps. Connect the project's documents, and DAMO maps the site: 21 components and 21 links, each marked confirmed, inferred, conflicting or missing, with the source line for every one. It recommends a CDU location against space, floor loading, pipe route, power and service clearance. The engineer picks the CDU, approves the install plan, and reviews the BMS mapping. Commissioning runs offline tests and a witnessed wet test. The wet test catches LD-2 naming the wrong rack, and the fix is a one-line config diff that cites the drawing it came from. A later firmware change renames every leak point; the regression suite catches it before handover. The retrofit engine (mapping, behaviour tests, oracle, monitor) is deterministic Python; the walkthrough replays a recorded run of it, and its agent narration is scripted.
 
 ### Modernize
-![Modernize: Nemotron 3.5 Super recovering the legacy check through tool calls](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/readme/modernize-agent.png)
+![Modernize: Nemotron 3.5 Super recovering the legacy check through tool calls](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/devpost/nemotron-recover.png)
 
 Legacy monitoring is the other half of an old building. DAMO takes a real check, the Texas Tech HPCC Nagios–Redfish plugin, to Prometheus rules. A Nemotron 3.5 Super agent reads the plugin and its Nagios objects through tool calls (20 in our recorded run), records each behaviour with its source line, and raises six questions the code can't answer, such as "who should actually be paged?" when the inherited recipient is `nagios@localhost`. The operator's answers become test expectations. The first candidate passes 1 of 6 cases; Nemotron repairs it from the visible failures only, while held-out cases stay sealed.
 
 ### Preflight
-![Preflight agent answering through a cited simulate call](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/6-preflight/24-ask-pump-independence.png)
+![Preflight agent answering through a cited simulate call](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/devpost/preflight-agent.png)
 
 A what-if simulator for equipment work. Pick "ATS-1 fails" and the cascade runs across the graph: both switchgear feeds, both pumps, the chilled-water loop, 18 racks, 400 kW. It finds minimal cut sets, checks whether each redundant group is really independent, and ranks maintenance windows and plans. Ask "Are Pump A and Pump B independent?" and the agent answers through `simulate` and `find_cut_sets` calls, citing every number.
 
 ### Console
-![Console: GPU-07 known-answer test mismatch while every health check is green](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/3-console/2-early-warning.png)
+![Console: GPU-07 known-answer test mismatch while every health check is green](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/devpost/gpu-07-mismatch.png)
 
 The night shift on the retrofitted hall. GPU-07 passes every health check (61 °C, 94% utilization, online) and still returns the wrong checksum on a known-answer test. The console ties the mismatch to the rack, its power and cooling feeds and recent work, then walks the operator through acknowledge, investigate, dispatch, verify recovery and hand off. Paging and work orders never wait on the model.
 
@@ -67,7 +67,7 @@ The night shift on the retrofitted hall. GPU-07 passes every health check (61 °
 |---|---|
 | **Discovery** (Preflight, "Read with Nemotron"): proposes "X is fed from Y" from work orders and logs | A quote validator. The quote must appear in the record word for word, read as a feed in that direction, and name two real inventory nodes. |
 | **Preflight agent** (Nemotron 3.5 Super): answers questions through eight engine tools | A citation validator. Any node or number not present in the tool results the answer cites is rejected. |
-| **Modernize recover and repair** (Nemotron 3.5 Super): reads and runs the legacy plugin, 20 tool calls in our recorded run, then repairs the failing rules | A harness that runs the original plugin, promtool and amtool. Held-out cases, a wrong-recipient mutant and an alert-everything decoy make sure the suite can fail. |
+| **Modernize recover and repair** (Nemotron 3.5 Super): reads the legacy plugin and its Nagios objects and calls it against a Redfish mock (20 tool calls in our recorded run), then repairs the failing rules | A harness that runs the original plugin, promtool and amtool. Held-out cases, a wrong-recipient mutant and an alert-everything decoy make sure the suite can fail. |
 | **Console investigation** (Nemotron Nano): queries telemetry, the asset map, the logbook and the runbook, and returns cited hypotheses | Kept out of the alert path. Rules, paging and work orders run with the model switched off. |
 
 Every live response is cached and labelled live, cached or scripted on screen. The Preflight agent's tools: simulate, find cut sets, evaluate plan, search plans, search docs, get node, get neighbors, and propose dependency.
@@ -80,7 +80,7 @@ Meter readings live in a TimescaleDB hypertable with an hourly continuous aggreg
 
 That is how the meters back up the records. Next to the work order and the maintenance log, the ATS-1 finding cites: *"ATS-1 carries 16.7 kW more than its documented loads and ATS-2 is short by about as much; both gaps track MCC-B's meter (r = 0.96 and −0.97 over 14 days)."* The paperwork and the physics agree, and the one-line diagram is the outlier.
 
-![Tiger meter evidence cited beside the work order and maintenance log](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/9-tiger/4-meter-evidence-crop.png)
+![Tiger meter evidence cited beside the work order and maintenance log](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/devpost/tiger-meter-evidence.png)
 
 ### Vultr
 DAMO runs on a Vultr server with Docker Compose: an API container and a web container behind the server's Caddy, which terminates HTTPS. The API image downloads promtool 3.2.1, amtool 0.28.1 and jq 1.7.1 from their release pages and verifies each against its published SHA-256 before installing it. That matters for the demo: on a laptop without those tools the Verify harness falls back to scripted results and says so, while the Vultr image has everything it needs to run the real checks. Secrets live in an env file on the server, never in the repository, and SQLite state, the meter snapshot and recorded model replies sit on named volumes so they survive redeploys.
