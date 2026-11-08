@@ -12,12 +12,32 @@ HackUTD 2026 · NMC² · NVIDIA Nemotron · 8090 · MLH Best Use of Tiger Data
 
 ## What it does
 
-| | |
-|---|---|
-| <img src="docs/screenshots/2-setup/2b-map-the-site-done.png" width="420"> | **Retrofit setup** `/#/setup`<br>Six steps from scattered records to a signed handover: connect sources, map the site, pick a CDU, plan the install, review BMS mappings, commission. The leak sensor in the sample site is mapped to the wrong rack; the witnessed wet test catches it, and the fix is a one-line, sourced config diff. |
-| <img src="docs/screenshots/7-modernize/2c-m2-recovered.png" width="420"> | **Modernize** `/#/modernize/import`<br>Takes the real [Texas Tech HPCC Nagios–Redfish check](https://github.com/nsfcac/Nagios-Redfish-API-Integration) to Prometheus rules. A Nemotron agent reads the plugin and its Nagios objects with tool calls, records each behaviour with its source line, and asks the operator six questions it can't answer from code. |
-| <img src="docs/screenshots/3-console/2-early-warning.png" width="420"> | **Console** `/#/`<br>A GPU passes every health check and still returns the wrong checksum. The console pairs the known-answer test mismatch with the rack, its feeds and recent work, walks the operator through acknowledge → investigate → dispatch → verify → hand off, and never lets the model gate an alert. |
-| <img src="docs/screenshots/6-preflight/24-ask-pump-independence.png" width="420"> | **Preflight** `/#/preflight`<br>A what-if simulator for equipment work. Minimal cut sets, redundancy checks and ranked maintenance windows over a power and cooling graph. Ask it a question and the agent answers through `simulate` and `find_cut_sets` calls, citing every number. |
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/2-setup/2b-map-the-site-done.png" width="100%"><br>
+<b>Retrofit setup</b> · <code>/#/setup</code><br>
+Six steps from scattered records to a signed handover. The sample leak sensor is mapped to the wrong rack; the witnessed wet test catches it, and the fix is a one-line, sourced config diff.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/7-modernize/2c-m2-recovered.png" width="100%"><br>
+<b>Modernize</b> · <code>/#/modernize/import</code><br>
+Takes the real <a href="https://github.com/nsfcac/Nagios-Redfish-API-Integration">Texas Tech HPCC Nagios–Redfish check</a> to Prometheus rules. A Nemotron agent reads the plugin with tool calls, records each behaviour with its source line, and asks the operator what code can't answer.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/3-console/2-early-warning.png" width="100%"><br>
+<b>Console</b> · <code>/#/</code><br>
+GPU-07 passes every health check and still returns the wrong checksum. The console ties the mismatch to the rack, its feeds and recent work, and walks the operator from acknowledge to handoff. Alerts never wait on the model.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/6-preflight/24-ask-pump-independence.png" width="100%"><br>
+<b>Preflight</b> · <code>/#/preflight</code><br>
+A what-if simulator for equipment work: cut sets, redundancy checks, ranked maintenance windows. Ask a question and the agent answers through <code>simulate</code> calls, citing every number.
+</td>
+</tr>
+</table>
 
 All 53 screens, step by step: [docs/screenshots](docs/screenshots/README.md).
 
@@ -25,36 +45,14 @@ All 53 screens, step by step: [docs/screenshots](docs/screenshots/README.md).
 
 ```mermaid
 flowchart LR
-  subgraph Sources["Site records"]
-    D[Drawings rev A / rev B]
-    P[BMS point list]
-    W[Work orders, logbook]
-    V[Vendor point maps]
-    L[Legacy Nagios plugin]
-  end
-
-  subgraph AI["Nemotron (build.nvidia.com)"]
-    A1[Discovery: propose feeds with quotes]
-    A2[Recover agent: read + run plugin]
-    A3[Preflight agent: tool calls]
-  end
-
-  subgraph Checks["Deterministic checks"]
-    Q[Quote validator<br/>verbatim or rejected]
-    E[Engine<br/>propagate · cutsets · planner]
-    H[Harness<br/>plugin · promtool · amtool]
-    C[Citation validator<br/>every number from a tool result]
-  end
-
-  Sources --> AI
-  A1 --> Q --> E
-  A3 --> E --> C
-  A2 --> H
-  E --> UI
-  H --> UI
-  C --> UI
-  T[(Tiger / TimescaleDB<br/>meter hypertable)] --> E
-  UI[React console<br/>engineer approves every change]
+  R["Site records<br/>drawings · BMS points<br/>work orders · legacy plugin"]
+  N["Nemotron<br/>reads, proposes, plans"]
+  K["Deterministic checks<br/>quote validator · engine<br/>harness · citation validator"]
+  U["Engineer<br/>approves every change"]
+  T[("Tiger<br/>meter data")]
+  R --> N -->|proposals| K -->|accepted or rejected, with evidence| U
+  T --> K
+  R --> K
 ```
 
 Nemotron proposes; a check it can't influence accepts or rejects. Four of them:
