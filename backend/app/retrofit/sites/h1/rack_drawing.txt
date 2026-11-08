@@ -1,0 +1,13 @@
+SYNTHETIC rack drawing, text rendering. Constructed for the demo; not a real site.
+Drawing RD-H1-R3 rev B, hall H1 row 3 (liquid-cooled GPU row), as-built markup 2026-10-21 by J. Chen.
+
+   +--------+   +----------------+   +----------------+
+   | CDU-1  |===| R3-01  Rack A  |===| R3-02  Rack B  |   end of row
+   +--------+   +----------------+   +----------------+
+     LD-1            LD-2                 LD-3
+
+Notes:
+1. Leak detection zone 1 sensing cable is inside the CDU-1 cabinet drip tray.
+2. Leak detection zone 2 sensing cable runs beneath the R3-01 (Rack A) drip tray.
+3. Leak detection zone 3 sensing cable runs beneath the R3-02 (Rack B) drip tray.
+4. Rack isolation valves V-R3-01 and V-R3-02 sit on the secondary supply branch to each rack.

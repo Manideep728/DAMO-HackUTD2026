@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Info, RotateCcw, Send, Wrench, Zap, CircleCheck, OctagonAlert, TriangleAlert, ShieldCheck, X, MousePointerClick, Loader2, Upload, Download, ArrowUp, ArrowDown, Rows3, Sparkles, Search, Check, Settings2, CalendarClock, ChevronDown, Plus, HelpCircle, Gauge } from 'lucide-react';
+import { Info, RotateCcw, Send, Wrench, Zap, CircleCheck, OctagonAlert, TriangleAlert, ShieldCheck, X, MousePointerClick, Loader2, Upload, Download, ArrowUp, ArrowDown, Rows3, Sparkles, Search, Check, Settings2, CalendarClock, ChevronDown, Plus, HelpCircle, Gauge, Droplets } from 'lucide-react';
 import { Badge, Button, cx } from '../components/ui';
 import { FacilityMap, LAYERS, TONE_WORD, toneOf, rowOf, groupId, type Tone } from './FacilityMap';
 import { defaultZone, visibleNodes } from './mapView';
@@ -47,6 +47,7 @@ export default function Preflight() {
   const tablet = useWide(768);
   const [params] = useSearchParams();
   const focus = params.get('focus');
+  const siteParam = params.get('site');
   const focused = useRef('');
   // A new scenario opens the explanation automatically: root cause and the agent's check catch the eye.
   const scenarioKey = JSON.stringify(toggles);
@@ -74,6 +75,14 @@ export default function Preflight() {
     loadFacility();
     pf.findings().then(setFindings).catch((e) => setError(e.message));
   }, [loadFacility]);
+
+  // Deep link to the liquid row (#/preflight?site=retrofit&focus=R3-01): load the retrofit site first, once.
+  const siteLoaded = useRef(false);
+  useEffect(() => {
+    if (!facility || siteParam !== 'retrofit' || facility.site === 'retrofit' || siteLoaded.current) return;
+    siteLoaded.current = true;
+    pf.loadRetrofit().then(loadFacility).catch((e) => setError(e.message));
+  }, [facility, siteParam, loadFacility]);
 
   // Deep link from the console (#/preflight?focus=R1-03): open that equipment's trace, with its row expanded.
   useEffect(() => {
@@ -193,6 +202,7 @@ export default function Preflight() {
                 <button role="menuitem" onClick={() => fileInput.current?.click()} className="h-12 px-3 rounded-lg text-left text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5"><Upload size={16} /> <span className="grid leading-tight">Import<span className="text-[12px] text-muted">CSV or JSON, replaces the demo hall</span></span></button>
                 <a role="menuitem" href="/api/preflight/export.csv" download="facility.csv" onClick={() => setAdmin(false)} className="h-12 px-3 rounded-lg text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5"><Download size={16} /> <span className="grid leading-tight">Export<span className="text-[12px] text-muted">the current graph as CSV</span></span></a>
                 <button role="menuitem" onClick={() => { setAdmin(false); swapFacility('Restoring the demo', pf.restoreDemo); }} className="h-12 px-3 rounded-lg text-left text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5"><RotateCcw size={16} /> Restore demo</button>
+                <button role="menuitem" onClick={() => { setAdmin(false); swapFacility('Loading the retrofit', pf.loadRetrofit); }} className="h-12 px-3 rounded-lg text-left text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5"><Droplets size={16} /> <span className="grid leading-tight">Load H1 + liquid retrofit<span className="text-[12px] text-muted">synthetic row R3: CDU-1, loops, valves, leak cables</span></span></button>
                 <button role="menuitem" onClick={syncMeters} disabled={syncing} className="h-12 px-3 rounded-lg text-left text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5 disabled:opacity-60">{syncing ? <Loader2 size={16} className="animate-spin" /> : <Gauge size={16} />} <span className="grid leading-tight">{syncing ? 'Syncing meters…' : 'Sync meters'}<span className="text-[12px] text-muted">{facility.load_source?.source === 'meters' ? `Tiger · ${facility.load_source.offline ? 'offline, last' : 'last'} sync ${facility.load_source.synced_at}` : 'measured load from Tiger'}</span></span></button>
               </div>
             )}

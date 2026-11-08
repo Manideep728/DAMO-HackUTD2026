@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { ReactFlow, Background, Controls, Handle, Position, MarkerType, useNodesInitialized, useReactFlow, useStore, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Zap, Fuel, ArrowLeftRight, ToggleRight, BatteryCharging, Plug, Snowflake, Waves, Droplets, Fan, Server, Cpu, Box, Rows3 } from 'lucide-react';
+import { Zap, Fuel, ArrowLeftRight, ToggleRight, BatteryCharging, Plug, Snowflake, Waves, Droplets, Fan, Server, Cpu, Box, Rows3, Container, CircleDot, Droplet } from 'lucide-react';
 import { cx } from '../components/ui';
 import type { Facility, FEdge, FNode, NodeState, SimResult } from './api';
 
@@ -11,10 +11,11 @@ import type { Facility, FEdge, FNode, NodeState, SimResult } from './api';
  * and lets every node be large enough to read and tap on an iPad (≥ 44 pt at the default zoom).
  */
 const COL_W = 158, NODE_W = 140, NODE_H = 66, PITCH = 82;
-export const LAYERS = ['Utility', 'Transfer', 'Switchgear', 'UPS · MCC', 'PDU · plant', 'CHW loop', 'CRAH', 'Racks', 'Workloads'];
+export const LAYERS = ['Utility', 'Transfer', 'Switchgear', 'UPS · MCC', 'PDU · plant', 'Loops · CDU', 'CRAH', 'Racks · leak', 'Workloads'];
 const ICON: Record<string, typeof Zap> = {
   utility_feed: Zap, generator: Fuel, ats: ArrowLeftRight, switchgear: ToggleRight, ups: BatteryCharging, rpp: Plug, pdu: Plug,
   chiller: Snowflake, pump: Waves, cooling_loop: Droplets, crah: Fan, rack: Server, workload: Cpu, rack_group: Rows3,
+  cdu: Container, valve: CircleDot, leak_sensor: Droplet,
 };
 export const rowOf = (id: string) => id.split('-').slice(0, -1).join('-') || id;   // R1-03 → R1, RK-11-01 → RK-11
 export const groupId = (row: string) => `row:${row}`;
@@ -198,7 +199,8 @@ export function FacilityMap({ facility, sim, toggles, selected, hover, picked, e
     const supTone = e.supplier.startsWith('row:') ? 'ok' : tones.get(e.supplier);
     const broken = supTone === 'down' || supTone === 'maint';
     const inChain = chain ? chain.has(e.supplier) && chain.has(e.consumer) : false;
-    const color = broken ? 'var(--critical)' : suspected ? 'var(--untrusted)' : e.resource === 'cooling' ? 'var(--panel-accent)' : 'var(--panel-muted)';
+    // Rack-facing (secondary) coolant gets its own colour so it is never mistaken for facility water.
+    const color = broken ? 'var(--critical)' : suspected ? 'var(--untrusted)' : e.loop === 'secondary' ? 'var(--panel-liquid)' : e.resource === 'cooling' ? 'var(--panel-accent)' : 'var(--panel-muted)';
     const opacity = chain ? (inChain ? 0.95 : 0.04) : active ? (broken ? 0.75 : 0.08) : suspected ? 0.9 : 0.3;
     return {
       id: `${e.supplier}->${e.consumer}:${i}`, source: e.supplier, target: e.consumer, animated: inChain && !broken,

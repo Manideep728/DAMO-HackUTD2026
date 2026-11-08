@@ -1,0 +1,13 @@
+# SYNTHETIC vendor point list for a constructed CDU model (no real manufacturer). Firmware 2.3.0.
+point,register,type,units,scale,enum,description
+run_state,40001,uint16,,1,0=off;1=running;2=standby;3=fault,Unit run state
+sec_supply_temp,30010,int16,degC,0.1,,Secondary (rack-facing) coolant supply temperature
+sec_return_temp,30011,int16,degC,0.1,,Secondary (rack-facing) coolant return temperature
+sec_flow,30012,uint16,L/min,0.1,,Secondary coolant flow
+fw_supply_temp,30020,int16,degC,0.1,,Facility (primary) water supply temperature
+fw_return_temp,30021,int16,degC,0.1,,Facility (primary) water return temperature
+leak_zone_1,10001,bool,,,0=dry;1=wet,Leak sensing cable zone 1
+leak_zone_2,10002,bool,,,0=dry;1=wet,Leak sensing cable zone 2
+leak_zone_3,10003,bool,,,0=dry;1=wet,Leak sensing cable zone 3
+control_source,40010,uint16,,1,0=remote;1=local,Who owns the supply setpoint
+supply_setpoint,40011,int16,degC,0.1,,Secondary supply temperature setpoint (writable)

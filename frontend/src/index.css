@@ -107,7 +107,7 @@ pre, code { font-family: var(--font-mono); }
 /* ---------- Console: dark instrument panel (same in both themes, so the hall always reads as equipment) */
 :root {
   --panel: #161615; --panel-2: #1F1F1D; --panel-3: #2A2A27; --panel-border: #33332F;
-  --panel-text: #F0EDE1; --panel-muted: #A39E90; --panel-ok: #5FC79A; --panel-accent: #7FAEF0;
+  --panel-text: #F0EDE1; --panel-muted: #A39E90; --panel-ok: #5FC79A; --panel-accent: #7FAEF0; --panel-liquid: #5CD0C4;
 }
 .panel { background: var(--panel); color: var(--panel-text); border: 1px solid var(--panel-border); box-shadow: var(--shadow); }
 .rack { background: var(--panel-2); color: var(--panel-text); border: 1px solid var(--panel-border); min-height: 54px; }
@@ -117,7 +117,7 @@ pre, code { font-family: var(--font-mono); }
 .rack-warning { background: color-mix(in srgb, var(--warning) 22%, var(--panel-2)); border-color: color-mix(in srgb, var(--warning) 70%, transparent); }
 .rack-critical { background: color-mix(in srgb, var(--critical) 30%, var(--panel-2)); border-color: var(--critical); }
 .rack-stale { background-image: repeating-linear-gradient(45deg, var(--panel-3) 0 3px, transparent 3px 8px); color: var(--panel-muted); }
-.rack-liquid { box-shadow: inset 0 -2px 0 0 color-mix(in srgb, var(--panel-accent) 70%, transparent); }
+.rack-liquid { box-shadow: inset 0 -3px 0 0 color-mix(in srgb, var(--panel-liquid) 80%, transparent); }
 .rack-selected { outline: 2px solid var(--panel-text); outline-offset: 1px; }
 .hatch-panel { background-image: repeating-linear-gradient(45deg, var(--panel-muted) 0 2px, transparent 2px 5px); }
 @keyframes rowIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }

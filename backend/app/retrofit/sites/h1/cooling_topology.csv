@@ -1,0 +1,12 @@
+# SYNTHETIC: cooling topology for the R3 liquid row. Leak cables are listed by zone only; which rack each cable
+# runs under is a physical fact that comes from the rack drawing (rack_drawing.txt), not from this file.
+component,type,loop,upstream,serves
+CHW-LOOP,cooling_loop,primary,,V-FW-1
+V-FW-1,valve,primary,CHW-LOOP,CDU-1
+CDU-1,cdu,primary>secondary,V-FW-1,TCS-1
+TCS-1,cooling_loop,secondary,CDU-1,V-R3-01;V-R3-02
+V-R3-01,valve,secondary,TCS-1,R3-01
+V-R3-02,valve,secondary,TCS-1,R3-02
+LD-1,leak_sensor,,CDU-1,zone 1
+LD-2,leak_sensor,,CDU-1,zone 2
+LD-3,leak_sensor,,CDU-1,zone 3

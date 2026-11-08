@@ -1,0 +1,20 @@
+# SYNTHETIC: rack inventory for hall H1 after the liquid retrofit. Constructed for the demo.
+rack,hall,row,position,cooling,design_kw,owner,cdu
+R1-01,H1,1,1,air,25,IT (inference),
+R1-02,H1,1,2,air,25,IT (inference),
+R1-03,H1,1,3,air,25,IT (inference),
+R1-04,H1,1,4,air,25,IT (inference),
+R1-05,H1,1,5,air,25,IT (inference),
+R1-06,H1,1,6,air,25,IT (inference),
+R1-07,H1,1,7,air,25,IT (inference),
+R1-08,H1,1,8,air,25,IT (inference),
+R2-01,H1,2,1,air,25,IT (batch),
+R2-02,H1,2,2,air,25,IT (batch),
+R2-03,H1,2,3,air,25,IT (batch),
+R2-04,H1,2,4,air,25,IT (batch),
+R2-05,H1,2,5,air,25,IT (batch),
+R2-06,H1,2,6,air,25,IT (batch),
+R2-07,H1,2,7,air,25,IT (batch),
+R2-08,H1,2,8,air,25,IT (batch),
+R3-01,H1,3,1,liquid,45,IT (GPU training),CDU-1
+R3-02,H1,3,2,liquid,45,IT (GPU training),CDU-1

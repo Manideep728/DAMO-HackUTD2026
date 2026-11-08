@@ -1,0 +1,12 @@
+# SYNTHETIC: cooling topology for the H7 row C liquid racks. Leak cables listed by zone only; rack positions are on
+# the rack drawing.
+component,type,loop,upstream,serves
+CUP-CHW,cooling_loop,primary,,V-FW-7
+V-FW-7,valve,primary,CUP-CHW,CDU-07
+CDU-07,cdu,primary>secondary,V-FW-7,TCS-7
+TCS-7,cooling_loop,secondary,CDU-07,V-C-11;V-C-12
+V-C-11,valve,secondary,TCS-7,C-11
+V-C-12,valve,secondary,TCS-7,C-12
+LD-71,leak_sensor,,CDU-07,zone 1
+LD-72,leak_sensor,,CDU-07,zone 2
+LD-73,leak_sensor,,CDU-07,zone 3

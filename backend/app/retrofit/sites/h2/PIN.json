@@ -1,0 +1,10 @@
+{
+  "existing_bms_points.csv": "5cee1503468bd926e011b830eac6caad42c9e63b8dc8ebcbbeeb1e09f991e2b8",
+  "rack_inventory.csv": "8467409c3ad672331cb340ad62be98c79eb3dcf1a714d71c6fed4ffac73a6011",
+  "cooling_topology.csv": "5c48ef28736b36411fd98f9b92770fd116d72927eda30c5da7f00560a3204f6d",
+  "site_requirements.md": "184bb568887c40966aaceae2df3caec2827d7444d3eb9ff03c2937425af1daee",
+  "logbook.csv": "9fda5933e5e54f2a9abc54e062ac9efd439cd27895b8cbab15fda2ed8215f0c6",
+  "rack_drawing.txt": "1217a5ce5215ac2b95d38d293bdc6e03215425e93a69ce4a3e876abdc0b3c18a",
+  "config/original/mapping.yaml": "832f1b33696fefbfcdf65a92f096e67ac99168e0086a662aa9d6f4157f3e87de",
+  "cdu_vendor_points@2.3.0.csv": "a3765f2134f70bcc22a09d7c7e4f15c62a874210fea598d26d40866662a4b3b1"
+}

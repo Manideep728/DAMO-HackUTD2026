@@ -38,8 +38,11 @@ LAYER = {
     NodeType.chiller: 4,
     NodeType.pump: 4,
     NodeType.cooling_loop: 5,
+    NodeType.valve: 5,
+    NodeType.cdu: 5,
     NodeType.crah: 6,
     NodeType.rack: 7,
+    NodeType.leak_sensor: 7,
     NodeType.workload: 8,
 }
 FIDELITY = (
@@ -118,6 +121,7 @@ def facility() -> dict:
             "mode": g.mode.value,
             "k": g.k,
             "resource": g.resource.value,
+            "loop": g.loop.value if g.loop else None,
             "source": s.source.value,
             "status": s.status.value,
             "confidence": s.confidence,
@@ -144,6 +148,7 @@ def facility() -> dict:
         "name": fac.name,
         "fidelity": FIDELITY,
         "critical_services": fac.critical_services(),
+        "site": ws.site,
         "nodes": nodes,
         "edges": edges,
         "suspected": suspected,
@@ -283,6 +288,13 @@ async def import_facility(request: Request) -> dict:
 @router.post("/facility/demo")
 def restore_demo(request: Request) -> dict:
     workspace().restore_demo(request.headers.get("x-actor", "engineer"))
+    return {"name": workspace().documented.name, "nodes": len(workspace().documented.nodes)}
+
+
+@router.post("/facility/retrofit")
+def load_retrofit(request: Request) -> dict:
+    """Swap in hall H1 plus the synthetic liquid-cooled row R3 (CDU, loops, valves, leak sensors)."""
+    workspace().restore_demo(request.headers.get("x-actor", "engineer"), site="retrofit")
     return {"name": workspace().documented.name, "nodes": len(workspace().documented.nodes)}
 
 

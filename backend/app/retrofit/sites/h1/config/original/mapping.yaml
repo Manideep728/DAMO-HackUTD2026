@@ -1,0 +1,43 @@
+# SYNTHETIC adapter mapping: CDU-1 vendor points -> synthetic target contract v0.1.
+# Integrator's draft for the R3 liquid row. Contains a constructed demo fault; not an incident at any operator.
+contract: synthetic-target-contract@0.1
+site: h1
+device:
+  id: CDU-1
+  firmware: 2.3.0
+  vendor_points: cdu_vendor_points@2.3.0.csv
+telemetry:
+  state: run_state
+  secondary.supply_temp_c: sec_supply_temp
+  secondary.return_temp_c: sec_return_temp
+  secondary.flow_lpm: sec_flow
+  primary.supply_temp_c: fw_supply_temp
+  primary.return_temp_c: fw_return_temp
+state_map:  # vendor label -> contract state (quoted: YAML would read a bare off as false)
+  "off": "off"
+  "running": "running"
+  "standby": "standby"
+  "fault": "fault"
+availability:
+  backup_when: [standby]
+leak_zones:
+  - point: leak_zone_1
+    location: CDU-1
+  - point: leak_zone_2
+    location: R3-02
+  - point: leak_zone_3
+    location: R3-02
+valves:
+  R3-01: V-R3-01
+  R3-02: V-R3-02
+leak_response:
+  notify: Facilities
+  close_rack_valve: true
+freshness:
+  max_age_s: 30
+  recovery_samples: 2
+control:
+  setpoint_point: supply_setpoint
+  approved_range_c: [30, 35]
+  heartbeat_timeout_s: 60
+  fallback_setpoint_c: 32

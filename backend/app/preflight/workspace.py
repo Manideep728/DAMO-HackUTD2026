@@ -11,6 +11,7 @@ from engine.model import Facility, State
 from engine.timestep import Window
 
 from .data.demo import demo_facility, demo_profiles, demo_windows
+from .data.retrofit import retrofit_facility, retrofit_profiles
 from .discovery import Claim, DiscoveryResult, Doc, Finding, Rejection, apply_finding, discover, load_corpus
 from .extract_model import ReadModel, read_records
 from .meters import MeterEvidence
@@ -33,6 +34,7 @@ class Workspace:
     model_read: dict | None = None
     telemetry: Telemetry | None = None  # meter data for the demo hall, from Tiger or its local snapshot
     on_demo: bool = True  # meters describe the demo hall; an imported site has none
+    site: str = "demo"  # demo | retrofit (demo hall + liquid row R3) | imported
     _lock: threading.Lock = field(default_factory=threading.Lock)
 
     def meter_evidence(self) -> list[MeterEvidence]:
@@ -136,20 +138,29 @@ class Workspace:
             self.documented = facility
             self.docs, self.labels, self.profiles, self.windows = [], [], {}, []
             self.on_demo = False
+            self.site = "imported"
             self._clear_model_read()
             self._discovery = None
         self.store.audit(actor, "facility.imported", {"name": facility.name, "nodes": len(facility.nodes)})
 
-    def restore_demo(self, actor: str) -> None:
+    def restore_demo(self, actor: str, site: str = "demo") -> None:
+        """Back to the demo hall, or (site="retrofit") the demo hall plus the synthetic liquid-cooled row. The
+        retrofit is a superset of the demo, so the demo's records, windows and meters still describe it."""
+        if site not in ("demo", "retrofit"):
+            raise ValueError("site must be demo or retrofit")
         fresh = Workspace(self.store)
         with self._lock:
-            self.documented, self.docs, self.labels = fresh.documented, fresh.docs, fresh.labels
+            self.documented = retrofit_facility() if site == "retrofit" else fresh.documented
+            self.docs, self.labels = fresh.docs, fresh.labels
             self.windows = fresh.windows
             self.on_demo = True
-            self.profiles = self.telemetry.profiles(dt.date.today()) if self.telemetry else fresh.profiles
+            self.site = site
+            profiles = self.telemetry.profiles(dt.date.today()) if self.telemetry else fresh.profiles
+            self.profiles = {**retrofit_profiles(), **profiles} if site == "retrofit" else profiles
             self._clear_model_read()
             self._discovery = None
-        self.store.audit(actor, "facility.restored_demo", {"name": self.documented.name})
+        action = "facility.loaded_retrofit" if site == "retrofit" else "facility.restored_demo"
+        self.store.audit(actor, action, {"name": self.documented.name})
 
 
 def parse_states(raw: dict[str, str] | None, facility: Facility) -> dict[str, State]:

@@ -27,6 +27,9 @@ class NodeType(StrEnum):
     crah = "crah"
     rack = "rack"
     workload = "workload"
+    cdu = "cdu"  # coolant distribution unit: heat exchange between facility water and the rack-facing loop
+    leak_sensor = "leak_sensor"
+    valve = "valve"  # isolation or energy valve; passes the cooling it is fed, closed = maintenance/failed
 
 
 class State(StrEnum):
@@ -46,6 +49,13 @@ class Mode(StrEnum):
 class Resource(StrEnum):
     power = "power"
     cooling = "cooling"
+
+
+class Loop(StrEnum):
+    """Which water loop a cooling node or edge belongs to. Liquid cooling has two that must never be confused."""
+
+    primary = "primary"  # facility water (chilled-water plant side of the CDU)
+    secondary = "secondary"  # rack-facing coolant (technology cooling system side of the CDU)
 
 
 class Split(StrEnum):
@@ -92,11 +102,14 @@ class RequirementGroup(BaseModel):
     k: int | None = None
     demand: float | None = None  # capacity mode only; default is the node's own throughput for this resource
     split: Split = Split.proportional
+    loop: Loop | None = None  # cooling groups only: which water loop the supply arrives over
 
     @model_validator(mode="after")
     def _check(self) -> RequirementGroup:
         if self.mode == Mode.k_of_n and (self.k is None or not 1 <= self.k <= len(self.suppliers)):
             raise ValueError(f"group {self.name}: k_of_n needs 1 <= k <= {len(self.suppliers)}")
+        if self.loop is not None and self.resource != Resource.cooling:
+            raise ValueError(f"group {self.name}: only cooling groups belong to a water loop")
         return self
 
     def live_suppliers(self) -> list[str]:
@@ -116,6 +129,7 @@ class Node(BaseModel):
     flexible_kw: float = 0.0  # load that can be shed or shifted during maintenance (GPU batch work)
     metadata: dict[str, Any] = {}
     provenance: str = "documented"
+    loop: Loop | None = None  # cooling loops, valves and CDUs: the water loop this node sits on
     requires: list[RequirementGroup] = []
 
 

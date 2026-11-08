@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from engine.model import Mode, Node, NodeType, RequirementGroup, Resource, Split, Supply
+from engine.model import Loop, Mode, Node, NodeType, RequirementGroup, Resource, Split, Supply
 
 
 def group(
@@ -24,8 +24,17 @@ def power(*suppliers: str, split: Split = Split.proportional) -> RequirementGrou
     return group("power", Mode.capacity, list(suppliers), Resource.power, split=split)
 
 
-def cooling(*suppliers: str, name: str = "cooling") -> RequirementGroup:
-    return group(name, Mode.capacity, list(suppliers), Resource.cooling)
+def cooling(
+    *suppliers: str, name: str = "cooling", demand: float | None = None, loop: Loop | None = None
+) -> RequirementGroup:
+    return RequirementGroup(
+        name=name,
+        mode=Mode.capacity,
+        resource=Resource.cooling,
+        demand=demand,
+        loop=loop,
+        suppliers=[Supply(supplier=s) for s in suppliers],
+    )
 
 
 def node(id: str, type: NodeType, zone: str, label: str = "", **kw: Any) -> Node:

@@ -1,0 +1,6 @@
+# SYNTHETIC: rack inventory for hall H7 after its liquid retrofit. Constructed for the demo.
+rack,hall,row,position,cooling,design_kw,owner,cdu
+C-09,H7,C,9,air,20,IT (research cluster),
+C-10,H7,C,10,air,20,IT (research cluster),
+C-11,H7,C,11,liquid,45,IT (research cluster),CDU-07
+C-12,H7,C,12,liquid,45,IT (research cluster),CDU-07

@@ -5,14 +5,14 @@ export type Toggle = 'maintenance' | 'failed';
 
 export interface FNode {
   id: string; type: string; label: string; zone: string; capacity: number; base_load: number; heat_load: number;
-  criticality: number; failure_rate: number | null; flexible_kw: number; layer: number; provenance: string;
+  criticality: number; failure_rate: number | null; flexible_kw: number; layer: number; provenance: string; loop?: 'primary' | 'secondary' | null;
 }
 export interface FEdge {
-  consumer: string; supplier: string; group: string; mode?: string; k?: number | null; resource?: string;
+  consumer: string; supplier: string; group: string; mode?: string; k?: number | null; resource?: string; loop?: 'primary' | 'secondary' | null;
   source: string; status: string; confidence: number; citations?: { doc_id: string; quote: string }[]; finding?: string;
 }
 export interface Facility {
-  name: string; fidelity: string; critical_services: string[]; nodes: FNode[]; edges: FEdge[]; suspected: FEdge[];
+  name: string; site?: 'demo' | 'retrofit' | 'imported'; fidelity: string; critical_services: string[]; nodes: FNode[]; edges: FEdge[]; suspected: FEdge[];
   windows: { nodes: string[]; start: number; end: number; label: string }[];
   load_source?: LoadSource;
 }
@@ -83,6 +83,7 @@ export const pf = {
     return data as { name: string; nodes: number };
   },
   restoreDemo: () => j<{ name: string; nodes: number }>('/facility/demo', {}),
+  loadRetrofit: () => j<{ name: string; nodes: number }>('/facility/retrofit', {}),
   /** Pull measured load and meter evidence from Tiger. 503 when the meter database can't be reached. */
   syncMeters: () => j<LoadSource>('/meters/sync', {}),
   decide: (id: string, decision: 'confirmed' | 'rejected', actor: string, note = '') =>

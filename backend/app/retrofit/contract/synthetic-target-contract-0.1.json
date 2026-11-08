@@ -1,0 +1,339 @@
+{
+  "$id": "synthetic-target-contract@0.1",
+  "message": {
+    "$defs": {
+      "CduState": {
+        "enum": [
+          "off",
+          "running",
+          "standby",
+          "degraded",
+          "fault"
+        ],
+        "title": "CduState",
+        "type": "string"
+      },
+      "CduTelemetry": {
+        "properties": {
+          "available_backup": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Backup"
+          },
+          "cdu_id": {
+            "title": "Cdu Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "cdu_telemetry",
+            "default": "cdu_telemetry",
+            "title": "Kind",
+            "type": "string"
+          },
+          "primary": {
+            "$ref": "#/$defs/LoopReading",
+            "default": {
+              "flow_lpm": null,
+              "return_temp_c": null,
+              "supply_temp_c": null
+            }
+          },
+          "quality": {
+            "$ref": "#/$defs/Quality"
+          },
+          "secondary": {
+            "$ref": "#/$defs/LoopReading",
+            "default": {
+              "flow_lpm": null,
+              "return_temp_c": null,
+              "supply_temp_c": null
+            }
+          },
+          "site": {
+            "title": "Site",
+            "type": "string"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CduState"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "t": {
+            "title": "T",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "site",
+          "cdu_id",
+          "t",
+          "quality"
+        ],
+        "title": "CduTelemetry",
+        "type": "object"
+      },
+      "ControlResult": {
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "kind": {
+            "const": "control",
+            "default": "control",
+            "title": "Kind",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "setpoint_c": {
+            "title": "Setpoint C",
+            "type": "number"
+          },
+          "t": {
+            "title": "T",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "t",
+          "request_id",
+          "accepted",
+          "setpoint_c",
+          "reason"
+        ],
+        "title": "ControlResult",
+        "type": "object"
+      },
+      "ControlStatus": {
+        "properties": {
+          "control_source": {
+            "enum": [
+              "remote",
+              "local_fallback"
+            ],
+            "title": "Control Source",
+            "type": "string"
+          },
+          "kind": {
+            "const": "control_status",
+            "default": "control_status",
+            "title": "Kind",
+            "type": "string"
+          },
+          "setpoint_c": {
+            "title": "Setpoint C",
+            "type": "number"
+          },
+          "t": {
+            "title": "T",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "t",
+          "control_source",
+          "setpoint_c"
+        ],
+        "title": "ControlStatus",
+        "type": "object"
+      },
+      "LeakEvent": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "cdu_id": {
+            "title": "Cdu Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "leak",
+            "default": "leak",
+            "title": "Kind",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "site": {
+            "title": "Site",
+            "type": "string"
+          },
+          "t": {
+            "title": "T",
+            "type": "integer"
+          },
+          "zone": {
+            "title": "Zone",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "site",
+          "cdu_id",
+          "t",
+          "zone",
+          "location",
+          "active"
+        ],
+        "title": "LeakEvent",
+        "type": "object"
+      },
+      "LoopReading": {
+        "properties": {
+          "flow_lpm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Flow Lpm"
+          },
+          "return_temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Return Temp C"
+          },
+          "supply_temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Supply Temp C"
+          }
+        },
+        "title": "LoopReading",
+        "type": "object"
+      },
+      "Quality": {
+        "enum": [
+          "good",
+          "stale",
+          "recovering"
+        ],
+        "title": "Quality",
+        "type": "string"
+      },
+      "ResponseAction": {
+        "properties": {
+          "action": {
+            "enum": [
+              "close_valve",
+              "notify"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "kind": {
+            "const": "response",
+            "default": "response",
+            "title": "Kind",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "t": {
+            "title": "T",
+            "type": "integer"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "t",
+          "action",
+          "target",
+          "reason"
+        ],
+        "title": "ResponseAction",
+        "type": "object"
+      }
+    },
+    "discriminator": {
+      "mapping": {
+        "cdu_telemetry": "#/$defs/CduTelemetry",
+        "control": "#/$defs/ControlResult",
+        "control_status": "#/$defs/ControlStatus",
+        "leak": "#/$defs/LeakEvent",
+        "response": "#/$defs/ResponseAction"
+      },
+      "propertyName": "kind"
+    },
+    "oneOf": [
+      {
+        "$ref": "#/$defs/CduTelemetry"
+      },
+      {
+        "$ref": "#/$defs/LeakEvent"
+      },
+      {
+        "$ref": "#/$defs/ResponseAction"
+      },
+      {
+        "$ref": "#/$defs/ControlResult"
+      },
+      {
+        "$ref": "#/$defs/ControlStatus"
+      }
+    ]
+  },
+  "rules": {
+    "events_require_quality": "good",
+    "freshness": {
+      "max_age_s": 30,
+      "recovery_samples": 2
+    },
+    "telemetry_fields": {
+      "primary.return_temp_c": "degC",
+      "primary.supply_temp_c": "degC",
+      "secondary.flow_lpm": "L/min",
+      "secondary.return_temp_c": "degC",
+      "secondary.supply_temp_c": "degC",
+      "state": "enum"
+    }
+  },
+  "synthetic": true,
+  "title": "Synthetic target contract v0.1, written for this demo. Not NVIDIA DSX Exchange; no BCM rules."
+}

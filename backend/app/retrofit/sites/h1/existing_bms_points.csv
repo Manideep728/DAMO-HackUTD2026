@@ -1,0 +1,15 @@
+# SYNTHETIC: existing BMS point list for hall H1 before the liquid retrofit. Constructed for the demo.
+point_id,units,alarm_ref,description
+H1.CRAH-1.SAT,degC,ALM-CRAH-01,CRAH-1 supply air temperature
+H1.CRAH-1.RAT,degC,,CRAH-1 return air temperature
+H1.CRAH-2.SAT,degC,ALM-CRAH-02,CRAH-2 supply air temperature
+H1.CRAH-3.SAT,degC,ALM-CRAH-03,CRAH-3 supply air temperature
+H1.CRAH-4.SAT,degC,ALM-CRAH-04,CRAH-4 supply air temperature
+PLANT.CHW-LOOP.SWT,degC,ALM-CHW-01,Chilled water supply temperature
+PLANT.CHW-LOOP.RWT,degC,,Chilled water return temperature
+PLANT.PUMP-A.STS,,ALM-PMP-A,Pump A run status
+PLANT.PUMP-B.STS,,ALM-PMP-B,Pump B run status
+H1.R1.INLET,degC,ALM-ROW-1,Row R1 average inlet temperature
+H1.R2.INLET,degC,ALM-ROW-2,Row R2 average inlet temperature
+H1.LDP-1.ZONE1,,ALM-LDP-01,Leak detection panel 1 zone 1 (CRAH-1/2 drip pans)
+H1.LDP-1.ZONE2,,ALM-LDP-02,Leak detection panel 1 zone 2 (CRAH-3/4 drip pans)

@@ -1,0 +1,8 @@
+{
+  "note": "SYNTHETIC answer key for the seeded defects in sites/h2/config/original/mapping.yaml. Read only by app/retrofit/evaluate.py, never by the pipeline (a test enforces this).",
+  "defects": [
+    {"id": "H2-1", "kind": "leak_location", "where": "leak_zones zone 3", "truth": "C-11"},
+    {"id": "H2-2", "kind": "loop_swap", "where": "telemetry primary/secondary supply temperature"},
+    {"id": "H2-3", "kind": "running_as_available", "where": "availability.backup_when"}
+  ]
+}

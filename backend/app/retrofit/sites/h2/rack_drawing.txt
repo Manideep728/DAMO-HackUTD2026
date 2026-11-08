@@ -1,0 +1,13 @@
+SYNTHETIC rack drawing, text rendering. Constructed for the demo; not a real site.
+Drawing RD-H7-C rev A, hall H7 row C (liquid-cooled racks), issued 2026-09-10 by K. Osei.
+
+   +----------------+   +----------------+   +--------+
+   | C-11  Rack A   |===| C-12  Rack B   |===| CDU-07 |
+   +----------------+   +----------------+   +--------+
+        LD-73                LD-72              LD-71
+
+Notes:
+1. Leak detection zone 1 sensing cable is inside the CDU-07 cabinet drip tray.
+2. Leak detection zone 2 sensing cable runs beneath the C-12 (Rack B) drip tray.
+3. Leak detection zone 3 sensing cable runs beneath the C-11 (Rack A) drip tray.
+4. Rack isolation valves V-C-11 and V-C-12 sit on the secondary supply branch to each rack.

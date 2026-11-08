@@ -1,0 +1,6 @@
+# SYNTHETIC: existing BMS point list for hall H7 (second site variation). Constructed for the demo.
+point_id,units,alarm_ref,description
+H7.AHU-2.SAT,degC,ALM-AHU-02,AHU-2 supply air temperature
+H7.AHU-3.SAT,degC,ALM-AHU-03,AHU-3 supply air temperature
+CUP.CHW.SWT,degC,ALM-CHW-07,Central plant chilled water supply temperature
+H7.ROWC.INLET,degC,ALM-ROW-C,Row C average inlet temperature

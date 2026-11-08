@@ -1,11 +1,12 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests/preflight"]  # tests/test_harness.py is a script: python -m tests.test_harness
+testpaths = ["tests/preflight", "tests/retrofit"]  # tests/test_harness.py is a script: python -m tests.test_harness
 
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-include = ["engine/**/*.py", "app/preflight/**/*.py", "tests/preflight/**/*.py"]
+include = ["engine/**/*.py", "app/preflight/**/*.py", "app/retrofit/**/*.py", "tests/preflight/**/*.py",
+           "tests/retrofit/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
@@ -13,8 +14,16 @@ ignore = ["E731"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["engine"]
+files = ["engine", "app/retrofit"]
 plugins = ["pydantic.mypy"]
 strict_optional = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["yaml"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["app.models", "app.llm", "app.preflight.*"]
+ignore_errors = true

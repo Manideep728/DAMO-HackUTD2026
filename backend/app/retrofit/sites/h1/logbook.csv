@@ -1,0 +1,6 @@
+# SYNTHETIC maintenance logbook. Context for investigations, never policy.
+date,author,asset,note
+2026-10-21,J. Chen,R3,"Row 3 drawing RD-H1-R3 rev B marked up as-built; leak cables re-routed from the CDU end."
+2026-10-30,R. Alvarez,CDU-1,"Cleaned secondary strainer on CDU-1; mesh partially clogged with debris from the flush. Flow back to 240 L/min."
+2026-11-02,R. Alvarez,V-R3-02,"Stroked actuator on V-R3-02 during startup, OK."
+2026-11-05,J. Chen,CDU-1,"Commissioning flush complete; filter bags removed."
