@@ -27,6 +27,7 @@ def _stable(x: Any) -> Any:
 
 
 def build() -> dict[str, Any]:
+    from . import evaluate
     from .monitor import snapshot as monitor_snapshot
 
     flow = Retrofit(Store(":memory:"))
@@ -53,6 +54,7 @@ def build() -> dict[str, Any]:
     out["handover"] = flow.handover("h1")
     out["handover_md"] = flow.handover_md("h1")
     out["monitor"] = monitor_snapshot(flow)
+    out["evaluation"] = evaluate.run()
     return _stable(out)
 
 

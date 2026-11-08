@@ -27,6 +27,10 @@ dist/
 # Logs
 *.log
 
+# Generated evaluation runs
+backend/tests/preflight/eval/live_report.json
+backend/tests/preflight/eval/replay/
+
 # Personal Claude Code settings (shared settings live in .claude/settings.json)
 .claude/settings.local.json
 

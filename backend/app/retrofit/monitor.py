@@ -140,7 +140,13 @@ def context(flow: Retrofit, site: str = "h1") -> dict[str, Any]:
     emap = flow.equipment_map(site)
     s = flow.site(site)
     runbook = s.requirements_text.split("## Runbook RB-LC-2: low secondary flow", 1)[1].split("```", 1)[0]
-    steps = [ln.split(". ", 1)[1].strip() for ln in runbook.splitlines() if ln[:2].rstrip(".").isdigit()]
+    steps: list[str] = []
+    for ln in runbook.splitlines():
+        if ln[:2].rstrip(".").isdigit():
+            steps.append(ln.split(". ", 1)[1].strip())
+        elif steps and ln.startswith("   "):  # a wrapped continuation of the previous step
+            steps[-1] += " " + ln.strip()
+    steps = [s.replace("**", "") for s in steps]
     lead = next((r for r in reversed(s.logbook) if "strainer" in r["note"].lower()), None)
     return {
         "from": f"accepted package v{pkg['version']} (mapping {pkg['mapping_sha']})"

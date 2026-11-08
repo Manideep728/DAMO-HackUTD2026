@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from app.models import has_key
 
+from . import evaluate, monitor
 from .contract import CONTRACT_ID, LABEL
 from .decisions import Store
 from .inputs import PinMismatch, hashes, pinned_files, site_dir
@@ -203,3 +204,26 @@ def audit() -> list[dict[str, Any]]:
 def reset(body: ActorIn) -> dict[str, str]:
     FLOW.store.reset(body.actor or "engineer")
     return {"status": "reset"}
+
+
+class LessonIn(BaseModel):
+    site: str = "h1"
+    text: str
+    author: str
+    incident: str
+
+
+@router.get("/monitor/{variant}")
+def monitor_run(variant: str) -> dict[str, Any]:
+    """The low-flow incident (or a variant), with its context taken from the accepted package."""
+    return dict(_guard(lambda: monitor.evaluate(variant, monitor.context(FLOW))))
+
+
+@router.post("/lessons")
+def lesson(body: LessonIn) -> dict[str, Any]:
+    return dict(_guard(FLOW.lesson, _site(body.site), body.text, body.author, body.incident))
+
+
+@router.get("/evaluation")
+def evaluation() -> dict[str, Any]:
+    return evaluate.run()
