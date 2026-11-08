@@ -65,3 +65,17 @@ def test_preflight_api_serves_the_retrofit_site_and_restores_the_demo():
     c.post("/api/preflight/facility/demo")
     f = c.get("/api/preflight/facility").json()
     assert f["site"] == "demo" and len(f["nodes"]) == 43
+
+
+def test_reading_the_retrofit_model_does_not_replace_the_active_preflight_site():
+    from app.main import app
+
+    c = TestClient(app)
+    c.post("/api/preflight/facility/demo")
+
+    model = c.get("/api/preflight/facility/retrofit").json()
+
+    assert model["site"] == "retrofit"
+    assert {"cdu", "valve", "leak_sensor"} <= {n["type"] for n in model["nodes"]}
+    assert any(e["loop"] == "secondary" and e["consumer"] == "R3-01" for e in model["edges"])
+    assert c.get("/api/preflight/facility").json()["site"] == "demo"

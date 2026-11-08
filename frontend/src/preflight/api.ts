@@ -65,6 +65,7 @@ async function j<T>(path: string, body?: unknown): Promise<T> {
 
 export const pf = {
   facility: () => j<Facility>('/facility'),
+  retrofitFacility: () => j<Facility>('/facility/retrofit'),
   simulate: (state_changes: Record<string, Toggle>) => j<SimResult>('/simulate', { state_changes }),
   cutsets: (baseline: Record<string, Toggle>, max_order = 2) => j<CutSets>('/cutsets', { baseline, max_order }),
   maintenanceCuts: (maintenance: string[], max_order = 2) => j<CutSets>('/cutsets', { max_order, maintenance }),

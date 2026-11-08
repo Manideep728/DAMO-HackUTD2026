@@ -15,6 +15,7 @@ from sse_starlette.sse import EventSourceResponse
 from engine.model import NodeType
 
 from . import agent, tools
+from .data.retrofit import retrofit_facility, retrofit_profiles
 from .discovery import score, to_dict
 from .extract_model import ModelUnavailable
 from .importers import from_csv, from_json, to_csv
@@ -108,10 +109,8 @@ class AskIn(BaseModel):
     mode: str | None = None
 
 
-@router.get("/facility")
-def facility() -> dict:
-    ws = workspace()
-    fac = ws.facility()
+def _facility_payload(fac, *, site: str, suspected: list[dict], profiles: dict, load_source: dict, windows: list) -> dict:
+    """Serialize any facility through the same graph contract used by Preflight."""
     nodes = [{**n.model_dump(mode="json", exclude={"requires"}), "layer": LAYER[n.type]} for n in fac.nodes]
     edges = [
         {
@@ -131,6 +130,23 @@ def facility() -> dict:
         for g in n.requires
         for s in g.suppliers
     ]
+    return {
+        "name": fac.name,
+        "fidelity": FIDELITY,
+        "critical_services": fac.critical_services(),
+        "site": site,
+        "nodes": nodes,
+        "edges": edges,
+        "suspected": suspected,
+        "profiles": profiles,
+        "load_source": load_source,
+        "windows": [w.__dict__ | {"state": w.state.value} for w in windows],
+    }
+
+
+@router.get("/facility")
+def facility() -> dict:
+    ws = workspace()
     suspected = [
         {
             "consumer": f.consumer,
@@ -144,18 +160,27 @@ def facility() -> dict:
         for f in ws.findings()
         if f.status == "open" and f.classification != "confirms"
     ]
-    return {
-        "name": fac.name,
-        "fidelity": FIDELITY,
-        "critical_services": fac.critical_services(),
-        "site": ws.site,
-        "nodes": nodes,
-        "edges": edges,
-        "suspected": suspected,
-        "profiles": ws.profiles,
-        "load_source": ws.load_source(),
-        "windows": [w.__dict__ | {"state": w.state.value} for w in ws.windows],
-    }
+    return _facility_payload(
+        ws.facility(),
+        site=ws.site,
+        suspected=suspected,
+        profiles=ws.profiles,
+        load_source=ws.load_source(),
+        windows=ws.windows,
+    )
+
+
+@router.get("/facility/retrofit")
+def retrofit_model() -> dict:
+    """Read the synthetic liquid-cooling graph without replacing Preflight's active workspace."""
+    return _facility_payload(
+        retrofit_facility(),
+        site="retrofit",
+        suspected=[],
+        profiles=retrofit_profiles(),
+        load_source={"source": "assumed", "synthetic": True},
+        windows=[],
+    )
 
 
 @router.post("/simulate")

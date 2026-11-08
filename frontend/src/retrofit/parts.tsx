@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Check, X, Minus, FileCode2, FlaskConical, Radio, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Badge, cx } from '../components/ui';
 import { DIMS, probe, type Report, type Status } from './api';
+import { ModernizeProjects } from '../modern/WorkspaceNav';
 
 const DIM_LABEL: Record<string, string> = { rack: 'Rack', response: 'Response', loop: 'Loop', availability: 'Backup', freshness: 'Freshness', control: 'Control' };
 
@@ -27,13 +28,22 @@ export function SourceStrip({ status }: { status: Status | null | undefined }) {
 }
 
 export function Tabs() {
-  const tabs = [['/retrofit', 'Wrong-rack fix'], ['/retrofit/firmware', 'Firmware change'], ['/retrofit/handover', 'Readiness & handover'], ['/retrofit/eval', 'Evaluation']];
+  const location = useLocation();
+  const tabs = [
+    ['/modernize/retrofit', 'Equipment model'],
+    ['/modernize/retrofit/mapping', 'Mapping correction'],
+    ['/modernize/retrofit/firmware', 'Firmware change'],
+    ['/modernize/retrofit/handover', 'Readiness & handover'],
+  ];
   return (
-    <nav aria-label="Retrofit views" className="flex flex-wrap gap-2 mb-5">
-      {tabs.map(([to, label]) => (
-        <NavLink key={to} to={to} end className={({ isActive }) => cx('h-12 px-4 rounded-xl border text-[15px] font-medium inline-flex items-center t', isActive ? 'border-text bg-surface' : 'border-border text-muted hover:text-text hover:bg-surface')}>{label}</NavLink>
-      ))}
-    </nav>
+    <>
+      <ModernizeProjects path={location.pathname} />
+      <nav aria-label="Liquid-cooling modernization steps" className="flex flex-wrap gap-2 mb-5">
+        {tabs.map(([to, label]) => (
+          <NavLink key={to} to={to} end className={({ isActive }) => cx('h-12 px-4 rounded-xl border text-[15px] font-medium inline-flex items-center t', isActive ? 'border-text bg-surface' : 'border-border text-muted hover:text-text hover:bg-surface')}>{label}</NavLink>
+        ))}
+      </nav>
+    </>
   );
 }
 

@@ -132,7 +132,7 @@ export function RetrofitPage() {
           </>
         ) : (
           <>
-            <div className="text-[15px]"><b>Done.</b> Both sites pass. Next: <a className="text-accent underline" href="#/retrofit/firmware">a CDU firmware change</a> revalidates the accepted package.</div>
+            <div className="text-[15px]"><b>Done.</b> Both sites pass. Next: <a className="text-accent underline" href="#/modernize/retrofit/firmware">a CDU firmware change</a> revalidates the accepted package.</div>
             <button onClick={() => { setStep('idle'); setReport(null); setFlags([]); setDecision(null); setProposal(null); setPassed(null); setRegression(null); setSite2(null); }}
               className="h-12 px-4 rounded-xl border border-border hover:bg-surface-2 text-[15px] inline-flex items-center gap-2 t"><RotateCcw size={16} /> Start over</button>
           </>

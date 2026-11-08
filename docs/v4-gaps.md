@@ -99,7 +99,7 @@ What `main` is missing against the V4 workflow ("Making existing data centers AI
 
 ## 10. Docs and pitch
 
-- [ ] README / `direction-ai-retrofit.md` updated to the V4 framing (wrong-rack leak sensor, not the missing leak alarm)
+- [x] README updated to the V4 framing (wrong-rack leak sensor, not the missing leak alarm); `direction-ai-retrofit.md` remains the detailed source document
 - [ ] Demo script for the retrofit → monitoring flow
 - [x] Every synthetic fixture and estimate labeled as such
 

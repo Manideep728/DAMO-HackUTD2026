@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, X, Lock, FileCode2, AlertTriangle, CircleHelp, ShieldAlert, Loader2, Sparkles, Play, RotateCcw, GitCompare, Rocket, Eye, FlaskConical, Download } from 'lucide-react';
 import { Button, Card, Badge, PageHeader, SectionHeader, Empty, ModelBadge, cx } from '../components/ui';
 import { useModern, modDone } from './store';
 import { api } from './api';
 import { AgentRun, LiveReportView, LiveStrip } from './Live';
 import { inputs, pluginSnippet, templateSnippet, assets, behaviors, decisions, preserved, changed, rulesV1, rulesV2, routesV1, routesV2, collectorSnippet, cases, decoy, heldOut, repairNotes, REPO, REPO_URL, type Verdict, type CaseResult } from './data';
+import { ModernizeProjects } from './WorkspaceNav';
 
 const steps = [
   { n: 1, key: 'm1', path: 'import', label: 'Import' },
@@ -35,7 +36,10 @@ function Stepper() {
   );
 }
 
-function Page({ children }: { children: ReactNode }) { return <div className="mx-auto w-full max-w-[1320px]"><Stepper />{children}</div>; }
+function Page({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  return <div className="mx-auto w-full max-w-[1320px]"><ModernizeProjects path={location.pathname} /><Stepper />{children}</div>;
+}
 
 function RunLog({ k, title }: { k: string; title: string }) {
   const { busy } = useModern();

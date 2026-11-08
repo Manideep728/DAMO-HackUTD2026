@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// The V4 retrofit demo against a real backend: wrong-rack leak sensor (six artifacts, second site), firmware
-// revalidation behind an approval, readiness, and the low-flow incident on the console.
+// The liquid-cooling Modernize project against a real backend: one shared equipment model, wrong-rack
+// leak sensor, firmware revalidation, readiness, and the low-flow incident on the console.
 
 const next = (page: Page) => page.getByTestId('retrofit-next');
 
@@ -10,8 +10,30 @@ async function step(page: Page, label: RegExp) {
   await next(page).click();
 }
 
-test('wrong-rack leak sensor: fail, confirm, diff, pass, regression, second site', async ({ page }) => {
+test('liquid cooling starts with the shared equipment model inside Modernize', async ({ page }) => {
+  await page.goto('/#/modernize/retrofit');
+
+  const workflows = page.getByRole('navigation', { name: 'Workflows' });
+  await expect(workflows.getByRole('link')).toHaveText(['Operate', 'Preflightwhat-if', 'Modernizeprojects']);
+  await expect(page.getByRole('navigation', { name: 'Modernization projects' }).getByRole('link')).toHaveCount(2);
+  await expect(page.getByRole('heading', { name: 'Start with the equipment model' })).toBeVisible();
+  await expect(page.getByTestId('retrofit-model')).toBeVisible();
+  await expect(page.getByTestId('retrofit-model')).toContainText('CDU-1');
+  await expect(page.getByRole('link', { name: 'Review the adapter mapping' })).toHaveAttribute('href', '#/modernize/retrofit/mapping');
+});
+
+test('retired peer workflows redirect into their Modernize steps', async ({ page }) => {
+  await page.goto('/#/verify');
+  await expect(page).toHaveURL(/#\/modernize\/test$/);
+  await expect(page.getByRole('heading', { name: 'Test the whole alert path' })).toBeVisible();
+
   await page.goto('/#/retrofit');
+  await expect(page).toHaveURL(/#\/modernize\/retrofit\/mapping$/);
+  await expect(page.getByRole('navigation', { name: 'Liquid-cooling modernization steps' })).toBeVisible();
+});
+
+test('wrong-rack leak sensor: fail, confirm, diff, pass, regression, second site', async ({ page }) => {
+  await page.goto('/#/modernize/retrofit/mapping');
   await expect(page.getByText('Constructed demo fault, not an Equinix incident')).toBeVisible();
   await expect(page.getByText('Backend live')).toBeVisible();
 
@@ -49,7 +71,7 @@ test('wrong-rack leak sensor: fail, confirm, diff, pass, regression, second site
 });
 
 test('firmware change waits for approval, then readiness keeps field checks open', async ({ page }) => {
-  await page.goto('/#/retrofit/firmware');
+  await page.goto('/#/modernize/retrofit/firmware');
   await page.getByTestId('fw-apply').click();
   await expect(page.getByText('Old mapping on the new firmware: 5/6')).toBeVisible();
   await expect(page.getByText('Updated mapping: 6/6')).toBeVisible();
@@ -58,7 +80,7 @@ test('firmware change waits for approval, then readiness keeps field checks open
   await page.getByTestId('fw-approve').click();
   await expect(page.getByTestId('fw-approved')).toContainText(`now v${Number(before.slice(1)) + 1}`);
 
-  await page.goto('/#/retrofit/handover');
+  await page.goto('/#/modernize/retrofit/handover');
   await expect(page.getByTestId('readiness')).toContainText('Software tests passed');
   await expect(page.getByTestId('field-open')).toHaveText('7');
   await page.getByLabel('Engineer name').fill('Jordan Test');

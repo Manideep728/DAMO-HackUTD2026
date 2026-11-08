@@ -42,22 +42,21 @@ Meters: set `METERS_DATABASE_URL` (a Tiger service) in `backend/.env`, then `mak
 
 ## The app
 
-Four screens in the top bar. Everything uses the same facility: hall H1, racks R1-01 to R2-08.
+The top bar has three operator jobs. Verification is a step inside Modernize; the liquid-cooling retrofit is a Modernize project, not a fourth product.
 
 | Screen | Route | What it does |
 |---|---|---|
-| **Console** | `/` | The night shift on H1. Fan 4 on Compute2 (rack R1-03) stops; the released rules warn before the old Nagios check would page. Alarm first, with steps to acknowledge, investigate, dispatch, verify recovery and hand off. Alerting never depends on the model; Nemotron investigation is optional and the offline path says so. Rack and feed chips open the same equipment in Preflight. |
-| **Verify a change** | `/verify` | Proves the alarm path still works: the v1 and v2 candidate rules run through the harness (real plugin, promtool, amtool), with held-out cases, a wrong-recipient mutant and an alert-everything decoy. |
+| **Operate** | `/` | The night shift on H1. Alerting runs without the model; the accepted equipment map scopes the low-flow cooling incident to the affected racks. Acknowledge, investigation, owner actions, recovery evidence and handoff stay in one workflow. |
 | **Preflight** | `/preflight` | The what-if simulator described above. |
-| **Modernize** | `/modernize/*` | M1–M5 on the real Texas Tech HPCC Redfish check: import and gaps, Nemotron recovers behavior and asks the operator, generate, test, then repair / review / shadow / rollback / release. See `docs/modernize-demo.md`. |
+| **Modernize** | `/modernize/*` | Two projects share this workspace. The monitoring-check project imports the Texas Tech HPCC Redfish check, recovers intent, generates, tests and releases it. The liquid-cooling project starts from the shared Preflight equipment graph, then corrects the adapter mapping, revalidates a firmware change and records field readiness. |
 
-`/about` is the landing page. The older screens (`/operate/*`, `/checks`, `/read`, `/find`, `/prove`, `/handoff`) redirect to the console; their code is still in `src/screens` and `src/modern/Operate.tsx`.
+`/verify` redirects to the Modernize test step. Old `/retrofit/*` links redirect to the corresponding liquid-cooling project step. `/evidence/retrofit` keeps the comparative evaluation available for reviewers without adding it to operator navigation. `/about` is the landing page.
 
 Nemotron writes sentences, rules and plans. Execution decides whether they're right. That is the answer to "isn't this just pasting the script into an LLM?"
 
-## Where this is going (V4)
+## Liquid-cooling retrofit (V4)
 
-The V4 direction is "make existing data centers AI-ready": help controls engineers integrate a liquid-cooled GPU retrofit (CDU, leak sensors, rack mapping) into the existing BMS with tested, reviewable changes, then use that verified equipment map for incident response. Most of that is **not built yet**. `docs/v4-gaps.md` is the checklist of what main is missing; tick items there as they land.
+The V4 flow integrates a CDU, rack isolation valves and leak sensors into an existing BMS with tested, reviewable changes. Its first screen renders the same facility model used by Preflight. A constructed wrong-rack mapping passes schema validation but fails an independent behavior test; an engineer confirms the drawing evidence before the adapter changes. Firmware revalidation, witnessed field checks and the low-flow incident all consume the accepted package. `docs/v4-gaps.md` tracks the remaining evaluation and documentation work.
 
 ## Run it
 
@@ -92,8 +91,8 @@ Keyboard on the console: `?` help · `Ctrl+Shift+D` Director (replay, jump to en
 ## Layout
 
 ```
-frontend/   React + Vite + Tailwind. src/console (Console, Verify), src/preflight (Preflight, FacilityMap, Panels),
-            src/modern (Modernize M1–M5, store, api), src/components (shell, ui), src/screens (Landing; older retired screens), src/data + src/fixtures (data sources for the older screens)
+frontend/   React + Vite + Tailwind. src/console (Operate), src/preflight (Preflight, FacilityMap, Panels),
+            src/modern (Modernize projects, M1–M5, store, api), src/retrofit (liquid-cooling steps), src/components (shell, ui), src/screens (Landing; older retired screens)
 backend/    FastAPI. app/main.py, app/llm.py (Nemotron via build.nvidia.com, cache), app/ttu (Modernize: inputs, agent, harness, ops),
             app/verify, app/prompts · engine/ (pure simulator, cut sets, planner) · app/preflight (API, discovery, agent, meters + telemetry for Tiger)
 legacy/     the pinned TTU Redfish plugins and Nagios objects (legacy/ttu), plus the older check_rack_inlet config and plugin stand-in

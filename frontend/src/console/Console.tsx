@@ -143,7 +143,7 @@ function FanStallNight() {
           <div className="text-[12px] text-faint">Night shift · scripted night, illustrative readings</div>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Link to="/verify" className="h-12 px-3.5 rounded-xl border border-border hover:bg-surface-2 text-[14px] inline-flex items-center gap-2 t" title="Every alarm path was tested against the old check"><ShieldCheck size={16} className="text-ok" /> Alarm paths tested 6/6</Link>
+          <Link to="/modernize/test" className="h-12 px-3.5 rounded-xl border border-border hover:bg-surface-2 text-[14px] inline-flex items-center gap-2 t" title="Every alarm path was tested against the old check"><ShieldCheck size={16} className="text-ok" /> Alarm paths tested 6/6</Link>
           <button onClick={() => setOffline((v) => !v)} aria-pressed={!offline} className={cx('h-12 px-3.5 rounded-xl border text-[14px] font-medium inline-flex items-center gap-2 t', offline ? 'border-warning/60 text-warning bg-warning/10' : 'border-border hover:bg-surface-2')} title="Alerting never depends on the model">
             <span className={cx('switch', offline ? 'bg-warning/70' : 'bg-ok')} data-on={!offline} aria-hidden /> Nemotron {offline ? 'offline' : 'online'}
           </button>
