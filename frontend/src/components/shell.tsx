@@ -51,7 +51,7 @@ export function Shell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-2 shrink-0">
-          {loc.pathname.startsWith('/preflight') ? <span className="hidden sm:inline-flex"><Badge title="Results computed by the simulator on a synthetic facility">Simulated facility</Badge></span> : legacy ? <ModeBadge mode={state.mode} /> : <span className="hidden sm:inline-flex"><Badge title="Scripted demo on illustrative data. Legacy facts come from the public TTU repo.">Scripted demo</Badge></span>}
+          {loc.pathname.startsWith('/preflight') ? <span className="hidden sm:inline-flex"><Badge title="Results computed by the simulator on a synthetic facility">Simulated facility</Badge></span> : legacy ? <ModeBadge mode={state.mode} /> : null}
           <button className="h-12 w-12 grid place-items-center rounded-xl text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
           <button className="h-12 w-12 hidden lg:grid place-items-center rounded-xl text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setHelp(true)} aria-label="Keyboard shortcuts"><HelpCircle size={16} /></button>
           <span className="h-8 w-8 ml-1 hidden sm:grid place-items-center rounded-full bg-surface-3 text-[12px] font-semibold" title="Maya R. · night shift">MR</span>
