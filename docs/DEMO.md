@@ -1,46 +1,53 @@
-# The Gauntlet: live setup and 3-minute demo
+# Preflight demo: Pump A and ATS-1
 
-## Make it live (about 10 minutes)
+Two to three minutes. Everything below runs on the synthetic demo hall (43 nodes) shipped in `backend/app/preflight/data/demo.py`. The Modernize demo is in [modernize-demo.md](modernize-demo.md).
 
-| Piece | What turns it on | Check |
-|---|---|---|
-| Real harness (M4), real ops engine (R1–R2) | `powershell -ExecutionPolicy Bypass -File scripts\get-tools.ps1` (promtool, amtool, jq; checksums verified) | `/api/ttu/status` → `tools` true |
-| Unmodified TTU plugin execution | jq from the step above, plus Git Bash (`bash`, `curl`, `openssl`) on PATH | `plugin_executable` true |
-| Nemotron agents (M2 recover, M5 repair, R4 investigate) | Put a real key from build.nvidia.com in `backend/.env` as `NVIDIA_API_KEY=nvapi-…` | `nemotron_key` true |
-| GitHub work orders (optional) | `GAUNTLET_GITHUB_REPO=owner/repo` and `GITHUB_TOKEN=…` in `backend/.env` | `github_work_orders` true |
+## Setup
 
-Run: backend `cd backend && .venv\Scripts\python -m uvicorn app.main:app --port 8001`, frontend
-`cd frontend && set GAUNTLET_API=http://localhost:8001 && npx vite --port 5174`. Open http://localhost:5174.
+```bash
+make setup
+cp backend/.env.example backend/.env    # NVIDIA_API_KEY, NEMOTRON_MODEL (a tool-calling model id from build.nvidia.com)
+make dev                                # http://localhost:5173/#/preflight
+```
 
-Every screen shows a **Backend** strip saying which parts are live. Anything that can't run falls back to the scripted demo and says so. After one successful live agent run, it is saved and can be replayed (labelled "cached") if the venue Wi-Fi dies.
+The agent badge says which mode is running:
 
-Test the comparison logic without the tools: `cd backend && .venv\Scripts\python -m tests.test_harness`
-(v1 fails 5/6 and 0/3 held-out, v2 passes 6/6 and 3/3, mutant and decoy rejected).
+| Badge | Meaning |
+|---|---|
+| model id (e.g. `nvidia/…`) | Live Nemotron tool calling |
+| `scripted planner (no model)` | No key: a fixed planner calls the same tools and goes through the same answer checker |
+| fallback notice in the tool log | The API failed mid-run and the scripted planner took over; the log says so |
 
-## What is real
+Rehearse the *Ask* questions once with the key set. Every live turn is saved under `backend/cache/agent/`. If the venue Wi-Fi drops, set `GAUNTLET_MODE=cached` in `backend/.env` and restart: the same questions replay through the same tools and checker, and anything never recorded falls back to the scripted planner with a notice.
 
-- **Old check:** `legacy/ttu/redfishplugins/check_temperature.sh`, byte-for-byte from the TTU repo at `d55eadf`, run with bash against an HTTPS Redfish mock (`backend/app/ttu/redfish_mock.py`).
-- **Old scheduling:** Nagios soft/hard states with values parsed from the real `templates.cfg` (4 attempts, 1 min retry, 5 min check, 60 min re-notify). Recipient parsed from `contacts.cfg` (`nagios@localhost`).
-- **New check:** `promtool test rules` evaluates the candidate minute by minute; `amtool config routes test` resolves who gets paged.
-- **Expectations:** derived from the old check's real behavior plus the operator's decisions, never from the candidate. Held-out cases return pass/fail only. A wrong-recipient mutant and an alert-everything decoy must be rejected.
-- **M1 gaps:** computed from the pinned files (`backend/app/ttu/inputs.py`), not typed in.
-- **Agents:** Nemotron chooses tools (`read_file`, `run_plugin`, `record_behavior`, `ask_operator`, `write_candidate`, `run_tests`, `query_telemetry`, …); the backend executes them. Native tool calling, with a JSON-action fallback.
-- **Ops:** alerts come from promtool on the released rules (no model); delivery goes to local receivers with a failing primary; work orders are deduplicated by fingerprint; recovery needs real plugin runs. A modelled run never verifies recovery.
+Between rehearsals, **Reset scenario** clears the toggles. Finding decisions live in SQLite (`backend/.work/preflight.sqlite`). Delete that file to reopen the ATS-1 finding.
 
-## 3-minute script (one beat per prompt)
+## Script
 
-1. **Landing (15 s).** "Data center paging still runs on checks nobody here wrote. We retire them by proof."
-2. **M1 Import (20 s).** Real TTU repo pinned. "It found 8 scripts the config references that don't exist, and every page goes to nagios@localhost." *(Legacy: understand.)*
-3. **M2 Recover (30 s).** Nemotron reads the plugin, runs it against the mock BMC for OK/Warning/Critical/missing, records each behavior with its source, and raises the critical question: who gets paged. *(Nemotron: plans and calls tools.)*
-4. **M4 Test v1 (20 s).** Real promtool + amtool + the real plugin: 1/6 pass. "Pages too early, wrong team, no early warning."
-5. **M5 Repair (30 s).** Nemotron reads the failures, rewrites the rules, re-runs the suite until green. Held-out stays sealed; the decoy and the mutant are rejected. "Same model both times. The difference is the proof." *(Nemotron: multi-step, self-correcting. Legacy: replace.)*
-6. **One step ahead (20 s).** "Fan stops before heat": the new rules warn **8 minutes before the old check paged**. *(Data center: stay ahead. Legacy: improve.)*
-7. **Operate (35 s).** Take Nemotron offline, play the night: alerts still fire, the primary pager fails, the fallback delivers, the duplicate reuses the work order. Bring the model back, investigate: cited hypotheses, "verify, not proven". Close the ticket: the incident stays open until the plugin confirms recovery. Incoming shift accepts the handoff. *(Data center: real workflow.)*
-8. **Close (10 s).** "Bring one real check. Leave with a tested replacement."
+1. **The claim (15 s).** Map open on *Whole site*. "Pump A and Pump B can each carry the whole chilled-water load. The one-line puts Pump A on MCC-A from ATS-1 and Pump B on MCC-B from ATS-2. On paper that's 2N."
 
-## Judge questions to expect
+2. **Rehearse the change (25 s).** Click **PUMP-A** → maintenance. *Impact*: nothing goes down. *Weak points*: during the window ATS-2, MCC-B and PUMP-B are single points of failure. "That's the expected cost of running on one pump. Fine for a few hours."
 
-- *"Isn't this just pasting the script into an LLM?"* No: the model writes; promtool, amtool and the real plugin decide. v1 failed, and the repair loop fixed it against fixed expectations.
-- *"Isn't parity trivially 100%?"* Held-out cases are sealed, and the suite rejects a decoy that alerts on everything and a mutant that pages the wrong team.
-- *"What if the model is down?"* Alerting, delivery, work orders and the harness never call it.
-- *"Is this equivalence?"* No: bounded evidence on stated scenarios, and the evidence pack says what isn't covered.
+3. **The records disagree (40 s).** *Findings* tab, top item: **MCC-B is fed from ATS-1, not ATS-2 as documented**, confidence 0.97.
+   - Supporting: CHG-2291, WO-4471 and MLOG-0212. Each quote is checked verbatim against its record.
+   - Contradicting: OLD-001, the one-line.
+   - Not counted, and why. WO-3920 describes a temporary cable that was later removed. WO-5108 proposes feeding PUMP-C, which was never installed.
+   - *If true*: ATS-1 becomes a new single point of failure. All 8 racks in R1 and WL-INFER drop to N.
+
+4. **Confirm it (20 s).** **Confirm**, with a name and a note. The edge goes into the graph and the decision into the audit log. *Weak points* with nothing in maintenance: **ATS-1**. "Enough capacity, no independence. Both pump panels hang off one transfer switch."
+
+5. **What that costs (15 s).** Fail **ATS-1**: 18 racks and workloads, 400 kW, each with a "why it failed" trace back to ATS-1.
+
+6. **Pick the window (25 s).** *Plan* tab: PUMP-A, 6 hours, hours 0–48 → **Find the safest window**. Recommended: **hour 6 to hour 12**, out of 52 options simulated. Open a rejected one at hour 32 or 33. It overlaps GEN-2's annual service and adds UTIL-B as another single point, and it says so.
+
+7. **Ask (30 s).** *Ask* tab: "Are Pump A and Pump B independent?" The tool log streams `get_neighbors` twice, then `find_cut_sets`, `search_docs` and `propose_dependency`. Every claim in the answer cites the tool calls it came from. A claim that names a node or number not in those results gets the answer sent back to the model.
+
+8. **Close (10 s).** "Before you take equipment offline, rehearse it. The model plans and explains. The simulator decides."
+
+## Questions to expect
+
+- **Where is Nemotron in this?** It chooses which simulations to run and writes the answer. It also resolves equipment names in records that the alias and typo rules can't place. Nothing it says reaches the screen unchecked. Answers must cite tool results. A name it resolves counts only if the node exists and the phrase carries that node's suffix ("b" for MCC-B), and the quote must be verbatim.
+- **Isn't capacity math enough?** Step 4 is the counterexample. Capacity says 2N. Cut sets say one switch takes out both pumps.
+- **Where does the graph come from?** **Import** on the preflight page takes the same CSV or JSON that **Export** writes. In production that would be a DCIM export.
+- **How accurate is the model?** It's a kW budget on a dependency graph. No CFD, no load flow, no protection coordination. The banner on every screen says that.
+- **How do you know the cut sets are right?** On graphs up to 40 nodes, tests check the MOCUS expansion against brute-force enumeration. The simulator also re-checks every candidate.

@@ -84,3 +84,28 @@ def test_agent_streams_tool_calls_and_a_traced_answer(client):
     with client.stream("POST", "/api/preflight/agent", json={"question": "What happens if ATS-1 fails?"}) as r:
         body = "".join(r.iter_text())
     assert '"type": "tool_call"' in body and '"tool": "simulate"' in body and '"type": "final"' in body
+
+
+def test_cached_mode_replays_a_recorded_turn_and_falls_back_without_one(tmp_path, monkeypatch):
+    import json as _json
+
+    from app import llm
+    from app.preflight import agent
+    from app.preflight.store import Store
+    from app.preflight.workspace import Workspace
+
+    monkeypatch.setattr(llm, "MODE", "cached")
+    monkeypatch.setenv("AGENT_RECORDINGS", str(tmp_path))
+    q = "Write me a poem about chillers"
+    answer = {"refused": True, "recommendation": "Out of scope for this simulator."}
+    first_turn = [{"role": "system", "content": agent.SYSTEM}, {"role": "user", "content": q}]
+    key = llm._key(agent.MODEL, [first_turn, agent.openai_tools()])
+    call = {"id": "c1", "type": "function", "function": {"name": "final_answer", "arguments": _json.dumps(answer)}}
+    (tmp_path / f"{key}.json").write_text(_json.dumps({"message": {"content": "", "tool_calls": [call]}}))
+
+    replayed = list(agent.run(q, Workspace(Store(":memory:"))))
+    assert replayed[0]["mode"] == "live" and not any(e["type"] == "fallback" for e in replayed)
+    assert replayed[-1]["answer"] == answer
+
+    missing = list(agent.run("What happens if ATS-1 fails?", Workspace(Store(":memory:"))))
+    assert any(e["type"] == "fallback" for e in missing) and missing[-1]["type"] == "final"
