@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Info, RotateCcw, Send, Upload } from 'lucide-react';
 import { Badge, Button, cx } from '../components/ui';
 import { DependencyMap } from './DependencyMap';
+import { defaultZone, visibleNodes } from './mapView';
 import { CutSetPanel, FindingsPanel, ImpactPanel, PlanResults, planOf } from './Panels';
 import { pf, type Transient, type AgentEvent, type CutSets, type Facility, type Findings, type PlanSearch, type ServiceRed, type SimResult, type Toggle } from './api';
 
@@ -24,7 +25,13 @@ export default function Preflight() {
   const [notice, setNotice] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const loadFacility = useCallback(() => pf.facility().then(setFacility).catch((e) => setError(e.message)), []);
+  // Large sites open on one hall; reset the zone only when a different facility arrives, not after a decision.
+  const shownFacility = useRef('');
+  const loadFacility = useCallback(() => pf.facility().then((f) => {
+    setFacility(f);
+    const key = `${f.name}:${f.nodes.length}`;
+    if (key !== shownFacility.current) { shownFacility.current = key; setZone(defaultZone(f)); }
+  }).catch((e) => setError(e.message)), []);
   useEffect(() => { loadFacility(); pf.findings().then(setFindings).catch((e) => setError(e.message)); }, [loadFacility]);
 
   // Re-simulate whenever the scenario or the confirmed graph changes.
@@ -47,7 +54,7 @@ export default function Preflight() {
   const swapFacility = async (what: string, load: () => Promise<{ name: string; nodes: number }>) => {
     try {
       const r = await load();
-      setToggles({}); setHighlight([]); setZone('all');
+      setToggles({}); setHighlight([]);
       await loadFacility();
       setFindings(await pf.findings());
       setNotice(`Loaded ${r.name}: ${r.nodes} nodes.`); setError('');
@@ -99,6 +106,7 @@ export default function Preflight() {
         <span className="text-muted">Scenario:</span>
         {Object.keys(toggles).length === 0 && <span className="text-faint">everything in service</span>}
         {Object.entries(toggles).map(([n, s]) => <Badge key={n} tone={s === 'failed' ? 'critical' : 'warning'}>{n} · {s}</Badge>)}
+        {zone !== 'all' && <span className="text-muted" data-testid="zone-hint">· Showing zone {zone} and what feeds it ({visibleNodes(facility, zone).all.size} of {facility.nodes.length} nodes). Pick Whole site to see everything.</span>}
         <span className="ml-auto flex gap-3 text-faint"><Legend color="var(--legacy)" label="power" /><Legend color="var(--accent)" label="cooling" /><Legend color="var(--untrusted)" dashed label="suspected from records" /></span>
       </div>
 

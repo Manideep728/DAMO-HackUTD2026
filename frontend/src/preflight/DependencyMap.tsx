@@ -3,6 +3,7 @@ import { ReactFlow, Background, Controls, Handle, Position, MarkerType, type Edg
 import '@xyflow/react/dist/style.css';
 import { cx } from '../components/ui';
 import type { Facility, FNode, NodeState, SimResult } from './api';
+import { visibleNodes } from './mapView';
 
 const COL = 148;
 const ROW = 118;
@@ -10,7 +11,7 @@ const LAYER_NAMES = ['Utility and generators', 'Transfer switches', 'Switchgear'
 
 export type MapNodeData = {
   n: FNode; state: NodeState; toggled: boolean; highlight: boolean; shared: boolean; critical: boolean;
-  margin: number | null; onToggle: (id: string) => void;
+  margin: number | null; onToggle: (id: string) => void; feeder: boolean;
 };
 
 const STATE_STYLE: Record<NodeState, string> = {
@@ -22,17 +23,18 @@ const STATE_STYLE: Record<NodeState, string> = {
 const STATE_WORD: Record<NodeState, string> = { operational: 'OK', degraded: 'Degraded', maintenance: 'Maintenance', failed: 'Down' };
 
 function EquipmentNode({ data }: NodeProps<Node<MapNodeData>>) {
-  const { n, state, toggled, highlight, shared, critical, margin } = data;
+  const { n, state, toggled, highlight, shared, critical, margin, feeder } = data;
   return (
     <button
       type="button"
       data-testid={`node-${n.id}`}
+      data-feeder={feeder || undefined}
       data-state={state}
       onClick={() => data.onToggle(n.id)}
       title={`${n.label} (${n.type}). Click to cycle: in service → maintenance → failed.`}
       className={cx('w-[132px] rounded-lg border-2 px-2 py-1.5 text-left t hover:border-border-strong', STATE_STYLE[state],
         highlight && '!border-critical ring-2 ring-critical/40', shared && !highlight && '!border-untrusted ring-2 ring-untrusted/40',
-        toggled && 'shadow-[var(--shadow)]')}
+        toggled && 'shadow-[var(--shadow)]', feeder && !highlight && !toggled && 'opacity-55')}
     >
       <Handle type="target" position={Position.Top} className="!opacity-0" />
       <div className="flex items-center gap-1">
@@ -50,23 +52,29 @@ function EquipmentNode({ data }: NodeProps<Node<MapNodeData>>) {
 }
 
 const nodeTypes = { equipment: EquipmentNode };
+const MAX_COLS = 16;
 
 export function DependencyMap({ facility, sim, toggles, highlight, shared, zone, onToggle }: {
   facility: Facility; sim: SimResult | null; toggles: Record<string, string>; highlight: Set<string>; shared: Set<string>;
   zone: string; onToggle: (id: string) => void;
 }) {
-  const visible = useMemo(() => new Set(facility.nodes.filter((n) => zone === 'all' || n.zone === zone).map((n) => n.id)), [facility, zone]);
+  const { all: visible, feeders } = useMemo(() => visibleNodes(facility, zone), [facility, zone]);
 
   const positions = useMemo(() => {
     const byLayer = new Map<number, FNode[]>();
     for (const n of facility.nodes) if (visible.has(n.id)) byLayer.set(n.layer, [...(byLayer.get(n.layer) ?? []), n]);
-    const widest = Math.max(...[...byLayer.values()].map((l) => l.length));
+    // A layer wider than MAX_COLS wraps onto extra rows, so a big hall stays readable instead of shrinking to fit.
+    const widest = Math.min(MAX_COLS, Math.max(...[...byLayer.values()].map((l) => l.length)));
     const pos: Record<string, { x: number; y: number }> = {};
-    [...byLayer.keys()].sort((a, b) => a - b).forEach((layer, row) => {
+    let row = 0;
+    for (const layer of [...byLayer.keys()].sort((a, b) => a - b)) {
       const items = byLayer.get(layer)!.sort((a, b) => a.zone.localeCompare(b.zone) || a.id.localeCompare(b.id, undefined, { numeric: true }));
-      const offset = ((widest - items.length) * COL) / 2;
-      items.forEach((n, i) => { pos[n.id] = { x: offset + i * COL, y: row * ROW }; });
-    });
+      for (let start = 0; start < items.length; start += MAX_COLS, row++) {
+        const chunk = items.slice(start, start + MAX_COLS);
+        const offset = ((widest - chunk.length) * COL) / 2;
+        chunk.forEach((n, i) => { pos[n.id] = { x: offset + i * COL, y: row * ROW }; });
+      }
+    }
     return pos;
   }, [facility, visible]);
 
@@ -74,7 +82,7 @@ export function DependencyMap({ facility, sim, toggles, highlight, shared, zone,
     id: n.id, type: 'equipment', position: positions[n.id], draggable: false,
     data: {
       n, state: sim?.nodes[n.id]?.state ?? 'operational', toggled: n.id in toggles, highlight: highlight.has(n.id),
-      shared: shared.has(n.id), critical: facility.critical_services.includes(n.id), margin: sim?.nodes[n.id]?.margin_kw ?? null, onToggle,
+      feeder: feeders.has(n.id), shared: shared.has(n.id), critical: facility.critical_services.includes(n.id), margin: sim?.nodes[n.id]?.margin_kw ?? null, onToggle,
     },
   }));
 
