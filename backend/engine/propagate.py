@@ -79,8 +79,16 @@ class SimResult:
         return out
 
 
-def _group_met(g: RequirementGroup, alive: set[str]) -> tuple[bool, list[str]]:
-    sup = g.live_suppliers()
+class _Graph:
+    """Live suppliers per group, computed once per simulation instead of on every visit."""
+
+    def __init__(self, facility: Facility):
+        self.by_id = facility.by_id()
+        self.nodes = facility.nodes
+        self.groups = {n.id: [(g, tuple(g.live_suppliers())) for g in n.requires] for n in facility.nodes}
+
+
+def _group_met(g: RequirementGroup, sup: tuple[str, ...], alive: set[str]) -> tuple[bool, list[str]]:
     up = [s for s in sup if s in alive]
     missing = [s for s in sup if s not in alive]
     if g.mode == Mode.all:
@@ -92,7 +100,8 @@ def _group_met(g: RequirementGroup, alive: set[str]) -> tuple[bool, list[str]]:
     return ok, missing
 
 
-def support(facility: Facility, down: Iterable[str]) -> tuple[set[str], dict[str, Cause]]:
+def support(facility: Facility, down: Iterable[str], graph: _Graph | None = None) -> tuple[set[str], dict[str, Cause]]:
+    graph = graph or _Graph(facility)
     nodes = facility.nodes
     down_set = set(down)
     alive: set[str] = set()
@@ -102,15 +111,15 @@ def support(facility: Facility, down: Iterable[str]) -> tuple[set[str], dict[str
         for n in nodes:
             if n.id in alive or n.id in down_set:
                 continue
-            if all(_group_met(g, alive)[0] for g in n.requires):
+            if all(_group_met(g, sup, alive)[0] for g, sup in graph.groups[n.id]):
                 alive.add(n.id)
                 changed = True
     causes: dict[str, Cause] = {}
     for n in nodes:
         if n.id in alive or n.id in down_set:
             continue
-        for g in n.requires:
-            ok, missing = _group_met(g, alive)
+        for g, sup in graph.groups[n.id]:
+            ok, missing = _group_met(g, sup, alive)
             if not ok:
                 causes[n.id] = Cause("unsupported", g.name, missing, detail=f"{g.mode.value} group '{g.name}' unmet")
                 break
@@ -144,8 +153,10 @@ def _own(n: Node, r: Resource) -> float:
     return n.base_load if r == Resource.power else n.heat_load
 
 
-def _split(g: RequirementGroup, demand: float, alive: set[str], by_id: Mapping[str, Node]) -> dict[str, float]:
-    up = [s for s in g.live_suppliers() if s in alive]
+def _split(
+    g: RequirementGroup, sup: tuple[str, ...], demand: float, alive: set[str], by_id: Mapping[str, Node]
+) -> dict[str, float]:
+    up = [s for s in sup if s in alive]
     if not up or demand <= 0:
         return {}
     if g.split == Split.first_available:
@@ -157,14 +168,15 @@ def _split(g: RequirementGroup, demand: float, alive: set[str], by_id: Mapping[s
 
 
 def loads(
-    facility: Facility, alive: set[str], scale: Mapping[str, float] | None = None
+    facility: Facility, alive: set[str], scale: Mapping[str, float] | None = None, graph: _Graph | None = None
 ) -> tuple[dict[str, dict[Resource, float]], dict[tuple[str, str], float]]:
     """Throughput per node and resource, and the kW each consumer draws from each supplier.
 
     Own load can be scaled per node (load profiles, shed GPU work). Iterates to a fixpoint so cyclic graphs
     are handled; acyclic graphs converge in depth-many rounds.
     """
-    by_id = facility.by_id()
+    graph = graph or _Graph(facility)
+    by_id = graph.by_id
     scale = scale or {}
     live = [n for n in facility.nodes if n.id in alive]
     own = {n.id: {r: _own(n, r) * scale.get(n.id, 1.0) for r in Resource} for n in live}
@@ -175,9 +187,9 @@ def loads(
     feeds: dict[str, set[str]] = {n.id: set() for n in live}  # node -> its live capacity suppliers
     waiting = {n.id: 0 for n in live}  # node -> consumers not yet visited
     for n in live:
-        for g in n.requires:
+        for g, sup in graph.groups[n.id]:
             if g.mode == Mode.capacity:
-                feeds[n.id].update(s for s in g.live_suppliers() if s in alive and s != n.id)
+                feeds[n.id].update(s for s in sup if s in alive and s != n.id)
         for s in feeds[n.id]:
             waiting[s] += 1
     ready = [n.id for n in live if waiting[n.id] == 0]
@@ -185,12 +197,11 @@ def loads(
     while ready:
         nid = ready.pop()
         done += 1
-        n = by_id[nid]
-        for g in n.requires:
+        for g, sup in graph.groups[nid]:
             if g.mode != Mode.capacity:
                 continue
             demand = g.demand if g.demand is not None else through[nid][g.resource]
-            for s, kw in _split(g, demand, alive, by_id).items():
+            for s, kw in _split(g, sup, demand, alive, by_id).items():
                 shares[(nid, s)] = shares.get((nid, s), 0.0) + kw
                 through[s][g.resource] += kw
         for s in feeds[nid]:
@@ -206,11 +217,11 @@ def loads(
     for _ in range(len(live) + 2):
         new_shares: dict[tuple[str, str], float] = {}
         for n in live:
-            for g in n.requires:
+            for g, sup in graph.groups[n.id]:
                 if g.mode != Mode.capacity:
                     continue
                 demand = g.demand if g.demand is not None else through[n.id][g.resource]
-                for s, kw in _split(g, demand, alive, by_id).items():
+                for s, kw in _split(g, sup, demand, alive, by_id).items():
                     new_shares[(n.id, s)] = new_shares.get((n.id, s), 0.0) + kw
         new_through = {nid: dict(v) for nid, v in own.items()}
         for (c, s), kw in new_shares.items():
@@ -230,35 +241,23 @@ def _resource_of(consumer: Node, supplier: str) -> Resource:
     return Resource.power
 
 
-def effective_criticality(facility: Facility) -> dict[str, int]:
+def effective_criticality(facility: Facility, graph: _Graph | None = None) -> dict[str, int]:
     """Highest criticality a node serves, itself included. Fixpoint, so cycles are fine."""
+    graph = graph or _Graph(facility)
     eff = {n.id: n.criticality for n in facility.nodes}
     changed = True
     while changed:
         changed = False
         for n in facility.nodes:
-            for g in n.requires:
-                for s in g.live_suppliers():
+            for _, sup in graph.groups[n.id]:
+                for s in sup:
                     if eff[n.id] > eff[s]:
                         eff[s] = eff[n.id]
                         changed = True
     return eff
 
 
-def _shed_victim(
-    supplier: str,
-    shares: Mapping[tuple[str, str], float],
-    through: Mapping[str, Mapping[Resource, float]],
-    eff: Mapping[str, int],
-) -> str:
-    """The load to shed when ``supplier`` is overloaded: the lowest-criticality end load drawing through it.
-
-    Shedding an end load (a rack, a chiller) rather than the distribution in between keeps everything else on
-    that branch running. Ties go to the larger load, then to id order.
-    """
-    feeders: dict[str, list[str]] = {}
-    for c, s in shares:
-        feeders.setdefault(s, []).append(c)
+def _downstream(supplier: str, feeders: Mapping[str, list[str]]) -> set[str]:
     seen: set[str] = set()
     stack = list(feeders.get(supplier, []))
     while stack:
@@ -266,9 +265,48 @@ def _shed_victim(
         if c not in seen:
             seen.add(c)
             stack.extend(feeders.get(c, []))
-    ends = [c for c in seen if c not in feeders]  # nodes nothing else draws through
-    pool = ends or sorted(seen)
-    return min(pool, key=lambda c: (eff[c], -sum(through[c].values()), c))
+    return seen
+
+
+def _shed_victims(
+    supplier: str,
+    excess: float,
+    below: set[str],
+    feeders: Mapping[str, list[str]],
+    shares: Mapping[tuple[str, str], float],
+    through: Mapping[str, Mapping[Resource, float]],
+    own: Mapping[str, float],
+    eff: Mapping[str, int],
+) -> list[str]:
+    """Loads to shed for an overloaded supplier: lowest-criticality end loads first, until it fits.
+
+    Splits are linear, so the load an end node frees at ``supplier`` is its own load times the fraction of
+    its demand that flows through ``supplier`` (exact when its power and heat follow the same split), which
+    lets one round shed what one-at-a-time shedding would. Shedding end loads (a rack, a chiller) rather
+    than the distribution in between keeps the rest of the branch running. Ties go to the larger load, then
+    to id order.
+    """
+    frac: dict[str, float] = {supplier: 1.0}
+
+    def fraction(n: str) -> float:
+        if n not in frac:
+            total = sum(kw for (c, _), kw in shares.items() if c == n) or 1.0
+            frac[n] = sum(
+                kw / total * fraction(p) for (c, p), kw in shares.items() if c == n and (p in below or p == supplier)
+            )
+        return frac[n]
+
+    ends = sorted((c for c in below if c not in feeders), key=lambda c: (eff[c], -sum(through[c].values()), c))
+    victims, freed = [], 0.0
+    for c in ends:
+        gain = own.get(c, 0.0) * fraction(c)
+        if gain <= EPS:
+            continue
+        victims.append(c)
+        freed += gain
+        if freed + EPS >= excess:
+            break
+    return victims or [min(sorted(below), key=lambda c: (eff[c], -sum(through[c].values()), c))]
 
 
 def simulate(
@@ -277,13 +315,14 @@ def simulate(
     scale: Mapping[str, float] | None = None,
 ) -> SimResult:
     states = dict(states or {})
-    by_id = facility.by_id()
-    eff = effective_criticality(facility)
+    graph = _Graph(facility)
+    by_id = graph.by_id
+    eff = effective_criticality(facility, graph)
     down = {nid for nid, st in states.items() if st in DOWN_STATES}
     shed: dict[str, Cause] = {}
     while True:
-        alive, causes = support(facility, down | set(shed))
-        through, shares = loads(facility, alive, scale)
+        alive, causes = support(facility, down | set(shed), graph)
+        through, shares = loads(facility, alive, scale, graph)
         served: dict[str, float] = {}
         for (_, s), kw in shares.items():
             served[s] = served.get(s, 0.0) + kw
@@ -293,13 +332,25 @@ def simulate(
         )
         if not over:
             break
-        s = over[0]
-        victim = _shed_victim(s, shares, through, eff)
-        shed[victim] = Cause(
-            "shed",
-            at=s,
-            detail=f"{s} overloaded ({served[s]:.1f} of {by_id[s].capacity:.1f} kW); shed lowest-criticality load",
-        )
+        # Shed one load per overloaded supplier in the same round when their downstream sets are disjoint:
+        # shedding under one cannot change the load on the other, so this matches shedding one at a time.
+        feeders: dict[str, list[str]] = {}
+        for c, sup in shares:
+            feeders.setdefault(sup, []).append(c)
+        claimed: set[str] = set()
+        for s in over:
+            below = _downstream(s, feeders)
+            if below & claimed:
+                continue
+            claimed |= below
+            own = {c: sum(_own(by_id[c], r) * (scale or {}).get(c, 1.0) for r in Resource) for c in below}
+            for victim in _shed_victims(s, served[s] - by_id[s].capacity, below, feeders, shares, through, own, eff):
+                shed[victim] = Cause(
+                    "shed",
+                    at=s,
+                    detail=f"{s} overloaded ({served[s]:.1f} of {by_id[s].capacity:.1f} kW); "
+                    "shed lowest-criticality load",
+                )
 
     result: dict[str, NodeResult] = {}
     for n in facility.nodes:
@@ -315,7 +366,7 @@ def simulate(
         else:
             st, cause = State.operational, None
             lost_redundancy = any(
-                g.mode != Mode.all and any(s not in alive for s in g.live_suppliers()) for g in n.requires
+                g.mode != Mode.all and any(s not in alive for s in sup) for g, sup in graph.groups[n.id]
             )
             thin = margin is not None and n.capacity > 0 and margin < DEGRADED_MARGIN * n.capacity
             if lost_redundancy or thin:
