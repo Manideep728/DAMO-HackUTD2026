@@ -1,7 +1,8 @@
 // Step 6: offline tests, witnessed commissioning, the approved correction, regression, firmware revalidation, acceptance and handover.
-import { useState, type ReactNode } from 'react';
+// Plays itself from saved state (a reload resumes); the engineer clicks twice: approve the fix, then accept and hand over.
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, Download, FlaskConical, Loader2, Play, UserCheck, WifiOff, X } from 'lucide-react';
+import { ArrowRight, Check, Download, FlaskConical, Loader2, UserCheck, WifiOff, X } from 'lucide-react';
 import { Badge, Button, Card, PageHeader, cx } from '../../components/ui';
 import { AgentPanel, DiffView, Pass, WorkSplit, download } from '../parts';
 import { DocLink } from '../DocViewer';
@@ -38,10 +39,17 @@ const FW = [
 ];
 
 const short = (n: string) => n.split(' · engine')[0];
-function useTimer() {
-  const [busy, setBusy] = useState<string | null>(null);
-  return { busy, go: (k: string, fn: () => void, ms = 1200) => { setBusy(k); window.setTimeout(() => { fn(); setBusy(null); }, ms); } };
+const BEAT_MS = 1800;
+/** After `ms`, run `fn` once while `when` holds. Cleared on unmount/re-run, so StrictMode's double effect never double-advances. */
+function useAfter(when: boolean, fn: () => void, ms = BEAT_MS) {
+  useEffect(() => {
+    if (!when) return;
+    const id = window.setTimeout(fn, ms);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [when, ms]);
 }
+const Working = ({ children }: { children: ReactNode }) => <span className="inline-flex items-center gap-1.5 text-[13px] text-muted"><Loader2 size={14} className="animate-spin text-accent" />{children}</span>;
 const Beat = ({ title, children, right }: { title: ReactNode; children: ReactNode; right?: ReactNode }) => (
   <Card className="mb-6 pop-in" header={<><span className="font-semibold text-[14px]">{title}</span>{right && <span className="ml-auto flex items-center gap-2">{right}</span>}</>}>{children}</Card>
 );
@@ -96,14 +104,22 @@ function Site({ fixed }: { fixed: boolean }) {
 export default function Commission() {
   const { st, set } = useRetrofit();
   const nav = useNavigate();
-  const { busy, go } = useTimer();
   const [diag, setDiag] = useState(st.fixApproved);
   const [rerun, setRerun] = useState(st.retested);
   const fw = st.firmware;
   const v2 = fw === 'approved';
   const pkg = v2 ? S.firmware_approved.package : S.package_v1;
   const checks = S.readiness.field.checks.map((c: Case) => c.id === 'FC-2' && st.retested ? { ...c, status: 'witnessed', witnessed_by: 'R. Alvarez' } : c);
-  const canAccept = st.regression && (fw === 'none' || fw === 'approved');
+  // Each beat advances one flag, gated on the one before it.
+  useAfter(!st.offlineRun, () => set({ offlineRun: true }), 1200);
+  useAfter(st.offlineRun && !st.witnessed, () => set({ witnessed: true }));
+  useAfter(st.fixApproved && !rerun, () => setRerun(true), 1500);
+  useAfter(rerun && !st.retested, () => set({ retested: true }));
+  useAfter(st.retested && !st.regression, () => set({ regression: true }));
+  useAfter(fw === 'rerun', () => set({ firmware: 'approved' }));
+  const diagDone = useCallback(() => setDiag(true), []);
+  const fwDone = useCallback(() => set({ firmware: 'rerun' }), [set]);
+  const accept = () => { set({ accepted: true, done: true }); nav('/'); };
   const handoverMd = () => [
     `# Handover package: hall H1 row 3, package v${pkg.version} (SYNTHETIC)`, '',
     `Software accepted by Maya R. · not deployed · field checks open. Mapping sha \`${pkg.mapping_sha}\`.`,
@@ -125,14 +141,14 @@ export default function Commission() {
         subtitle="Offline tests, a witnessed wet test, and a correction the engineer approves. Software acceptance is not deployment, and neither closes a field check." />
       <WorkSplit decided={st.accepted}
         did={<>Ran the offline suite, compared the failing case with the drawings and logbook, proposed the one-line fix, and re-mapped for firmware 2.4.0.</>}
-        need={<>Approve the correction (J. Chen), then accept the software package (Maya R.). R. Alvarez witnesses field checks on site.</>} />
+        need={<>Approve the correction (J. Chen), then accept and hand over the software package (Maya R.). R. Alvarez witnesses field checks on site.</>} />
 
       <div className="grid md:grid-cols-3 gap-3 mb-6">
         <div className="card p-4"><div className="font-semibold text-[14px] flex items-center gap-1.5"><FlaskConical size={15} /> Run offline tests</div><p className="text-[13px] text-muted mt-1 mb-3">Simulated CDU-1 + adapter · 8 cases</p>
-          {st.offlineRun ? <Badge tone="ok"><Check size={11} /> ran</Badge> : <Button variant="primary" disabled={!!busy} onClick={() => go('off', () => set({ offlineRun: true }))}>{busy === 'off' ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />} Run offline tests</Button>}</div>
+          {st.offlineRun ? <Badge tone="ok"><Check size={11} /> ran</Badge> : <Working>running…</Working>}</div>
         <div className="card p-4 opacity-70"><div className="font-semibold text-[14px] flex items-center gap-1.5"><WifiOff size={15} /> Check live readings</div><p className="text-[13px] text-muted mt-1 mb-3">not connected · no site gateway configured</p><Button disabled>Check live readings</Button></div>
-        <div className="card p-4"><div className="font-semibold text-[14px] flex items-center gap-1.5"><UserCheck size={15} /> Record witnessed commissioning</div><p className="text-[13px] text-muted mt-1 mb-3">FC-2 wet test zone 2 · technician R. Alvarez</p>
-          {st.witnessed ? <Badge tone="ok"><Check size={11} /> recorded</Badge> : <Button variant="primary" disabled={!st.offlineRun || !!busy} onClick={() => go('wit', () => set({ witnessed: true }), 900)}>{busy === 'wit' ? <Loader2 size={15} className="animate-spin" /> : <UserCheck size={15} />} Record wet test</Button>}</div>
+        <div className="card p-4"><div className="font-semibold text-[14px] flex items-center gap-1.5"><UserCheck size={15} /> Witnessed commissioning</div><p className="text-[13px] text-muted mt-1 mb-3">FC-2 wet test zone 2 · technician R. Alvarez</p>
+          {st.witnessed ? <Badge tone="ok"><Check size={11} /> recorded</Badge> : st.offlineRun ? <Working>recording wet test…</Working> : <span className="text-[13px] text-muted">after offline tests</span>}</div>
       </div>
 
       {st.offlineRun && <Beat title="Offline tests · integrator draft" right={<><Chip ok>schema VALID</Chip><Chip ok={false}>behavior {S.flag.report.passed}/{S.flag.report.total}</Chip></>}>
@@ -148,7 +164,7 @@ export default function Commission() {
         <p className="mt-3 text-[14px] font-semibold text-critical flex items-center gap-1.5"><X size={15} /> Technician is at R3-01. Alarm names R3-02.</p>
       </Beat>}
 
-      {st.witnessed && <AgentPanel k="s6diag" title="Nemotron diagnosing the mismatch" lines={DIAG} ran={diag} onDone={() => setDiag(true)} />}
+      {st.witnessed && <AgentPanel k="s6diag" title="Nemotron diagnosing the mismatch" lines={DIAG} ran={diag} onDone={diagDone} />}
 
       {st.witnessed && diag && <Beat title="Proposed correction" right={st.fixApproved ? <Badge tone="ok"><Check size={11} /> D-1 v1 · {S.decision.author}</Badge> : undefined}>
         <DiffView diff={S.proposal.diff} />
@@ -160,14 +176,14 @@ export default function Commission() {
 
       {st.fixApproved && <Beat title="Retest">
         <div className="mb-4"><Wires fixed={rerun} rows="leak" /></div>
-        {!rerun ? <Button variant="primary" disabled={!!busy} onClick={() => go('re', () => setRerun(true))}>{busy === 're' ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />} Rerun offline tests</Button> : <>
+        {!rerun ? <Working>rerunning offline tests on the corrected mapping…</Working> : <>
           <div className="grid sm:grid-cols-2 gap-3 mb-4">
             <div className="rounded-xl border border-critical/40 p-3"><div className="text-[12px] text-muted">original · {S.flag.report.mapping_sha}</div><Pass ok={false} label={`${S.flag.report.passed}/${S.flag.report.total} FAIL`} /></div>
             <div className="rounded-xl border border-ok/40 p-3 pop-in"><div className="text-[12px] text-muted">candidate · {S.candidate_report.mapping_sha}</div><Pass ok label={`${S.candidate_report.passed}/${S.candidate_report.total} PASS`} /></div>
           </div>
           <p className="text-[12px] text-faint mb-3 mono">same expectations {S.candidate_report.expectations_sha}</p>
           {st.retested ? <div className="grid lg:grid-cols-2 gap-3 pop-in"><Site fixed /><Alarm rack="R3-01" ok /></div>
-            : <Button variant="primary" onClick={() => set({ retested: true })}><UserCheck size={15} /> Record FC-2 re-witness by R. Alvarez</Button>}
+            : <Working>R. Alvarez re-witnessing FC-2 at R3-01…</Working>}
         </>}
       </Beat>}
 
@@ -175,21 +191,25 @@ export default function Commission() {
         {st.regression ? <div className="text-[14px] grid gap-1.5 pop-in">
           <div className="flex items-center gap-2"><Pass ok label={`${S.candidate_with_regression.passed}/${S.candidate_with_regression.total}`} /> R-1: {S.regression.spec.summary}</div>
           <div className="text-[13px] text-muted">Site H7 reuses R-1: it caught a wrong rack there too (zone {S.h2_flag.flags[0].zone} mapped {S.h2_flag.flags[0].mapped_location}, drawing says {S.h2_flag.flags[0].drawing_location}).</div>
-        </div> : <Button variant="primary" onClick={() => set({ regression: true })}><Check size={15} /> Save correction as a regression test</Button>}
+        </div> : <Working>saving the correction as regression test R-1…</Working>}
       </Beat>}
 
-      {st.regression && <Beat title="Later change: CDU firmware 2.4.0" right={fw !== 'none' ? <Badge tone={v2 ? 'ok' : 'warning'}>{v2 ? 'v2 approved' : 'D-1 needs revalidation'}</Badge> : undefined}>
-        {fw === 'none' ? <Button onClick={() => set({ firmware: 'flagged' })}>Simulate firmware 2.4.0 update</Button> : <>
+      {st.regression && fw === 'none' && <div className="mb-6 flex items-center gap-3 text-[13px] text-muted">
+        <Button onClick={() => set({ firmware: 'flagged' })}>Show a later firmware change</Button> Optional: how DAMO revalidates D-1 when the CDU moves to firmware 2.4.0.
+      </div>}
+
+      {st.regression && fw !== 'none' && <Beat title="Later change: CDU firmware 2.4.0" right={<Badge tone={v2 ? 'ok' : 'warning'}>{v2 ? 'v2 approved by Maya R.' : 'D-1 needs revalidation'}</Badge>}>
+        <>
           <ul className="grid gap-1 text-[13px] mono mb-3">{S.firmware.point_changes.map((p: Case) => <li key={p.point} className="enter-row">{p.register} {p.point}: {p.change}</li>)}</ul>
           <div className="flex flex-wrap gap-1.5 mb-4">{S.readiness.software.tests.map((t: Case, i: number) => { const hit = S.firmware.affected_tests.some((a: string) => t.id.startsWith(a)) || t.id === 'leak-cabinet'; return (
             <span key={t.id} className={cx('h-7 px-2 rounded-md border text-[12px] inline-flex items-center cell-in', hit ? (fw === 'flagged' ? 'border-warning text-warning bg-warning/10' : 'border-ok text-ok bg-ok/10') : 'hairline text-muted')} style={{ animationDelay: `${i * 70}ms` }}>{t.name}</span>); })}</div>
-          {fw === 'flagged' && <AgentPanel k="s6fw" title="Nemotron re-mapping for fw 2.4.0" lines={FW} ran={false} onDone={() => set({ firmware: 'rerun' })} />}
+          {fw === 'flagged' && <AgentPanel k="s6fw" title="Nemotron re-mapping for fw 2.4.0" lines={FW} ran={false} onDone={fwDone} />}
           {fw !== 'flagged' && <>
             <div className="flex gap-2 mb-3"><Pass ok={false} label={`before ${S.firmware.before.passed}/${S.firmware.before.total}`} /><Pass ok label={`after ${S.firmware.after.passed}/${S.firmware.after.total}`} /></div>
             <DiffView diff={S.firmware.proposal.diff} />
-            {fw === 'rerun' && <Button variant="primary" className="mt-3" onClick={() => set({ firmware: 'approved' })}><UserCheck size={15} /> Approve v2 as Maya R.</Button>}
+            <div className="mt-3">{v2 ? <span className="inline-flex items-center gap-1.5 text-[13px] text-ok font-semibold pop-in"><UserCheck size={14} /> v2 approved by Maya R. · package v{S.firmware_approved.package.version}</span> : <Working>sending v2 to Maya R. for approval…</Working>}</div>
           </>}
-        </>}
+        </>
       </Beat>}
 
       {st.regression && <Beat title="Accept & hand over" right={st.accepted ? <Badge tone="warning">software accepted · not deployed · field checks open</Badge> : undefined}>
@@ -202,7 +222,7 @@ export default function Commission() {
           <div className="rounded-xl border hairline p-3"><div className="font-semibold mb-1">Ownership · 2 unresolved</div>
             <ul className="grid gap-0.5 text-warning">{S.readiness.ownership.unresolved.map((o: string) => <li key={o}>{o}</li>)}</ul></div>
         </div>
-        {!st.accepted ? <Button variant="primary" disabled={!canAccept} onClick={() => set({ accepted: true })}><UserCheck size={15} /> Accept software package as Maya R.</Button> : <div className="pop-in">
+        <div className="pop-in">
           <div className="text-[13px] grid gap-1 mb-3">
             <div>CDU <b className="mono">{st.cdu ?? 'KX-140'}</b> · location <b className="mono">{st.location ?? 'L-A'}</b> · zone 2 → R3-01 (D-1 v1, J. Chen)</div>
           </div>
@@ -210,9 +230,9 @@ export default function Commission() {
           <div className="flex flex-wrap gap-1.5 mt-3">{DOCS.map((d) => <DocLink key={d.id} id={d.id} />)}</div>
           <div className="flex flex-wrap gap-2 mt-4">
             <Button onClick={() => download('handover.md', handoverMd())}><Download size={14} /> Download handover.md</Button>
-            <Button variant="primary" className="ml-auto" onClick={() => { set({ done: true }); nav('/'); }}>Hand over to operations <ArrowRight size={15} /></Button>
+            <Button variant="primary" className="ml-auto" onClick={accept}><UserCheck size={15} /> Accept &amp; hand over to operations <ArrowRight size={15} /></Button>
           </div>
-        </div>}
+        </div>
       </Beat>}
     </div>
   );

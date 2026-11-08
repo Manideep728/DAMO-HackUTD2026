@@ -5,7 +5,7 @@ import { Card, ModelBadge, cx } from '../components/ui';
 import { DocLink } from './DocViewer';
 
 /** Pace of Nemotron's visible actions, matching the rest of the app. */
-export const AGENT_MS = 1300;
+export const AGENT_MS = 900;
 const finished = new Set<string>();
 
 /** Renders `[[docId]]` or `[[docId|text to highlight]]` tokens in an agent line as document chips; a line containing ✗ gets a cross. */

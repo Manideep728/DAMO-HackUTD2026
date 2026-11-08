@@ -54,7 +54,7 @@ export interface PlanEval {
 export interface PlanSearch { evaluated: number; top: PlanEval[]; rejected: PlanEval[]; rejected_total: number }
 export interface AgentEvent { type: string; [k: string]: unknown }
 /** Pause before each step of a paced (non-live) agent run, in ms: choosing a tool, reading its result, writing the answer. */
-const STEP_MS: Record<string, number> = { tool_call: 1200, tool_result: 400, final: 1500 };
+const STEP_MS: Record<string, number> = { tool_call: 800, tool_result: 250, final: 1000 };
 
 async function j<T>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(`/api/preflight${path}`, body === undefined ? undefined : {

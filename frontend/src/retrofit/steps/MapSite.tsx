@@ -133,33 +133,34 @@ export default function MapSite() {
   const progress = st.mapped ? 99 : busy?.key === 's2' ? busy.log.length : 0;
   const [at, setAt] = useState<string | null>(() => { try { return localStorage.getItem('damo-retrofit-a-survey'); } catch { return null; } });
   const choose = (l: Loc) => { if (!st.mapped) return; set(l === st.location ? { location: l } : { location: l, surveyVerified: false }); };
-  const verify = () => { const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); setAt(t); try { localStorage.setItem('damo-retrofit-a-survey', t); } catch { /* not persisted */ } set({ surveyVerified: true }); };
+  const sel: Loc = (st.location as Loc | null) ?? 'L-A'; // the recommended location is preselected
+  const verify = () => { const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); setAt(t); try { localStorage.setItem('damo-retrofit-a-survey', t); } catch { /* not persisted */ } set({ location: sel, surveyVerified: true, step: st.step + 1 }); };
   const cnt = (s: State) => LINKS.filter((l) => l.state === s).length;
   return (
     <div>
       <PageHeader kicker="Step 2 of 6" title="Map the site" subtitle="What's installed, what connects to what, and where the CDU can go." />
       <AgentPanel k="s2" title="Mapping the site" lines={LINES} ran={st.mapped} onDone={() => set({ mapped: true })} />
       <WorkSplit did={<>Mapped {NODES.length} components and {LINKS.length} links: {cnt('confirmed')} confirmed, {cnt('inferred')} inferred, {cnt('conflict')} conflicting, {cnt('missing')} missing. Recommends L-A.</>}
-        need={st.location && st.surveyVerified ? <>{st.location} chosen; survey verified by R. Alvarez.</> : 'Choose the CDU location; R. Alvarez verifies the survey.'} decided={!!st.location && st.surveyVerified} />
+        need={st.location && st.surveyVerified ? <>{st.location} chosen; survey verified by R. Alvarez.</> : 'Approve the CDU location (L-A recommended); R. Alvarez verifies the survey.'} decided={!!st.location && st.surveyVerified} />
       <SectionHeader title="Cooling and power map" subtitle="Click any component or link for its evidence." />
       <CoolingMap progress={progress} />
       <SectionHeader title="Where the CDU can go" subtitle="Hall H1, row 3. Choose a location." />
       <div className="grid lg:grid-cols-2 gap-4 mb-4">
-        <div className="card p-3 overflow-x-auto min-w-0"><FloorPlan selected={st.location} onSelect={choose} recommended={progress > 8 ? 'L-A' : undefined} /></div>
+        <div className="card p-3 overflow-x-auto min-w-0"><FloorPlan selected={st.mapped ? sel : st.location} onSelect={choose} recommended={progress > 8 ? 'L-A' : undefined} /></div>
         <div className="card overflow-x-auto min-w-0">
           <table className="w-full text-[13px]">
-            <thead className="border-b hairline"><tr><th className="th text-left px-3 h-10">Check</th>{LOCS.map((l) => <th key={l} className={cx('th text-left px-3', st.location === l && 'text-text')}>{l}{l === 'L-A' && progress > 8 && <span className="ml-1.5"><Badge tone="accent">recommended</Badge></span>}</th>)}</tr></thead>
+            <thead className="border-b hairline"><tr><th className="th text-left px-3 h-10">Check</th>{LOCS.map((l) => <th key={l} className={cx('th text-left px-3', sel === l && 'text-text')}>{l}{l === 'L-A' && progress > 8 && <span className="ml-1.5"><Badge tone="accent">recommended</Badge></span>}</th>)}</tr></thead>
             <tbody>{CRIT.map((c) => <tr key={c.k} className="border-b hairline last:border-0 align-top">
               <td className="px-3 py-2"><div className="font-medium">{c.k}</div><div className="mt-1"><DocLink id={c.ev[0]} mark={c.ev[1]} label={doc(c.ev[0]).file.replace(/\..*$/, '')} /></div></td>
-              {LOCS.map((l) => <td key={l} className={cx('px-3 py-2', st.location === l && 'bg-surface-2')}>{progress > 8 ? <><Tri v={c.v[l][0]} /><div className="text-[12px] text-muted">{c.v[l][1]}</div></> : <span className="text-faint">…</span>}</td>)}
+              {LOCS.map((l) => <td key={l} className={cx('px-3 py-2', sel === l && 'bg-surface-2')}>{progress > 8 ? <><Tri v={c.v[l][0]} /><div className="text-[12px] text-muted">{c.v[l][1]}</div></> : <span className="text-faint">…</span>}</td>)}
             </tr>)}</tbody>
           </table>
         </div>
       </div>
       {progress > 8 && <p className="text-[13px] text-muted mb-4 flex items-center gap-2 flex-wrap"><ModelBadge model="Nemotron Super" /> Recommends L-A: shortest pipe (2.4 m), 1.0 m clearance; needs a support stand.</p>}
       <div className="flex flex-wrap items-center gap-2">
-        {LOCS.map((l) => <Button key={l} className={cx('h-12', st.location === l && '!border-text bg-surface-2 font-semibold')} disabled={!st.mapped} onClick={() => choose(l)}>Choose {l}</Button>)}
-        <Button variant="primary" className="h-12 sm:ml-auto" disabled={!st.location || st.surveyVerified} onClick={verify}><UserCheck size={15} /> Verify survey as R. Alvarez (facility engineer)</Button>
+        {LOCS.map((l) => <Button key={l} className={cx('h-12', st.mapped && sel === l && '!border-text bg-surface-2 font-semibold')} disabled={!st.mapped} onClick={() => choose(l)}>{l}</Button>)}
+        <Button variant="primary" className="h-12 sm:ml-auto" disabled={!st.mapped} onClick={verify}><UserCheck size={15} /> Approve {sel} & continue</Button>
       </div>
       {st.surveyVerified && st.location && <p className="mt-3 text-[13px] text-ok flex items-center gap-1.5 pop-in"><UserCheck size={14} /> Recorded {at ? `${at} · ` : ''}R. Alvarez · {st.location} · source floorplan rev C</p>}
     </div>

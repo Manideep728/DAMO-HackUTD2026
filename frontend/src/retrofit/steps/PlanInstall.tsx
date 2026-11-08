@@ -42,7 +42,7 @@ export default function PlanInstall() {
       {st.planned && <div className="stage-in">
         <WorkSplit decided={st.mopApproved && st.changeAuth}
           did={<>Traced what CDU-1 connects to, drew the isolation boundary, drafted MOP-H1-R3-01 with 3 hold points and a rollback, and flagged 2 risks.</>}
-          need={<>Approve the procedure (facility engineer), then record the site change authorization (operations lead).</>} />
+          need={<>Approve the plan: procedure (R. Alvarez) and site change authorization (Maya R.) in one sign-off.</>} />
 
         <Card className="mb-6" header={<>
           <span className="font-semibold text-[14px]">What stays online</span>
@@ -62,9 +62,9 @@ export default function PlanInstall() {
         <SectionHeader title="Approvals" subtitle="People sign; Nemotron only prepared the draft." />
         <div className="grid md:grid-cols-2 gap-3">
           <Gate done={st.mopApproved} title="Method of procedure MOP-H1-R3-01" body="7 steps, 3 hold points, rollback. Hold point H1 requires chiller headroom confirmed before any valve moves."
-            action={`Approve as R. Alvarez (facility engineer)`} signed="Approved by R. Alvarez (facility engineer)" onClick={() => set({ mopApproved: true })} />
-          <Gate done={st.changeAuth} disabled={!st.mopApproved} title="Site change authorization CHG-2026-1107" body="Authorizes the Sat 01:00–05:00 window against the approved procedure."
-            action="Record as Maya R. (operations lead)" signed="Recorded by Maya R. (operations lead)" onClick={() => set({ changeAuth: true })} />
+            action="Approve plan & continue" signed="Approved by R. Alvarez (facility engineer)" onClick={() => set({ mopApproved: true, changeAuth: true, step: st.step + 1 })} />
+          <Gate done={st.changeAuth} disabled title="Site change authorization CHG-2026-1107" body="Authorizes the Sat 01:00–05:00 window against the approved procedure."
+            action="Signed with the plan approval" signed="Recorded by Maya R. (operations lead)" onClick={() => set({ changeAuth: true })} />
         </div>
         <p className="text-[12px] text-faint mt-3">Disruption-risk plan, not a guarantee of uninterrupted operation.</p>
       </div>}

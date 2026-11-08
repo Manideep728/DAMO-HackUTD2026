@@ -41,7 +41,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <Logo />
         </NavLink>
         {!setup.done ? <NavLink to="/setup" className="flex items-center gap-2 text-[14px] min-w-0"><span className="font-semibold whitespace-nowrap">Modernization</span><span className="text-muted whitespace-nowrap hidden sm:inline">· step {setup.step + 1} of {STEPS.length} · {STEPS[setup.step]}</span><span className="hidden md:inline-flex"><Badge tone="warning">required before operations</Badge></span></NavLink> :
-        <nav className="flex items-center gap-1 min-w-0 overflow-x-auto" aria-label="Workflows">
+        <nav className="self-stretch flex items-center gap-1 min-w-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>.tab.active]:after:bottom-[-7.5px]!" aria-label="Workflows">
           {nav.map(({ to, match, label, tag, exact }) => {
             const active = exact ? loc.pathname === match : loc.pathname.startsWith(match);
             return (

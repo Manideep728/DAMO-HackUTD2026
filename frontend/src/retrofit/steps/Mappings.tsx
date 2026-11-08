@@ -94,7 +94,7 @@ export default function Mappings() {
           {st.mappingReviewed
             ? <div className="flex items-center gap-2 text-[14px]"><Check size={16} className="text-ok" /> Draft approved for commissioning by Maya R. <Badge tone="warning">LD-2 held for field verification</Badge></div>
             : <div className="flex flex-wrap items-center gap-3"><span className="text-[14px] text-muted">10 points reviewed, 1 held.</span>
-              <Button variant="primary" className="ml-auto" onClick={() => set({ mappingReviewed: true })}><Check size={15} /> Approve draft for commissioning; hold LD-2 for field verification (Maya R.)</Button></div>}
+              <Button variant="primary" className="ml-auto" onClick={() => set({ mappingReviewed: true, step: st.step + 1 })}><Check size={15} /> Approve draft & continue</Button></div>}
         </Card>
       </>}
     </div>

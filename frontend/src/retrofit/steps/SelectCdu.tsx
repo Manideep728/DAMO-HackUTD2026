@@ -1,7 +1,7 @@
 // Step 3: compare CDU options against the site's load, flow, space and interface, then the engineer chooses one.
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { HelpCircle, Sparkles, TriangleAlert } from 'lucide-react';
-import { Badge, Card, ModelBadge, PageHeader, SectionHeader, cx } from '../../components/ui';
+import { Badge, Button, Card, ModelBadge, PageHeader, SectionHeader, cx } from '../../components/ui';
 import { useRetrofit } from '../store';
 import { AgentPanel, Tri, WorkSplit } from '../parts';
 import { DocLink } from '../DocViewer';
@@ -72,7 +72,8 @@ export default function SelectCdu() {
     return { pass: cells.filter((v) => v === 'pass').length, fail: reqs.filter((r) => r.cells[ci].v === 'fail').map((r) => r.label), unknown: cells.filter((v) => v === 'unknown').length };
   });
   const recIdx = 1;
-  const chosenIdx = CANDS.findIndex((c) => c.id === st.cdu);
+  const [pick, setPick] = useState<string>(st.cdu ?? 'KX-140'); // the recommended model is preselected
+  const chosenIdx = CANDS.findIndex((c) => c.id === pick);
   const chosen = chosenIdx >= 0 ? CANDS[chosenIdx] : null;
 
   return (
@@ -85,7 +86,7 @@ export default function SelectCdu() {
       {st.compared && <div className="stage-in">
         <WorkSplit decided={!!st.cdu}
           did={<>Read 3 datasheets and 4 site documents, checked each option against 9 requirements, and listed what no source states.</>}
-          need={<>Choose the CDU. This records a design choice, not procurement approval.</>} />
+          need={<>Approve the CDU (KX-140 recommended). This records a design choice, not procurement approval.</>} />
 
         <Card className="mb-6" header={<><span className="font-semibold text-[14px]">Capacity and flow</span><span className="text-[13px] text-muted hidden sm:inline">datasheet ratings at 20 °C facility water</span></>}>
           <CapacityChart
@@ -149,9 +150,9 @@ export default function SelectCdu() {
           </div>
         </div>
         <div className="grid md:grid-cols-3 gap-3" role="radiogroup" aria-label="CDU model">{CANDS.map((c, ci) => {
-          const on = st.cdu === c.id; const t = tally[ci];
+          const on = pick === c.id; const t = tally[ci];
           return (
-            <button key={c.id} role="radio" aria-checked={on} onClick={() => set({ cdu: c.id })}
+            <button key={c.id} role="radio" aria-checked={on} onClick={() => setPick(c.id)}
               className={cx('text-left card p-4 t min-w-0 flex flex-col gap-2', on ? 'border-text bg-surface-2' : 'hover:border-border-strong')}>
               <div className="flex items-center gap-2.5">
                 <span className={cx('h-4 w-4 rounded-full border grid place-items-center shrink-0', on ? 'border-text' : 'border-border-strong')}>{on && <span className="h-2 w-2 rounded-full bg-text" />}</span>
@@ -173,7 +174,8 @@ export default function SelectCdu() {
             <TriangleAlert size={15} className="shrink-0 mt-0.5" />
             <span>{chosen.id} fails {tally[chosenIdx].fail.length}: {tally[chosenIdx].fail.join('; ')}. Recorded as a deliberate exception.</span>
           </div>}
-          <div className="text-[12px] text-faint">Selected {chosen.id} by J. Chen (mechanical engineer) · not procurement approval</div>
+          <div className="flex flex-wrap items-center gap-3 mt-2"><span className="text-[12px] text-faint">Selected by J. Chen (mechanical engineer) · not procurement approval</span>
+            <Button variant="primary" className="h-12 sm:ml-auto" onClick={() => set({ cdu: chosen.id, step: st.step + 1 })}>Approve {chosen.id} & continue</Button></div>
         </div>}
       </div>}
     </div>
