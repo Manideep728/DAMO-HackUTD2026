@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Design tokens: see Meria/DESIGN.md. Every colour in the app comes from here. */
+/* Design tokens: see docs/DESIGN.md. Every colour in the app comes from here. */
 /* Damo brand: cream paper and ink, sampled from the logo (paper #F0EDE1, ink #161616). Light is the default. */
 :root, [data-theme="light"] {
   --bg: #F0EDE1; --surface: #FAF8F1; --surface-2: #E8E4D6; --surface-3: #DDD8C7;

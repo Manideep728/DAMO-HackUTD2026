@@ -74,4 +74,4 @@ nvidia-nemotron · python · fastapi · react · typescript · vite · tailwindc
 
 - GitHub: https://github.com/Manideep728/DAMO-HackUTD2026
 - Demo video: ⟦link⟧
-- Setup and the 3-minute demo script: `Meria/DEMO.md`
+- Setup and the 3-minute demo script: `docs/DEMO.md`

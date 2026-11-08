@@ -27,3 +27,10 @@ dist/
 
 # Personal Claude Code settings (shared settings live in .claude/settings.json)
 .claude/settings.local.json
+
+# App build and harness files
+backend/cache/
+backend/bin/
+backend/.work/
+backend/.certs/
+.hypothesis/

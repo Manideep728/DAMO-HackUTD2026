@@ -2,7 +2,7 @@
 #   promtool 3.2.1  (Prometheus)    - evaluates the candidate rules
 #   amtool   0.28.1 (Alertmanager)  - resolves alert routing
 #   jq       1.7.1                  - required by the unmodified TTU plugin
-# Run from the Meria folder:  powershell -ExecutionPolicy Bypass -File scripts\get-tools.ps1
+# Run from the repo root:  powershell -ExecutionPolicy Bypass -File scripts\get-tools.ps1
 $ErrorActionPreference = 'Stop'
 $bin = Join-Path $PSScriptRoot '..\backend\bin'
 New-Item -ItemType Directory -Force $bin | Out-Null
