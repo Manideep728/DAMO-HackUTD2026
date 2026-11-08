@@ -3,6 +3,8 @@ import { StoreProvider } from './state/store';
 import { ModernProvider } from './modern/store';
 import { Shell } from './components/shell';
 import Landing from './screens/Landing';
+import Console from './console/Console';
+import Verify from './console/Verify';
 import Checks from './screens/Checks';
 import Read from './screens/Read';
 import Find from './screens/Find';
@@ -17,8 +19,10 @@ export default function App() {
       <ModernProvider>
         <HashRouter>
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/about" element={<Landing />} />
             <Route element={<Shell><Outlet /></Shell>}>
+              <Route path="/" element={<Console />} />
+              <Route path="/verify" element={<Verify />} />
               <Route path="/modernize" element={<Navigate to="/modernize/import" replace />} />
               <Route path="/modernize/import" element={<M1Import />} />
               <Route path="/modernize/recover" element={<M2Recover />} />
