@@ -89,7 +89,7 @@ function TransientTimeline({ t, onPick }: { t: Transient; onPick: (nodes: string
 
 function Stat({ label, value, tone }: { label: string; value: string | number; tone: 'ok' | 'warning' | 'critical' }) {
   return (
-    <div className="rounded-lg border hairline px-3 py-2">
+    <div className="rounded-lg border hairline px-3 py-2" data-testid={`stat-${label}`}>
       <div className="text-[11.5px] text-muted">{label}</div>
       <div className={cx('mono text-[15px] font-semibold', tone === 'critical' ? 'text-critical' : tone === 'warning' ? 'text-warning' : 'text-text')}>{value}</div>
     </div>

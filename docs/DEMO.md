@@ -10,6 +10,8 @@ cp backend/.env.example backend/.env    # NVIDIA_API_KEY, NEMOTRON_MODEL (a tool
 make dev                                # http://localhost:5173/#/preflight
 ```
 
+Before each rehearsal, run `make rehearse`. It clicks through the script below in a browser against its own backend and checks every number the script quotes. If it fails, the app and this script disagree; fix whichever is wrong.
+
 The agent badge says which mode is running:
 
 | Badge | Meaning |
@@ -40,9 +42,9 @@ Between rehearsals, **Reset scenario** clears the toggles. Finding decisions liv
 
    *Optional (20 s), if time allows:* **Reset scenario**, then fail **UTIL-A** and **UTIL-B**. The steady-state numbers say nothing is lost, because the generators carry it. *First minutes after the failure* says otherwise. Chillers need 6 minutes to restart and racks ride through 4 without cooling, so 18 racks and workloads trip in between.
 
-6. **Pick the window (25 s).** *Plan* tab: PUMP-A, 6 hours, hours 0–48 → **Find the safest window**. Recommended: **hour 6 to hour 12**, out of 52 options simulated. Open a rejected one at hour 32 or 33. It overlaps GEN-2's annual service and adds UTIL-B as another single point, and it says so.
+6. **Pick the window (25 s).** *Plan* tab: PUMP-A, 6 hours, hours 0–48 → **Find the safest window**. Recommended: **hour 6 to hour 12**, out of 52 options simulated. Every window, the recommended one included, lists ATS-1 as a single point of failure. "No hour of the day fixes this. The fix is the feed, not the schedule." The rejected list says why each alternative lost; hour 0, for example, has 18% headroom against 33%.
 
-7. **Ask (30 s).** *Ask* tab: "Are Pump A and Pump B independent?" The tool log streams `get_neighbors` twice, then `find_cut_sets`, `search_docs` and `propose_dependency`. Every claim in the answer cites the tool calls it came from. A claim that names a node or number not in those results gets the answer sent back to the model.
+7. **Ask (30 s).** *Ask* tab: "Are Pump A and Pump B independent?" The tool log streams `get_neighbors` for each pump, then `find_cut_sets` and `search_docs`. The answer is "PUMP-A and PUMP-B share a single point of failure: ATS-1", and each claim cites the tool calls it came from. A claim that names a node or number not in those results gets the answer sent back to the model. (Asked before step 4, the agent finds the record evidence and calls `propose_dependency` instead.)
 
 8. **Close (10 s).** "Before you take equipment offline, rehearse it. The model plans and explains. The simulator decides."
 

@@ -26,6 +26,8 @@ function EquipmentNode({ data }: NodeProps<Node<MapNodeData>>) {
   return (
     <button
       type="button"
+      data-testid={`node-${n.id}`}
+      data-state={state}
       onClick={() => data.onToggle(n.id)}
       title={`${n.label} (${n.type}). Click to cycle: in service → maintenance → failed.`}
       className={cx('w-[132px] rounded-lg border-2 px-2 py-1.5 text-left t hover:border-border-strong', STATE_STYLE[state],
