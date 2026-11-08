@@ -2,81 +2,75 @@
 
 Written with the method from [xiaopu-ai/web-design](https://github.com/xiaopu-ai/web-design): set the design rules first, then write the code. Tokens live in `frontend/src/index.css`, and every component reads its colours from those variables.
 
-## 1. Visual theme and atmosphere
+## 1. Visual theme
 
-**Style:** Dark control room × editorial polish. **Scene:** App UI / dashboard, not a landing page.
-**Keywords:** calm, precise, legible, trustworthy, quietly premium.
-**Feel:** an instrument panel in a dim operations room. Depth comes from layered surfaces and soft light, never from decoration.
-**Interaction tier:** L2. Staggered entrance on each route, a pointer spotlight on cards, an animated nav indicator and lifted primary buttons. No scroll-jacking and no WebGL: operators need the data, not a show.
+**Style:** a precision instrument. Neutral graphite, crisp type, generous space, nothing decorative.
+**Feel:** a well-made tool you trust at 3 AM: calm, legible, quietly confident.
+**Interaction tier:** L1. A short fade on each route, plus hover, focus and press states. No glows, gradients, blur, spotlights or WebGL.
 
-## 2. Colour palette and roles
+## 2. Colour
 
 | Token | Dark | Light | Role |
 |---|---|---|---|
-| `--bg` | `#090C11` | `#F4F6F9` | App background, with two ambient glows and a 22 px dot grid |
-| `--surface` / `-2` / `-3` | `#10151C` / `#171D26` / `#1E2631` | `#FFF` / `#F0F3F7` / `#E6EBF1` | Cards → nested → pressed |
-| `--border` / `--border-strong` | `#232B36` / `#334050` | `#DCE2E9` / `#C3CCD7` | Hairlines / hover |
-| `--text` / `--text-muted` / `--text-faint` | `#EDF1F6` / `#94A0B0` / `#5F6B7B` | `#121821` / `#556172` / `#8A95A4` | Three-level text hierarchy |
-| `--accent` (+ `-2`, `-soft`, `-glow`) | `#4CC2FF` | `#0A6EBD` | **New guard**: primary actions, focus, the active nav item |
+| `--bg` | `#09090B` | `#FAFAFA` | App background (flat) |
+| `--surface` / `-2` / `-3` | `#111114` / `#18181C` / `#222228` | `#FFF` / `#F4F4F5` / `#E9E9EC` | Card → nested → pressed |
+| `--border` / `-strong` | `#25252B` / `#36363F` | `#E4E4E7` / `#D0D0D6` | Hairlines / hover |
+| `--text` / `-muted` / `-faint` | `#F4F4F5` / `#A1A1AA` / `#6B6B74` | `#09090B` / `#5B5B66` / `#8E8E99` | Three-level text hierarchy |
+| `--inverse` / `-ink` | text colour / bg colour | | Primary buttons and the logo tile |
+| `--accent` | `#4DA3FF` | `#0B6BDE` | **New guard**: new rules, focus ring, model badges, the selected finding |
 | `--legacy` | `#7D8794` | `#7D8794` | **Old guard** (Nagios), always grey |
-| `--ok` `--watch` `--warning` `--critical` `--untrusted` | unchanged from the domain spec | | Status only, always with a word and an icon |
+| `--ok` `--watch` `--warning` `--critical` `--untrusted` | domain spec | | Status only, always with a word and an icon |
 
-Rules: accent means the new guard and grey means the old guard; never swap them. Status colours never decorate. The ambient glow lives only on the page background, never inside data.
+The primary action is monochrome (`--inverse`), so the accent stays meaningful: blue always means "the new guard".
 
 ## 3. Typography
 
-Google Fonts: `Inter 400–700` and `JetBrains Mono 400–600` (loaded in `index.html`, with system fallbacks).
+Google Fonts: **Geist** 400–700 for the UI and **Geist Mono** 400–600 for code, IDs and readings, with system fallbacks.
 
-| Role | Size / weight | Notes |
-|---|---|---|
-| Page title (`.page-title`) | 28 / 650, -0.022em | A subtle vertical text gradient; the check ID beside it stays mono and muted |
-| Eyebrow (`.eyebrow`) | 11 / 600, +0.12em, uppercase | Accent colour, one per page at most |
-| Section h2 | 16–18 / 600 | |
-| Body | 14 / 400, line-height 1.5 | |
-| Table header and stat label (`.th`) | 11 / 600, +0.06em, uppercase | `--text-faint` |
-| Readings, IDs, code | JetBrains Mono, tabular-nums | |
+| Role | Spec |
+|---|---|
+| Page title `.page-title` | 30 / 600, -0.03em |
+| Kicker `.kicker` | 13 / 500, muted ("Step 2 of 3") |
+| Section title `.section-title` | 17 / 600, -0.015em |
+| Body | 14 / 400, line-height 1.55; subtitles 14.5 |
+| Table header `.th` | 12 / 500, muted, sentence case |
+| Severity `.sev` | 11 / 600, uppercase (the only uppercase) |
 
 ## 4. Components
 
-- **Button:** radius 8, height 40. *Primary* has an accent gradient, an inner highlight and a soft glow; on hover it lifts 1 px and the glow grows; when pressed it scales to 0.98. *Secondary* uses `surface-2` with a hairline that turns strong on hover. Disabled is 45% opacity with a not-allowed cursor. Focus is a 2 px accent ring.
-- **Card:** `surface`, a 1 px hairline, radius 12, an inset top highlight. On hover the border turns strong and a 420 px accent spotlight follows the pointer (pointer devices only).
-- **Top bar:** 60 px, translucent `--topbar` with a 12 px backdrop blur, the shield logo, the check chip and a live stage dot. Secondary items hide below `md`/`lg`.
-- **Nav rail:** 76 px. The active item gets a soft accent tile behind its icon and a 3 px glowing bar on the left edge.
-- **Stat tile:** a card with a `.th` label and a 26 px tabular number tinted by meaning.
-- **Table:** an uppercase faint header on `surface-2`, a row-hover tint, and an accent inset bar on the current row.
-- **Overlays:** the backdrop fades in with a 6 px blur, and the dialog pops in from 6 px below.
+- **Top bar:** 60 px on `surface`. Logo tile, then the workflow tabs: Overview │ ① Read ② Find ③ Prove │ Handoff. Each step shows its number, or a green check once done. The active tab gets a 2 px underline. On the right: the mode badge, theme, help, and the user's initials.
+- **PageHeader:** kicker, title, a meta row (check chip, mode and model badges, counts), subtitle, and actions on the right. Used on every screen.
+- **SectionHeader:** a title, a one-line subtitle and an optional right slot.
+- **Button:** height 36, radius 8, weight 500. *Primary* is `inverse` fill; *secondary* is `surface` with a hairline; press scales to 0.98.
+- **Card:** `surface`, a 1 px hairline, radius 14, header 48 px, padding 20.
+- **Empty state:** a centred card with an icon tile, title, one paragraph and the primary action, so the next step is always one click away.
+- **Overview steps:** three joined panels (1 px gaps on a border background) with an icon, number, title, description and "Decided by".
+- **Finding card:** selected = accent border plus a 1 px accent ring.
 
 ## 5. Layout
 
-4 px grid. Page padding is 24 px, or 32 px at `lg` and up. Content width: Checks 1400, Read and Prove 1400, Find 1500, Handoff 900. Gaps of 12–24 px between cards.
+4 px grid. Page padding is 40 px top, 96 px bottom, and 20–32 px on the sides. Every screen is centred: 1320 px max (Handoff 900). Find is two columns (findings | sticky map and evidence); Read is two columns (source | sticky rule card).
 
-## 6. Depth and elevation
+## 6. Elevation
 
-Level 0 is the background. Level 1 is a card (inset highlight plus a 1–2 px shadow). Level 2 is an overlay or the Director panel (`--shadow`: 12/32 plus 2/6). Only overlays float.
+Flat in dark mode; a 1 px shadow on cards in light mode. Only overlays and the Director panel float (`--shadow`).
 
-## 7. Animation and interaction
+## 7. Motion
 
-- Route entrance: each screen's direct children rise 8 px and fade in over 450 ms, staggered 50 ms apart and capped at 250 ms.
-- Card spotlight: CSS variables `--mx`/`--my` are set from a single rAF-throttled `pointermove` listener in `Shell`.
-- Live stage dot: a 2.4 s expanding ring.
-- `prefers-reduced-motion: reduce` turns off every transition and animation.
+Route entrance: direct children rise 4 px and fade in, 40 ms apart, capped at 160 ms. Dialogs pop in from 6 px below. `prefers-reduced-motion` turns everything off.
 
 ## 8. Do's and don'ts
 
-Do:
-1. Take every colour from a token, with zero hard-coded hex in components.
-2. Pair every status colour with a word and an icon.
-3. Use tabular numbers wherever values change.
-4. Keep keyboard focus visible on every interactive element.
+Do: take every colour from a token · pair status colour with a word and an icon · use tabular numbers · keep focus visible · give every empty state its action.
 
 Don't:
-1. Don't use gradients or glow on data marks (charts, floor map, coverage strip).
-2. Don't put `filter: blur()` on anything that moves, or a backdrop blur above 14 px.
-3. Don't use the accent for legacy or Nagios output.
-4. Don't use emoji, neon, or more than one eyebrow per page.
-5. Don't add scroll-jacking, a custom cursor or WebGL: this is an operator tool.
-6. Don't let an animation delay content by more than 300 ms.
+1. Don't use gradients, glows, gradient text, blur or decorative backgrounds.
+2. Don't use the accent for primary buttons or for legacy output.
+3. Don't use uppercase labels, apart from severity words.
+4. Don't add stat-tile rows or other template filler.
+5. Don't use emoji, a custom cursor or scroll-jacking.
+6. Don't let animation delay content by more than 200 ms.
 
-## 9. Responsive behaviour
+## 9. Responsive
 
-Desktop-first (operators use 1440+ screens and projectors). Below `md` the top bar keeps only the logo, the mode badge and the controls. Stat tiles go from 6 columns to 3 to 2. Tables scroll horizontally inside their card. The page itself never scrolls sideways at 390 px.
+Desktop-first. Below `sm` the brand name and initials hide, and the workflow tabs scroll sideways. PageHeader actions wrap under the title, the Overview steps stack, the two-column screens stack, and tables scroll inside their card. The page never scrolls sideways at 390 px.

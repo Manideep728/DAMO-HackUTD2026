@@ -80,14 +80,16 @@ export function StepChart({ values, threshold = 27, w = 160, h = 44, bad }: { va
 
 /** The replay timeline: legacy page ticks (grey) and detector hits (accent dots) over 21 days. */
 export function ReplayTimeline({ pageTicks, hits, days }: { pageTicks: number[]; hits: { t: number; findingId: number }[]; days: number }) {
-  const W = 760, H = 40, T = days * 1440;
+  const W = 760, H = 28, T = days * 1440;
   const X = (t: number) => (t / T) * W;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="legacy pages and detector hits over the replay">
-      {Array.from({ length: days + 1 }, (_, d) => <line key={d} x1={X(d * 1440)} x2={X(d * 1440)} y1={0} y2={H - 12} stroke="var(--border)" />)}
-      {pageTicks.map((t, i) => <line key={i} x1={X(t)} x2={X(t)} y1={6} y2={H - 16} stroke="var(--legacy)" strokeWidth={1} opacity={0.8} />)}
-      {hits.map((h, i) => <circle key={i} cx={X(h.t)} cy={H - 20} r={4} fill="var(--accent)" />)}
-      <text x={0} y={H - 1} fontSize="9.5" fill="var(--text-muted)">day 1</text><text x={W} y={H - 1} textAnchor="end" fontSize="9.5" fill="var(--text-muted)">day {days}</text>
-    </svg>
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-7" role="img" aria-label="legacy pages and detector hits over the replay">
+        {Array.from({ length: days + 1 }, (_, d) => <line key={d} x1={X(d * 1440)} x2={X(d * 1440)} y1={0} y2={H} stroke="var(--border)" vectorEffect="non-scaling-stroke" />)}
+        {pageTicks.map((t, i) => <line key={i} x1={X(t)} x2={X(t)} y1={4} y2={H - 4} stroke="var(--legacy)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" opacity={0.8} />)}
+      </svg>
+      <div className="relative h-0">{hits.map((h, i) => <span key={i} className="absolute -top-[18px] h-2 w-2 -ml-1 rounded-full bg-accent" style={{ left: `${(h.t / T) * 100}%` }} />)}</div>
+      <div className="flex justify-between text-[11px] text-muted mt-1"><span>day 1</span><span>day {days}</span></div>
+    </div>
   );
 }

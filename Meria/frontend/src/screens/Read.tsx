@@ -1,9 +1,9 @@
 import { qp } from '../lib/qp';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, ShieldCheck, FileWarning, Loader2, Check } from 'lucide-react';
+import { ArrowRight, ShieldCheck, FileWarning, Loader2, Check, Sparkles, FileText } from 'lucide-react';
 import { useStore } from '../state/store';
-import { Button, Card, Badge, ModeBadge, ModelBadge, Empty, cx } from '../components/ui';
+import { Button, Card, Badge, ModeBadge, ModelBadge, Empty, PageHeader, CheckChip, cx } from '../components/ui';
 import { CodeView, Trace } from '../components/code';
 import type { RuleCardStatement, SourceRange } from '../data/types';
 
@@ -26,39 +26,42 @@ export default function Read() {
   const checkable = card?.statements.filter((s) => s.verification.runs.length).length ?? 0;
   const filesWithHi = files;
   return (
-    <div className="grid grid-cols-[55fr_45fr] gap-6 max-w-[1400px]">
+    <div className="mx-auto w-full max-w-[1320px]">
+      <PageHeader
+        kicker={<>Step 1 of 3</>}
+        title="Read the old check"
+        meta={<><CheckChip id={checkId} />{card && <ModeBadge mode={card.mode} />}{card && <ModelBadge model={card.model} />}</>}
+        subtitle="Nemotron Super writes a plain-English rule card. Then the real plugin is run on every threshold, so nothing on the card is taken on trust."
+        actions={<>
+          {!card && !running && <Button variant="primary" onClick={() => ds.runRead(checkId)}><Sparkles size={15} /> Read with Nemotron</Button>}
+          {card && state.done.read && <Button variant="primary" kbd="→" onClick={() => nav(`/find/${checkId}`)}>Continue to Find <ArrowRight size={15} /></Button>}
+          {card && !state.done.read && <Button variant="secondary" disabled><Loader2 size={15} className="animate-spin" /> Checking…</Button>}
+        </>}
+      />
+      <div className="grid lg:grid-cols-[55fr_45fr] gap-6 items-start">
       <div className="min-w-0">
-        <h1 className="page-title">Read <span className="mono text-muted font-normal text-[16px]">{checkId}</span></h1>
-        <p className="text-muted mt-1 mb-4">The legacy check as it runs today: the plugin invocation and the Nagios config around it. Nobody on this team wrote it.</p>
+        <div className="text-[13px] font-medium text-muted mb-3 flex items-center gap-2"><FileText size={14} /> Legacy source, as it runs today</div>
         <div className="grid gap-3">{filesWithHi.map((f) => <CodeView key={f.file} file={f} highlights={hover} compact={f.file.endsWith('.csv') || f.file === 'hosts.cfg'} />)}</div>
       </div>
-      <div className="min-w-0">
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-[18px] font-semibold">Rule card</h2>
-          {card && <ModeBadge mode={card.mode} />}
-          {card && <ModelBadge model={card.model} />}
-          <div className="ml-auto flex gap-2">
-            {!card && !running && <Button variant="primary" onClick={() => ds.runRead(checkId)}>Read with Nemotron</Button>}
-            {card && state.done.read && <Button variant="primary" kbd="→" onClick={() => nav(`/find/${checkId}`)}>Continue to Find <ArrowRight size={14} /></Button>}
-            {card && !state.done.read && <Button variant="secondary" disabled><Loader2 size={14} className="animate-spin" /> Checking…</Button>}
-          </div>
-        </div>
-        {!card && !steps.length && <Empty title="No rule card yet" body="Nemotron Super reads the plugin and its config and writes a plain-English card. Then the real plugin is run to confirm every statement on it." />}
+      <div className="min-w-0 lg:sticky lg:top-0">
+        <div className="text-[13px] font-medium text-muted mb-3 flex items-center gap-2"><ShieldCheck size={14} /> Rule card</div>
+        {!card && !steps.length && <Empty icon={Sparkles} title="No rule card yet" body="Nemotron Super reads the plugin and its config and writes a plain-English card. Then the real plugin is run to confirm every statement on it." action={<Button variant="primary" onClick={() => ds.runRead(checkId)}><Sparkles size={15} /> Read with Nemotron</Button>} />}
         {steps.length > 0 && <Card className="mb-3"><Trace steps={steps} title="Read steps" /></Card>}
         {card && (
           <div className="grid gap-3">
-            <div className={cx('card p-3 flex items-center gap-2 text-[13px]', flagged ? 'border-critical/50' : verified === checkable && checkable > 0 ? 'border-ok/50' : '')}>
+            <div className={cx('card px-5 py-3.5 flex flex-wrap items-center gap-2 text-[13.5px]', flagged ? 'border-critical/50' : verified === checkable && checkable > 0 ? 'border-ok/50' : '')}>
               {flagged ? <FileWarning size={16} className="text-critical" /> : <ShieldCheck size={16} className={verified === checkable && checkable ? 'text-ok' : 'text-muted'} />}
               <span><b>{verified}/{checkable}</b> statements verified by execution{flagged ? <span className="text-critical">, {flagged} flagged and regenerated</span> : ''}.</span>
               <span className="text-muted ml-auto text-[11.5px]">We don't trust the model's reading. We run the code to check it.</span>
             </div>
             {Array.from(bySection.entries()).map(([sec, list]) => (
-              <Card key={sec} header={<span className="text-[12px] font-semibold text-muted uppercase tracking-wide">{sectionTitle[sec]}</span>}>
-                <ul className="grid gap-3">{list.map((s) => <Statement key={s.id} s={s} onHover={setHover} />)}</ul>
+              <Card key={sec} header={<span className="text-[13px] font-semibold">{sectionTitle[sec]}</span>}>
+                <ul className="grid gap-4 divide-y divide-[var(--border)] [&>li:not(:first-child)]:pt-4">{list.map((s) => <Statement key={s.id} s={s} onHover={setHover} />)}</ul>
               </Card>
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

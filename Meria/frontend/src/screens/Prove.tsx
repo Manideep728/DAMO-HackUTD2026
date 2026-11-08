@@ -1,9 +1,9 @@
 import { qp } from '../lib/qp';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShieldCheck, ScrollText, FileWarning, Copy, Check } from 'lucide-react';
+import { ShieldCheck, ScrollText, FileWarning, Copy, Check, Sparkles } from 'lucide-react';
 import { useStore } from '../state/store';
-import { Button, Card, Badge, ModelBadge, Empty, cx } from '../components/ui';
+import { Button, Card, Badge, ModelBadge, Empty, PageHeader, SectionHeader, CheckChip, cx } from '../components/ui';
 import { CodeView, YamlView, Trace } from '../components/code';
 import { CoverageStrip, StepChart } from '../components/viz';
 import type { VerifyResult, SourceRange } from '../data/types';
@@ -36,32 +36,31 @@ export default function Prove() {
   const oMismatch = useMemo(() => countMismatch(oneShot), [oneShot]);
 
   return (
-    <div className="max-w-[1400px] grid gap-6">
-      <div className="flex items-start gap-4">
-        <div>
-          <h1 className="page-title">Prove <span className="mono text-muted font-normal text-[16px]">{checkId}</span></h1>
-          <p className="text-muted mt-1">New Prometheus rules, and proof they lose nothing: the real plugin on every value the sensor can report, 500 timing traces, zero mismatches. Then a human signs off.</p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {!steps.length && <Button variant="primary" onClick={() => ds.runProve(checkId)}>Generate and verify</Button>}
-          {certificate && !signed && <Button variant="primary" kbd="S" disabled={blocked} title={blocked ? 'Blocked: open counterexample' : undefined} onClick={() => setConfirm(true)}><ShieldCheck size={14} /> Sign off</Button>}
+    <div className="mx-auto w-full max-w-[1320px] grid gap-12 [&>header:first-child]:mb-0">
+      <PageHeader
+        kicker={<>Step 3 of 3</>}
+        title="Prove the new rules"
+        meta={<CheckChip id={checkId} />}
+        subtitle="New Prometheus rules, and proof they lose nothing: the real plugin on every value the sensor can report, 500 timing traces, zero mismatches. Then a person signs off."
+        actions={<>
+          {!steps.length && <Button variant="primary" onClick={() => ds.runProve(checkId)}><Sparkles size={15} /> Generate and verify</Button>}
+          {certificate && !signed && <Button variant="primary" kbd="S" disabled={blocked} title={blocked ? 'Blocked: open counterexample' : undefined} onClick={() => setConfirm(true)}><ShieldCheck size={15} /> Sign off</Button>}
           {signed && <Badge tone="ok"><Check size={11} /> Signed off by {certificate!.signedOffBy} · {certificate!.signedOffAt}</Badge>}
-        </div>
-      </div>
-      {!steps.length && <Empty title="Nothing generated yet" body={`Nemotron Super writes rules from the rule card and ${acceptedFindings.length} accepted finding${acceptedFindings.length === 1 ? '' : 's'}. The verifier then runs the real plugin on 1,654 inputs and 500 generated traces. A one-shot translation goes through the same verifier for comparison.`} />}
-      {steps.length > 0 && <Card header={<span className="font-semibold text-[13px]">Steps</span>}><Trace steps={steps} /></Card>}
+        </>}
+      />
+      {!steps.length && <Empty icon={ShieldCheck} action={<Button variant="primary" onClick={() => ds.runProve(checkId)}><Sparkles size={15} /> Generate and verify</Button>} title="Nothing generated yet" body={`Nemotron Super writes rules from the rule card and ${acceptedFindings.length} accepted finding${acceptedFindings.length === 1 ? '' : 's'}. The verifier then runs the real plugin on 1,654 inputs and 500 generated traces. A one-shot translation goes through the same verifier for comparison.`} />}
+      {steps.length > 0 && <Card header={<><span className="font-semibold text-[13px]">Run log</span><span className="text-[12px] text-muted ml-auto">{steps.filter((s) => s.status === 'done').length} of {steps.length} steps</span></>}><div className="md:columns-2 gap-12 [&_li]:break-inside-avoid [&_li]:mb-2"><Trace steps={steps} /></div></Card>}
 
       {rulesYaml && (
         <section>
-          <h2 className="text-[16px] font-semibold mb-2">Generated rules <span className="text-muted font-normal text-[13px]">· hover a rule to see the source lines it replaces</span></h2>
+          <SectionHeader title="Generated rules" subtitle="Hover a rule to see the source lines it replaces." />
           <div className="grid grid-cols-2 gap-4"><div className="grid gap-3">{files.map((f) => <CodeView key={f.file} file={f} highlights={hi} />)}</div><YamlView yaml={rulesYaml} onHoverLine={setHoverRule} activeLine={hoverRule} /></div>
         </section>
       )}
 
       {gauntlet && (
         <section>
-          <h2 className="text-[16px] font-semibold mb-1">Every value the sensor can report</h2>
-          <p className="text-[13px] text-muted mb-3">SNMP returns integers, so the domain is finite. The real plugin was run once per value; the new rules were evaluated on the same inputs with <span className="mono">promtool test rules</span>.</p>
+          <SectionHeader title="Every value the sensor can report" subtitle={<>SNMP returns integers, so the domain is finite. The real plugin was run once per value; the new rules were evaluated on the same inputs with <span className="mono">promtool test rules</span>.</>} />
           <Card>
             <div className={cx('text-[20px] font-semibold mb-3 num', gMismatch ? 'text-critical' : '')}>{(gauntlet.domain.count + 3 - gMismatch).toLocaleString()} of {(gauntlet.domain.count + 3).toLocaleString()} inputs match · {gMismatch} mismatches <span className="text-[13px] text-muted font-normal">· real plugin run {gauntlet.pluginExecutions.toLocaleString()} times in {gauntlet.elapsedSec} s</span></div>
             <CoverageStrip runs={gauntlet.runs} errorCases={gauntlet.errorCases} min={gauntlet.domain.min} max={gauntlet.domain.max} label="Gauntlet rules coverage" />
@@ -73,7 +72,7 @@ export default function Prove() {
 
       {gauntlet && (
         <section>
-          <h2 className="text-[16px] font-semibold mb-1">Timing</h2>
+          <SectionHeader title="Timing" subtitle="Generated reading sequences, compared tick by tick against a model of Nagios soft and hard states." />
           <Card>
             <div className="text-[15px] mb-3"><b className="num">{gauntlet.traces.total}</b> generated reading sequences · <b className={cx('num', gauntlet.traces.mismatches > 0 && 'text-critical')}>{gauntlet.traces.mismatches}</b> mismatches · seed {gauntlet.traces.seed} · shrinking on</div>
             <div className="grid grid-cols-6 gap-3">{sampleTraces.map((t) => <div key={t.n} className="rounded-md border hairline p-2"><StepChart values={t.v} /><div className="text-[11px] text-muted mt-1 flex justify-between"><span>{t.n}</span><span className="text-ok">match ✓</span></div></div>)}</div>
@@ -84,8 +83,7 @@ export default function Prove() {
 
       {oneShot && (
         <section>
-          <h2 className="text-[16px] font-semibold mb-1">One-shot translation vs the Gauntlet loop</h2>
-          <p className="text-[13px] text-muted mb-3">Same plugin, same model, same verifier. The only difference is the loop.</p>
+          <SectionHeader title="One-shot translation vs the Gauntlet loop" subtitle="Same plugin, same model, same verifier. The only difference is the loop." />
           <div className="grid grid-cols-2 gap-4">
             <Card header={<><span className="font-semibold text-[13px]">One-shot translation</span><ModelBadge model="Nemotron Super" /><span className="text-[11.5px] text-muted">1 call · no tools</span></>}>
               <div className="text-[18px] font-semibold text-critical num mb-2">{oneShot.counterexamples.length} counterexamples <span className="text-[12px] text-muted font-normal">· {oMismatch} value mismatches · {oneShot.traces.mismatches} timing mismatches</span></div>
@@ -101,7 +99,7 @@ export default function Prove() {
               {blocked && <ul className="grid gap-2 mt-3">{gauntlet!.counterexamples.map((c) => <li key={c.id} className="rounded-md border border-critical/40 p-3 text-[12.5px]"><div className="flex items-center gap-2 mb-1"><FileWarning size={13} className="text-critical" /><b>Open counterexample</b> <span className="text-muted">· round {c.round}</span></div><dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5"><dt className="text-muted">Input</dt><dd className="mono">{c.input}</dd><dt className="text-muted">Legacy did</dt><dd>{c.legacy}</dd><dt className="text-muted">Rule did</dt><dd className="text-critical">{c.candidate}</dd><dt className="text-muted">Why</dt><dd>{c.why}</dd></dl></li>)}</ul>}
             </Card>
           </div>
-          {gauntlet && <p className="text-[18px] font-semibold text-center mt-5">Same model both times. The difference is the proof.</p>}
+          {gauntlet && <p className="text-[22px] font-semibold tracking-[-0.02em] text-center mt-10 mb-2">Same model both times. <span className="text-muted">The difference is the proof.</span></p>}
         </section>
       )}
 

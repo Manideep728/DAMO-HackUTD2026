@@ -1,9 +1,9 @@
 import { qp } from '../lib/qp';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, Check, X, Undo2, ExternalLink } from 'lucide-react';
+import { ArrowRight, Check, X, Undo2, ExternalLink, Play, MapPin } from 'lucide-react';
 import { useStore } from '../state/store';
-import { Button, Card, Badge, StatusPill, ModeBadge, ModelBadge, Empty, cx } from '../components/ui';
+import { Button, Card, Badge, StatusPill, ModeBadge, ModelBadge, Empty, PageHeader, CheckChip, cx } from '../components/ui';
 import { Trace } from '../components/code';
 import { FloorMap } from '../components/FloorMap';
 import { Sparkline, Legend, ReplayTimeline } from '../components/viz';
@@ -54,22 +54,21 @@ export default function Find() {
   const evSeries = selected?.evidence.series.map((id) => ds.series(id)).filter((s): s is NonNullable<typeof s> => !!s) ?? [];
 
   return (
-    <div className="max-w-[1500px]">
-      <div className="flex items-start gap-4 mb-4">
-        <div>
-          <h1 className="page-title">Find <span className="mono text-muted font-normal text-[16px]">{checkId}</span></h1>
-          <p className="text-muted mt-1">What the old check was hiding. The detectors found each problem; Nemotron wrote the sentence; you decide.</p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {!steps.length && <Button variant="primary" onClick={() => ds.runFind(checkId)}>Replay and find</Button>}
-          {findings.length > 0 && <span className="text-[13px] num mr-2"><b>{findings.length}</b> findings · <b>{accepted}</b> accepted · <b>{workOrders}</b> work orders</span>}
-          {handled > 0 && <Button variant="primary" kbd="→" onClick={() => nav(`/prove/${checkId}`)}>Continue to Prove <ArrowRight size={14} /></Button>}
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-[1320px]">
+      <PageHeader
+        kicker={<>Step 2 of 3</>}
+        title="Find what it was hiding"
+        meta={<><CheckChip id={checkId} />{findings.length > 0 && <span className="text-[13px] text-muted num ml-1"><span className="text-text font-medium">{findings.length}</span> findings · <span className="text-text font-medium">{accepted}</span> accepted · <span className="text-text font-medium">{workOrders}</span> work orders</span>}</>}
+        subtitle="The detectors found each problem, Nemotron Nano wrote the sentence, and you decide what happens next."
+        actions={<>
+          {!steps.length && <Button variant="primary" onClick={() => ds.runFind(checkId)}><Play size={15} /> Replay and find</Button>}
+          {handled > 0 && <Button variant="primary" kbd="→" onClick={() => nav(`/prove/${checkId}`)}>Continue to Prove <ArrowRight size={15} /></Button>}
+        </>}
+      />
 
       {state.replay && (
-        <Card className="mb-4">
-          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-[13px] mb-2">
+        <Card className="mb-6">
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-[13.5px] mb-4">
             <span>Replayed <span className="mono">{checkId}</span> over <b>{state.replay.days} days</b> of recorded readings</span>
             <span><b className="num">{state.replay.pluginRuns.toLocaleString()}</b> runs of the real plugin</span>
             <span>it paged <b className="num">{state.replay.legacyPages}</b> times</span>
@@ -80,17 +79,17 @@ export default function Find() {
         </Card>
       )}
 
-      {!steps.length && !findings.length && <Empty title="Nothing replayed yet" body="The replay runs the real plugin, tick by tick, over 21 days of recorded hall readings, then seven deterministic detectors look for what it missed." />}
+      {!steps.length && !findings.length && <Empty icon={Play} title="Nothing replayed yet" body="The replay runs the real plugin, tick by tick, over 21 days of recorded hall readings, then seven deterministic detectors look for what it missed." action={<Button variant="primary" onClick={() => ds.runFind(checkId)}><Play size={15} /> Replay and find</Button>} />}
       {steps.length > 0 && !findings.length && <Card className="mb-4"><Trace steps={steps} /></Card>}
 
       {findings.length > 0 && (
-        <div className="grid grid-cols-[2fr_1.75fr_1.25fr] gap-5 items-start">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-6 items-start">
           <ol className="grid gap-3" aria-label="Findings">
             {findings.map((f) => <FindingCard key={f.id} f={f} selected={selected?.id === f.id} onSelect={() => setSel(f.id)} onAccept={() => setConfirm(f)} onDismiss={() => setDismissing(f)} />)}
             {running && <li className="text-[12px] text-muted flex items-center gap-2"><ModelBadge model="Nemotron Nano" /> writing the next finding…</li>}
           </ol>
-          <div className="card p-3 sticky top-0"><FloorMap highlight={highlight} /></div>
-          <div className="grid gap-3 sticky top-0">
+          <div className="grid gap-4 lg:sticky lg:top-0">
+            <Card header={<><MapPin size={14} className="text-muted" /><span className="font-semibold text-[13px]">Hall 1</span><span className="text-[12px] text-muted ml-auto">{selected ? selected.title : 'reported inlet °C'}</span></>}><FloorMap highlight={highlight} /></Card>
             {selected && (
               <Card header={<><span className="font-semibold text-[13px]">Evidence</span><span className="text-[11.5px] text-muted ml-auto">finding #{selected.id}</span></>}>
                 {evSeries.length > 0 ? <><Sparkline series={evSeries} /><Legend series={evSeries} /></> : <div className="text-[12.5px] text-muted">{selected.evidence.caption}</div>}
@@ -132,7 +131,7 @@ export default function Find() {
 function FindingCard({ f, selected, onSelect, onAccept, onDismiss }: { f: Finding; selected: boolean; onSelect: () => void; onAccept: () => void; onDismiss: () => void }) {
   const done = f.status !== 'open';
   return (
-    <li className={cx('card p-4 cursor-pointer t', selected && 'border-accent', done && 'opacity-80', f.status === 'accepted' && 'border-l-4 border-l-ok', f.status === 'dismissed' && 'border-l-4 border-l-border')} onClick={onSelect} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onSelect()} aria-selected={selected}>
+    <li className={cx('card p-5 cursor-pointer t hover:border-border-strong', selected && '!border-accent ring-1 ring-accent/30', done && 'opacity-80', f.status === 'accepted' && 'border-l-4 border-l-ok', f.status === 'dismissed' && 'border-l-4 border-l-border')} onClick={onSelect} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onSelect()} aria-selected={selected}>
       <div className="flex items-center gap-2 mb-1.5"><StatusPill kind={f.severity} size="sm" /><span className="font-semibold text-[14px]">{f.title}</span><span className="ml-auto text-[11px] text-muted mono">{f.target.id}</span></div>
       <p className="text-[13px] leading-snug">{f.sentences}</p>
       <div className="flex items-center gap-2 mt-2 text-[11.5px] text-muted flex-wrap"><span>Found by</span><Badge><span className="mono">{f.detector}</span></Badge><span>· Suggested: <span className="text-text">{f.action}</span></span></div>
