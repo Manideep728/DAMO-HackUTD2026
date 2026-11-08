@@ -26,7 +26,7 @@ export interface CutSet { nodes: string[]; order: number; lost_services: string[
 export interface CutSets { max_order: number; services: string[]; cut_sets: CutSet[]; total: number; single_points: string[]; notes: string[]; maintenance: string[] }
 export interface GroupRed { node: string; group: string; resource: string; suppliers: string[]; needed: number; available: number; level: string; independence: number; shared: string[] }
 export interface ServiceRed { service: string; capacity_level: string; independence: number; effective: string; single_points: string[]; groups: GroupRed[] }
-export interface Evidence { doc_id: string; date: string; kind: string; quote: string; reason: string }
+export interface Evidence { doc_id: string; date: string; kind: string; quote: string; reason: string; extractor?: string }
 export interface Finding {
   id: string; consumer: string; supplier: string; classification: 'confirms' | 'contradicts' | 'new'; replaces: string | null;
   confidence: number; supporting: Evidence[]; contradicting: Evidence[]; set_aside: Evidence[]; status: string; claim: string;

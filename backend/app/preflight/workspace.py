@@ -10,6 +10,7 @@ from engine.timestep import Window
 
 from .data.demo import demo_facility, demo_profiles, demo_windows
 from .discovery import DiscoveryResult, Doc, Finding, apply_finding, discover, load_corpus
+from .resolve_model import nemotron_resolver
 from .store import Store
 
 
@@ -27,7 +28,7 @@ class Workspace:
     def discovery(self) -> DiscoveryResult:
         with self._lock:
             if self._discovery is None:
-                self._discovery = discover(self.documented, self.docs)
+                self._discovery = discover(self.documented, self.docs, model=nemotron_resolver(self.documented))
             return self._discovery
 
     def findings(self) -> list[Finding]:

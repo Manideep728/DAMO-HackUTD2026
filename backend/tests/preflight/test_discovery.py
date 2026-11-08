@@ -85,4 +85,60 @@ def test_precision_and_recall_on_noisy_generated_records(seed):
     docs, labels = noisy_corpus(f, seed)
     s = score(discover(f, docs, with_impact=False), labels)
     assert s["precision"] >= 0.95  # herrings must not get through
-    assert s["recall"] >= 0.75  # typos cost some recall; this pins the current level
+    assert s["recall"] >= 0.85  # digit-swap typos that hit another real tag stay missed; pins the current level
+
+
+def test_fuzzy_match_fixes_letter_typos_but_never_changes_the_suffix():
+    r = Resolver(demo_facility())
+    found = {m.surface: (m.node, m.how) for m in r.mentions("pmup mcc b fed from trnasfer sw 1; pump c; PUMP-C")}
+    assert found["pmup mcc b"] == ("MCC-B", "fuzzy")
+    assert found["trnasfer sw 1"] == ("ATS-1", "fuzzy")
+    assert "pump c" not in found and found["PUMP-C"] == (None, "alias")  # PUMP-C is not installed
+
+
+def _doc(text: str):
+    from app.preflight.discovery import Doc
+
+    return Doc("WO-T1", "work_order", "2024-05-01", "test", text)
+
+
+def test_model_fallback_resolves_a_leftover_phrase_and_keeps_the_quote_verbatim():
+    phrase_seen = []
+
+    def model(phrase, sentence):
+        phrase_seen.append(phrase)
+        return "MCC-B"
+
+    doc = _doc("Electrician found the B side pump panel fed from ATS-1.")
+    res = discover(demo_facility(), [doc], model=model, with_impact=False)
+    claim = next(c for c in res.claims if c.supplier == "ATS-1")
+    assert claim.consumer == "MCC-B" and claim.extractor == "nemotron"
+    assert claim.quote in doc.text and phrase_seen == ["the B side pump panel"]
+
+
+@pytest.mark.parametrize("answer", ["ATS-2", "NOT-A-NODE", None])
+def test_model_answers_without_the_nodes_suffix_or_outside_the_inventory_are_dropped(answer):
+    res = discover(
+        demo_facility(),
+        [_doc("Electrician found the B side pump panel fed from ATS-1.")],
+        model=lambda phrase, sentence: answer,
+        with_impact=False,
+    )
+    assert [c for c in res.claims if c.supplier == "ATS-1"] == []
+
+
+def test_demo_findings_are_identical_whatever_the_model_answers():
+    import random
+
+    docs, labels = load_corpus()
+    ids = [n.id for n in demo_facility().nodes] + ["NOT-A-NODE", None]
+    baseline = discover(demo_facility(), docs)
+    key = lambda r: [(f.id, f.classification, f.confidence, f.status) for f in r.findings]
+    for seed in range(10):
+        rnd = random.Random(seed)
+        r = discover(demo_facility(), docs, model=lambda p, s, rnd=rnd: rnd.choice(ids))
+        assert key(r) == key(baseline)
+        s = score(r, labels)
+        assert s["precision"] == 1.0 and s["recall"] == 1.0
+        f = next(x for x in r.findings if x.consumer == "MCC-B" and x.supplier == "ATS-1")
+        assert f.classification == "contradicts" and f.impact["new_single_points"] == ["ATS-1"]

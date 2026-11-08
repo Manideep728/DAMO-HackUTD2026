@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, X, FileText, CircleAlert } from 'lucide-react';
 import { Badge, Button, StatusPill, cx } from '../components/ui';
-import type { CutSets, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
+import type { CutSets, Evidence, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
@@ -145,14 +145,14 @@ export function FindingsPanel({ data, onDecide, onShow }: { data: Findings | nul
   );
 }
 
-function Quotes({ title, items }: { title: string; items: { doc_id: string; date: string; kind: string; quote: string; reason: string }[] }) {
+function Quotes({ title, items }: { title: string; items: Evidence[] }) {
   return (
     <div className="text-[12px]">
       <div className="text-muted mb-1">{title}</div>
       <ul className="grid gap-1">
         {items.map((q, i) => (
           <li key={i} className="flex gap-1.5"><FileText size={12} className="shrink-0 mt-0.5 text-faint" />
-            <span><span className="mono">{q.doc_id}</span> <span className="text-faint">{q.date} · {q.kind.replace('_', ' ')}</span> “{q.quote}”{q.reason && <span className="text-muted"> · {q.reason}</span>}</span></li>
+            <span><span className="mono">{q.doc_id}</span> <span className="text-faint">{q.date} · {q.kind.replace('_', ' ')}</span> “{q.quote}”{q.extractor === 'nemotron' && <span className="text-muted"> · name resolved by Nemotron</span>}{q.reason && <span className="text-muted"> · {q.reason}</span>}</span></li>
         ))}
       </ul>
     </div>
