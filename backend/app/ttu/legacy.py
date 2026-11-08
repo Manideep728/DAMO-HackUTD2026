@@ -6,11 +6,12 @@ and use the plugin's documented mapping, so the UI never presents a modelled run
 
 Scheduler: values parsed from legacy/ttu/objects/templates.cfg (local-service / generic-service).
 """
-import os, re, shutil, subprocess, time
+import os, pathlib, re, shutil, subprocess, time
 from . import LEGACY, BIN, redfish_mock
 from .scenarios import Scenario
 
 PLUGIN = LEGACY / "redfishplugins" / "check_temperature.sh"
+SHIMS = pathlib.Path(__file__).resolve().parent / "shims"
 EXIT = {0: "OK", 1: "WARNING", 2: "CRITICAL", 3: "UNKNOWN"}
 
 
@@ -52,7 +53,8 @@ def run_plugin(asset_id, health, fan_rpm=9400, down=False):
         return {"OK": "OK", "Warning": "WARNING", "Critical": "CRITICAL"}[health], "(modelled: jq not installed)", 0, "model"
     host = redfish_mock.start()
     redfish_mock.set_state(asset_id, health, fan_rpm, down)
-    env = dict(os.environ, PATH=str(BIN) + os.pathsep + os.environ.get("PATH", ""))
+    # The jq shim goes first: without it the plugin's filter fails to parse and every poll is UNKNOWN (see shims/jq).
+    env = dict(os.environ, PATH=os.pathsep.join([str(SHIMS), str(BIN), os.environ.get("PATH", "")]))
     t0 = time.time()
     p = subprocess.run(["bash", PLUGIN.as_posix(), f"{host}/bmc/{asset_id}"], capture_output=True, text=True, timeout=30, env=env)
     out = " ".join(p.stdout.split())

@@ -24,9 +24,8 @@ jobs:
           ids=$(python -c "from app.preflight.data.demo import demo_facility; print('|'.join(n.id for n in demo_facility().nodes))")
           ! grep -rnE "$ids" engine/
       - run: python -m pytest -q
-      - name: "TTU harness, known failure with the real plugin on Linux (issue #7)"
+      - name: TTU harness with the real plugin (jq is installed on the runner)
         run: python -m tests.test_harness
-        continue-on-error: true
 
   frontend:
     runs-on: ubuntu-latest

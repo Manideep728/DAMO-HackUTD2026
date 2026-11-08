@@ -40,6 +40,13 @@ def analyse():
     creds = sorted({m for p in (LEGACY / "redfishplugins").glob("*.sh") for m in re.findall(r"-u\s+(\S+:\S+)", p.read_text(errors="ignore"))})
     if creds:
         gaps.append({"item": "Hardcoded BMC credentials", "status": "flag", "where": "redfishplugins/*.sh", "impact": f"curl -u {', '.join(creds)} in every plugin; must move to a secret."})
+    broken_jq = sorted(p.name for p in (LEGACY / "redfishplugins").glob("*.sh")
+                       if re.search(r"jq\s+'[^']*\\\r?\n", p.read_text(errors="ignore")))
+    if broken_jq:
+        gaps.append({"item": "jq filter split with a backslash-newline", "status": "flag", "where": ", ".join(broken_jq),
+                     "impact": "Inside single quotes the backslash reaches jq, which rejects the filter, so the check "
+                               "reports UNKNOWN on every poll. Replays run it through a jq shim that removes the "
+                               "line continuation (app/ttu/shims/jq)."})
     email = re.search(r"email\s+(\S+)", contacts)
     services = len(re.findall(r"define\s+service", hosts))
     host_names = re.findall(r"host_name\s+(\S+)", hosts)
