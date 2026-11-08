@@ -5,6 +5,7 @@ import { Shell } from './components/shell';
 import Landing from './screens/Landing';
 import Console from './console/Console';
 import Verify from './console/Verify';
+import WorkOrder from './console/WorkOrder';
 import Preflight from './preflight/Preflight';
 import { M1Import, M2Recover, M3Generate, M4Test, M5Release } from './modern/Modernize';
 import Setup from './retrofit/Setup';
@@ -25,6 +26,7 @@ export default function App() {
             <Route element={<Shell><Outlet /></Shell>}>
               <Route path="/" element={<Home />} />
               <Route path="/setup" element={<Setup />} />
+              <Route path="/wo/:id" element={<WorkOrder />} />
               <Route path="/verify" element={<Verify />} />
               <Route path="/preflight" element={<Preflight />} />
               <Route path="/modernize" element={<Navigate to="/modernize/import" replace />} />
