@@ -15,12 +15,12 @@ HackUTD 2026 · NMC² · NVIDIA Nemotron · 8090 · MLH Best Use of Tiger Data
 <table>
 <tr>
 <td width="50%" valign="top">
-<img src="docs/screenshots/2-setup/2b-map-the-site-done.png" width="100%"><br>
+<img src="docs/screenshots/readme/setup-site-map.png" width="100%"><br>
 <b>Retrofit setup</b> · <code>/#/setup</code><br>
 Six steps from scattered records to a signed handover. The sample leak sensor is mapped to the wrong rack; the witnessed wet test catches it, and the fix is a one-line, sourced config diff.
 </td>
 <td width="50%" valign="top">
-<img src="docs/screenshots/7-modernize/2c-m2-recovered.png" width="100%"><br>
+<img src="docs/screenshots/readme/modernize-agent.png" width="100%"><br>
 <b>Modernize</b> · <code>/#/modernize/import</code><br>
 Takes the real <a href="https://github.com/nsfcac/Nagios-Redfish-API-Integration">Texas Tech HPCC Nagios–Redfish check</a> to Prometheus rules. A Nemotron agent reads the plugin with tool calls, records each behaviour with its source line, and asks the operator what code can't answer.
 </td>
@@ -48,9 +48,9 @@ flowchart LR
   R["Site records<br/>drawings · BMS points<br/>work orders · legacy plugin"]
   N["Nemotron<br/>reads, proposes, plans"]
   K["Deterministic checks<br/>quote validator · engine<br/>harness · citation validator"]
-  U["Engineer<br/>approves every change"]
+  U["Engineer<br/>approves"]
   T[("Tiger<br/>meter data")]
-  R --> N -->|proposals| K -->|accepted or rejected, with evidence| U
+  R --> N -->|proposals| K -->|verdict + evidence| U
   T --> K
   R --> K
 ```
