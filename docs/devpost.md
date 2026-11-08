@@ -30,7 +30,7 @@ DAMO takes a retrofit from scattered records to a tested handover, then carries 
 ### Retrofit setup
 > *Image:* `docs/screenshots/readme/setup-site-map.png`
 
-Six steps. Connect the project's documents, and Nemotron maps the site: 21 components and 21 links, each marked confirmed, inferred, conflicting or missing, with the source line for every one. It recommends a CDU location against space, floor loading, pipe route, power and service clearance. The engineer picks the CDU, approves the install plan, and reviews the BMS mapping. Commissioning runs offline tests and a witnessed wet test. The wet test catches LD-2 naming the wrong rack, and the fix is a one-line config diff that cites the drawing it came from. A later firmware change renames every leak point; the regression suite catches it before handover.
+Six steps. Connect the project's documents, and DAMO maps the site: 21 components and 21 links, each marked confirmed, inferred, conflicting or missing, with the source line for every one. It recommends a CDU location against space, floor loading, pipe route, power and service clearance. The engineer picks the CDU, approves the install plan, and reviews the BMS mapping. Commissioning runs offline tests and a witnessed wet test. The wet test catches LD-2 naming the wrong rack, and the fix is a one-line config diff that cites the drawing it came from. A later firmware change renames every leak point; the regression suite catches it before handover. The retrofit engine (mapping, behaviour tests, oracle, monitor) is deterministic Python; the walkthrough replays a recorded run of it, and its agent narration is scripted.
 
 ### Modernize
 > *Image:* `docs/screenshots/readme/modernize-agent.png`
