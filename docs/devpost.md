@@ -1,16 +1,16 @@
 # DAMO
 
-### Two pumps. Two power paths. One transfer switch.
+### Retrofit the data center you already have, with evidence for every change.
 
-**Make an existing data center AI-ready without guessing what's wired to what.**
+DAMO reads the records an operating hall runs on, finds where they disagree, and tests every integration change before anyone touches the floor. Nemotron does the reading. Deterministic checks decide whether it was right.
 
 `NMC²` · `NVIDIA Nemotron` · `8090` · `MLH Best Use of Tiger Data`
 
-> 📸 *Upload as the cover image:* `docs/screenshots/6-preflight/04-scenario-ats-1-fails.png`
+> *Cover image:* `docs/screenshots/6-preflight/04-scenario-ats-1-fails.png`
 
 ---
 
-## 💡 Inspiration
+## Inspiration
 
 Data-center power demand is set to roughly double by 2030 (IEA, *Energy and AI*). New buildings take years, so operators are retrofitting the halls they already have: liquid-cooled GPU racks, a cooling distribution unit (CDU), new leak sensors, all wired into a building management system that was set up a decade ago.
 
@@ -23,31 +23,31 @@ Two examples drove the whole project:
 
 Neither one shows up on a dashboard. Both show up when you read every record side by side, and that's work a model can speed up, as long as something other than the model checks the answer.
 
-## ⚙️ What it does
+## What it does
 
 DAMO takes a retrofit from scattered records to a tested handover, then carries that record into operations.
 
-### 🧊 Retrofit setup
-> 📸 `docs/screenshots/readme/setup-site-map.png`
+### Retrofit setup
+> *Image:* `docs/screenshots/readme/setup-site-map.png`
 
 Six steps. Connect the project's documents, and Nemotron maps the site: 21 components and 21 links, each marked confirmed, inferred, conflicting or missing, with the source line for every one. It recommends a CDU location against space, floor loading, pipe route, power and service clearance. The engineer picks the CDU, approves the install plan, and reviews the BMS mapping. Commissioning runs offline tests and a witnessed wet test. The wet test catches LD-2 naming the wrong rack, and the fix is a one-line config diff that cites the drawing it came from. A later firmware change renames every leak point; the regression suite catches it before handover.
 
-### 🔁 Modernize
-> 📸 `docs/screenshots/readme/modernize-agent.png`
+### Modernize
+> *Image:* `docs/screenshots/readme/modernize-agent.png`
 
 Legacy monitoring is the other half of an old building. DAMO takes a real check, the Texas Tech HPCC Nagios–Redfish plugin, to Prometheus rules. A Nemotron 3.5 Super agent reads the plugin and its Nagios objects through tool calls (20 in our recorded run), records each behaviour with its source line, and raises six questions the code can't answer, such as "who should actually be paged?" when the inherited recipient is `nagios@localhost`. The operator's answers become test expectations. The first candidate passes 1 of 6 cases; Nemotron repairs it from the visible failures only, while held-out cases stay sealed.
 
-### 🧪 Preflight
-> 📸 `docs/screenshots/6-preflight/24-ask-pump-independence.png`
+### Preflight
+> *Image:* `docs/screenshots/6-preflight/24-ask-pump-independence.png`
 
 A what-if simulator for equipment work. Pick "ATS-1 fails" and the cascade runs across the graph: both switchgear feeds, both pumps, the chilled-water loop, 18 racks, 400 kW. It finds minimal cut sets, checks whether each redundant group is really independent, and ranks maintenance windows and plans. Ask "Are Pump A and Pump B independent?" and the agent answers through `simulate` and `find_cut_sets` calls, citing every number.
 
-### 🌙 Console
-> 📸 `docs/screenshots/3-console/2-early-warning.png`
+### Console
+> *Image:* `docs/screenshots/3-console/2-early-warning.png`
 
 The night shift on the retrofitted hall. GPU-07 passes every health check (61 °C, 94% utilization, online) and still returns the wrong checksum on a known-answer test. The console ties the mismatch to the rack, its power and cooling feeds and recent work, then walks the operator through acknowledge, investigate, dispatch, verify recovery and hand off. Paging and work orders never wait on the model.
 
-## 🛠️ How we built it
+## How we built it
 
 > **Nemotron proposes. Something it can't influence decides.**
 
@@ -61,40 +61,40 @@ The night shift on the retrofitted hall. GPU-07 passes every health check (61 °
 ### Engine
 (`backend/engine/`, pure Python, no model). Requirement groups (`all`, `any`, `k_of_n`, `capacity`) over a power and cooling graph. Support is computed as a least fixpoint, so dependency cycles are safe. Overloaded suppliers shed the lowest-criticality load first, and every failed node gets a causal trace. Minimal cut sets come from MOCUS expansion up to order 3, cross-checked against brute-force enumeration in the tests.
 
-### 🐯 Tiger Data
+### Tiger Data
 Meter readings live in a TimescaleDB hypertable with an hourly continuous aggregate. The load profile Preflight plans against is the worst hourly average at each hour of the week over four weeks. Reconciliation correlates each meter's unexplained load with candidate consumers to catch equipment wired to a different supplier than documented.
 
 ### Stack
 FastAPI backend, React + Vite + Tailwind frontend, NVIDIA Nemotron through build.nvidia.com's OpenAI-compatible API, with every live response cached so the demo replays offline and labels itself when it does. Deployed with Docker Compose on Vultr behind Caddy. 168 backend tests, a 24-question agent eval, and a Playwright rehearsal that clicks through the demo and checks every number.
 
-## 🧗 Challenges we ran into
+## Challenges we ran into
 
 - **Keeping the model out of the alert path.** Rules, paging and work orders had to work with Nemotron switched off. The console has an online/offline toggle, and the alarm still fires and pages with it off.
 - **Making the tests able to fail.** A harness that passes everything proves nothing, so the suite must reject a wrong-recipient mutant and an alert-everything decoy before its passes count.
 - **Model IDs move.** A Nemotron model we built against was retired during the weekend and started returning HTTP 410. Model IDs are now configuration, and the UI shows which model and mode (live, cached, scripted) produced each answer.
 - **Venue Wi-Fi blocked Tiger's port.** Every meter sync now writes a local snapshot, and the app starts from it when Tiger is unreachable.
 
-## 🏆 Accomplishments we're proud of
+## Accomplishments we're proud of
 
 - The ATS-1 finding falls out of the records automatically: discovery reads the work order, an engineer confirms it, and every critical service drops from 2N to N on screen.
 - Discovery holds 1.0 precision with 0.867–0.983 recall across 10 seeded sets of noisy records. Most misses are digit-swap typos that spell another real tag, which is the right way to fail.
 - Every agent claim on screen carries its evidence: the tool call, the source line, or the test that checked it.
 
-## 📚 What we learned
+## What we learned
 
 The useful job for an LLM in a data center isn't deciding anything. It's reading fifteen documents that disagree and producing proposals specific enough to check. Once every proposal carries a quote or a tool result, a few hundred lines of deterministic validation turn the model from a risk into the fastest reader on the team.
 
-## 🚀 What's next
+## What's next
 
 - Run against a real site's exported point list and drawings instead of the synthetic hall.
 - Call the retrofit backend live from the UI (today the setup screens replay a recorded run of it).
 - Extend the harness from Nagios to BMS vendor alarm logic, so a firmware update is tested the same way a rule change is.
 
-## ⚖️ Honest scope
+## Honest scope
 
 The facility, records and load profiles are synthetic. Power and cooling are kW budgets on a graph: no CFD, hydraulics or electrical load flow. Passing the harness is evidence on the stated scenarios, not proof of equivalence, and nothing here replaces physical commissioning.
 
-## 🧰 Built with
+## Built with
 
 `python` `fastapi` `typescript` `react` `vite` `tailwindcss` `nvidia-nemotron` `build.nvidia.com` `timescaledb` `tiger-data` `postgresql` `prometheus` `alertmanager` `nagios` `redfish` `playwright` `docker` `caddy` `vultr`
 
