@@ -1,0 +1,19 @@
+groups:
+- name: ttu-redfish-temperature
+  rules:
+  - alert: ThermalHealthCritical        # old exit 2
+    expr: max by (asset_id, owner, rack) (redfish_thermal_health) == 2
+    for: 3m                             # old: HARD on attempt 4 at 1 min retry
+    labels: { severity: critical }
+  - alert: ThermalHealthWarning         # old exit 1
+    expr: max by (asset_id, owner, rack) (redfish_thermal_health) == 1
+    for: 3m
+    labels: { severity: warning }
+  - alert: ThermalFeedMissing           # old exit 3 (UNKNOWN); decision d3: missing is not healthy
+    expr: redfish_thermal_scrape_success == 0
+    for: 3m
+    labels: { severity: unknown }
+  - alert: FanStalledEarlyWarning       # decision d6: new, warns before the BMC flips thermal Critical
+    expr: min by (asset_id, owner, rack) (redfish_fan_rpm) == 0
+    for: 1m
+    labels: { severity: warning }

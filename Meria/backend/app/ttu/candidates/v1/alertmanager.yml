@@ -1,0 +1,9 @@
+route:
+  receiver: admins
+  group_by: [asset_id, alertname]
+  repeat_interval: 60m                  # notification_interval 60
+receivers:
+- name: admins
+- name: oncall-fallback
+- name: hpc-ops-primary
+- name: platform-primary

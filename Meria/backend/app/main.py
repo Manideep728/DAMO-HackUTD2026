@@ -5,15 +5,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 from . import llm, fixtures
 from .verify import sweep, traces
-from .models import SUPER, NANO
+from .models import SUPER, NANO, has_key
 
 app = FastAPI(title="The Gauntlet")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+from .ttu.api import router as ttu_router
+app.include_router(ttu_router)
 STATE = {"findings": {}, "handoff": {"shift": "Night shift · Sat 7 Nov 23:00 → Sun 8 Nov 07:00", "writtenBy": "Gauntlet (Nemotron Nano)", "reviewedBy": "Maya R.", "accepted": [], "dismissed": [], "signedOff": [], "timeline": []}, "cert": None, "rules": None}
 def now(): return time.strftime("%H:%M")
 
 @app.get("/api/mode")
-def mode(): return {"mode": llm.MODE if llm.MODE != "live" or os.getenv("NVIDIA_API_KEY") else "cached", "super": SUPER, "nano": NANO, "plugin": sweep.PLUGIN}
+def mode(): return {"mode": llm.MODE if llm.MODE != "live" or has_key() else "cached", "super": SUPER, "nano": NANO, "plugin": sweep.PLUGIN}
 @app.post("/api/mode")
 async def set_mode(req: Request): llm.MODE = (await req.json()).get("mode", "live"); return mode()
 @app.get("/api/checks")

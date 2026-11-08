@@ -1,0 +1,7 @@
+# Decoy: alerts Critical on every asset at every evaluation. The harness must fail this.
+groups:
+- name: decoy
+  rules:
+  - alert: ThermalHealthCritical
+    expr: redfish_thermal_scrape_success >= 0
+    labels: { severity: critical }

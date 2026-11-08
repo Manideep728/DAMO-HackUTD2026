@@ -1,0 +1,12 @@
+groups:
+- name: ttu-redfish-temperature
+  rules:
+  - alert: ThermalHealthCritical        # old exit 2
+    expr: max by (asset_id, owner, rack) (redfish_thermal_health) == 2
+    labels: { severity: critical }
+  - alert: ThermalHealthWarning         # old exit 1
+    expr: max by (asset_id, owner, rack) (redfish_thermal_health) == 1
+    labels: { severity: warning }
+  - alert: ThermalFeedMissing           # old exit 3 (UNKNOWN)
+    expr: redfish_thermal_scrape_success == 0
+    labels: { severity: unknown }

@@ -1,0 +1,14 @@
+route:
+  receiver: oncall-fallback
+  group_by: [asset_id, alertname]
+  repeat_interval: 60m                  # notification_interval 60
+  routes:
+  - matchers: [ 'owner="HPC Ops"' ]
+    receiver: hpc-ops-primary           # from assets.csv (decision d1)
+  - matchers: [ 'owner="Platform"' ]
+    receiver: platform-primary
+receivers:
+- name: admins
+- name: oncall-fallback
+- name: hpc-ops-primary
+- name: platform-primary

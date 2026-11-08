@@ -1,5 +1,5 @@
 import os, json, hashlib, time, pathlib, re
-from .models import SUPER, NANO
+from .models import SUPER, NANO, has_key
 CACHE = pathlib.Path(__file__).resolve().parent.parent / "cache"
 MODE = os.getenv("GAUNTLET_MODE", "live")  # live | cached | mock
 _client = None
@@ -13,9 +13,9 @@ def _key(model, messages): return hashlib.sha256(json.dumps([model, messages], s
 def chat(messages, *, model=NANO, temperature=0.2, max_tokens=2048, tag="call"):
     """Returns (text, mode, ms). Caches every live response; serves cache in cached mode or on any error."""
     k = _key(model, messages); p = CACHE / tag / f"{k}.json"
-    if MODE != "mock" and (MODE == "cached" or not os.getenv("NVIDIA_API_KEY")) and p.exists():
+    if MODE != "mock" and (MODE == "cached" or not has_key()) and p.exists():
         d = json.loads(p.read_text()); return d["text"], "cached", d.get("ms", 0)
-    if MODE == "live" and os.getenv("NVIDIA_API_KEY"):
+    if MODE == "live" and has_key():
         for attempt in range(3):
             try:
                 t0 = time.time()

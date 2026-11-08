@@ -1,0 +1,14 @@
+# Mutant: identical alerts, HPC Ops routed to the Platform team. The harness must fail this.
+route:
+  receiver: oncall-fallback
+  group_by: [asset_id, alertname]
+  routes:
+  - matchers: [ 'owner="HPC Ops"' ]
+    receiver: platform-primary
+  - matchers: [ 'owner="Platform"' ]
+    receiver: platform-primary
+receivers:
+- name: admins
+- name: oncall-fallback
+- name: hpc-ops-primary
+- name: platform-primary

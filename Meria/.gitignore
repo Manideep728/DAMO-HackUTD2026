@@ -6,3 +6,8 @@ backend/bin/promtool
 __pycache__/
 .hypothesis/
 *.pyc
+
+# harness working files and local tools
+backend/.work/
+backend/.certs/
+backend/bin/
