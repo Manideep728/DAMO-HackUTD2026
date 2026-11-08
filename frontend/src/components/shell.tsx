@@ -5,12 +5,13 @@ import { useStore } from '../state/store';
 import { Button, Badge, Kbd, ModeBadge, cx } from './ui';
 import type { Screen, DirectorFlag } from '../data/types';
 
-const nav: { to: string; match: string; label: string; tag: string }[] = [
+const nav: { to: string; match: string; label: string; tag: string; exact?: boolean }[] = [
+  { to: '/', match: '/', label: 'Console', tag: '', exact: true },
+  { to: '/verify', match: '/verify', label: 'Verify a change', tag: '' },
   { to: '/preflight', match: '/preflight', label: 'Preflight', tag: 'what-if' },
   { to: '/modernize/import', match: '/modernize', label: 'Modernize', tag: 'M1–M5' },
-  { to: '/operate', match: '/operate', label: 'Operate', tag: 'R1–R5' },
 ];
-const keyRoutes: Record<string, string> = { '1': '/modernize/import', '2': '/modernize/recover', '3': '/modernize/generate', '4': '/modernize/test', '5': '/modernize/release', '6': '/operate', '7': '/operate/investigate', '8': '/operate/handoff' };
+const keyRoutes: Record<string, string> = { '1': '/', '2': '/verify', '3': '/preflight', '4': '/modernize/import' };
 
 export function Shell({ children }: { children: ReactNode }) {
   const { state } = useStore();
@@ -27,8 +28,7 @@ export function Shell({ children }: { children: ReactNode }) {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') { e.preventDefault(); setDirector((v) => !v); return; }
       if (e.key === '?') { setHelp((v) => !v); return; }
       if (e.key === 'Escape') { setHelp(false); setDirector(false); return; }
-      if (e.key === 'h' || e.key === 'H') { nav$('/operate/handoff'); return; }
-      if (keyRoutes[e.key]) nav$(keyRoutes[e.key]);
+            if (keyRoutes[e.key]) nav$(keyRoutes[e.key]);
     };
     window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
   }, [nav$]);
@@ -37,21 +37,21 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="h-full flex flex-col">
       <header className="shrink-0 h-[60px] flex items-center gap-6 px-5 lg:px-8 border-b hairline bg-surface z-10">
-        <NavLink to="/welcome" className="flex items-center gap-2.5 shrink-0" aria-label="Damo, home">
+        <NavLink to="/" className="flex items-center gap-2.5 shrink-0" aria-label="Damo, home">
           <Logo />
         </NavLink>
         <nav className="flex items-center gap-1 min-w-0 overflow-x-auto" aria-label="Workflows">
-          {nav.map(({ to, match, label, tag }) => {
-            const active = loc.pathname.startsWith(match);
+          {nav.map(({ to, match, label, tag, exact }) => {
+            const active = exact ? loc.pathname === match : loc.pathname.startsWith(match);
             return (
               <NavLink key={to} to={to} className={cx('tab h-9 px-3 inline-flex items-center gap-2 rounded-lg text-[13.5px] font-medium whitespace-nowrap t', active ? 'active text-text' : 'text-muted hover:text-text hover:bg-surface-2')}>
-                {label}<span className="mono text-[10.5px] text-faint hidden md:inline">{tag}</span>
+                {label}{tag && <span className="mono text-[10.5px] text-faint hidden md:inline">{tag}</span>}
               </NavLink>
             );
           })}
         </nav>
         <div className="ml-auto flex items-center gap-2 shrink-0">
-          {loc.pathname.startsWith('/preflight') ? <Badge title="Results computed by the simulator on a synthetic facility">Simulated facility</Badge> : legacy ? <ModeBadge mode={state.mode} /> : <Badge title="Scripted demo on illustrative data. Legacy facts come from the public TTU repo.">Scripted demo</Badge>}
+          {loc.pathname.startsWith('/preflight') ? <span className="hidden sm:inline-flex"><Badge title="Results computed by the simulator on a synthetic facility">Simulated facility</Badge></span> : legacy ? <ModeBadge mode={state.mode} /> : <span className="hidden sm:inline-flex"><Badge title="Scripted demo on illustrative data. Legacy facts come from the public TTU repo.">Scripted demo</Badge></span>}
           <button className="h-9 w-9 grid place-items-center rounded-lg text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
           <button className="h-9 w-9 grid place-items-center rounded-lg text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setHelp(true)} aria-label="Keyboard shortcuts"><HelpCircle size={16} /></button>
           <span className="h-8 w-8 ml-1 hidden sm:grid place-items-center rounded-full bg-surface-3 text-[11.5px] font-semibold" title="Maya R. · night shift">MR</span>
@@ -63,7 +63,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="card p-6 w-[440px] shadow-[var(--shadow)]" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Keyboard shortcuts">
             <div className="flex items-center justify-between mb-4"><span className="font-semibold text-[15px]">Keyboard shortcuts</span><button className="text-muted hover:text-text" onClick={() => setHelp(false)} aria-label="Close"><X size={16} /></button></div>
             <table className="w-full text-[13px]"><tbody>
-              {[['1–5', 'Modernize steps M1–M5'], ['6–8', 'Operate: alerts, investigate, hand off'], ['H', 'Handoff'], ['?', 'This panel'], ['Esc', 'Close']].map(([k, v]) => <tr key={k}><td className="py-1.5 w-32"><Kbd k={k} /></td><td className="text-muted">{v}</td></tr>)}
+              {[['Enter', 'Do the next action on the console'], ['1', 'Console'], ['2', 'Verify a change'], ['3', 'Preflight'], ['4', 'Modernize (M1–M5)'], ['?', 'This panel'], ['Esc', 'Close']].map(([k, v]) => <tr key={k}><td className="py-1.5 w-32"><Kbd k={k} /></td><td className="text-muted">{v}</td></tr>)}
             </tbody></table>
           </div>
         </div>

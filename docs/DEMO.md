@@ -28,7 +28,7 @@ Between rehearsals, **Reset scenario** clears the toggles. Finding decisions liv
 
 1. **The claim (15 s).** Map open on *Whole site*. "Pump A and Pump B can each carry the whole chilled-water load. The one-line puts Pump A on MCC-A from ATS-1 and Pump B on MCC-B from ATS-2. On paper that's 2N."
 
-2. **Rehearse the change (25 s).** Click **PUMP-A** → maintenance. *Impact*: nothing goes down. *Weak points*: during the window ATS-2, MCC-B and PUMP-B are single points of failure. "That's the expected cost of running on one pump. Fine for a few hours."
+2. **Rehearse the change (25 s).** Click **PUMP-A** on the map, then **Maintenance** in its card. (Hovering any equipment traces its supply chain.) *Impact*: nothing goes down. *Weak points*: during the window ATS-2, MCC-B and PUMP-B are single points of failure. "That's the expected cost of running on one pump. Fine for a few hours."
 
 3. **The records disagree (40 s).** *Findings* tab, top item: **MCC-B is fed from ATS-1, not ATS-2 as documented**, confidence 0.97.
    - Supporting: CHG-2291, WO-4471 and MLOG-0212. Each quote is checked verbatim against its record.
@@ -40,7 +40,7 @@ Between rehearsals, **Reset scenario** clears the toggles. Finding decisions liv
 
 4. **Confirm it (20 s).** **Confirm**, with a name and a note. The edge goes into the graph and the decision into the audit log. *Weak points* with nothing in maintenance: **ATS-1**. "Enough capacity, no independence. Both pump panels hang off one transfer switch."
 
-5. **What that costs (15 s).** Fail **ATS-1**: 18 racks and workloads, 400 kW, each with a "why it failed" trace back to ATS-1.
+5. **What that costs (15 s).** Click **ATS-1**, then **Fail**: 18 racks and workloads, 400 kW, each with a "why it failed" trace back to ATS-1.
 
    *Optional (20 s), if time allows:* **Reset scenario**, then fail **UTIL-A** and **UTIL-B**. The steady-state numbers say nothing is lost, because the generators carry it. *First minutes after the failure* says otherwise. Chillers need 6 minutes to restart and racks ride through 4 without cooling, so 18 racks and workloads trip in between.
 

@@ -36,7 +36,7 @@ export default function Landing() {
     <div className="min-h-full bg-bg text-text">
       <header className="sticky top-0 z-20 border-b hairline bg-bg/90 backdrop-blur-sm">
         <div className="mx-auto max-w-[1200px] px-5 h-16 flex items-center gap-8">
-          <Link to="/welcome" className="flex items-center" aria-label="Damo, home"><img src="/brand/damo-logo.png" alt="Damo" className="brand-light h-[34px] w-auto" /><img src="/brand/damo-logo-light.png" alt="Damo" className="brand-dark h-[34px] w-auto" /></Link>
+          <Link to="/" className="flex items-center" aria-label="Damo, home"><img src="/brand/damo-logo.png" alt="Damo" className="brand-light h-[34px] w-auto" /><img src="/brand/damo-logo-light.png" alt="Damo" className="brand-dark h-[34px] w-auto" /></Link>
           <nav className="hidden md:flex items-center gap-6 text-[13.5px] text-muted">
             <a href="#modernize" className="hover:text-text t">Modernize</a><a href="#operate" className="hover:text-text t">Operate</a><a href="#trust" className="hover:text-text t">Trust</a><a href="#who" className="hover:text-text t">Who it's for</a>
           </nav>

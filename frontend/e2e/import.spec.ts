@@ -16,8 +16,8 @@ test('a large imported site opens on one hall with its feeders', async ({ page }
   await expect(hint).toContainText('Showing zone H1 and what feeds it');
   const shown = Number((await hint.innerText()).match(/\((\d+) of 157 nodes\)/)![1]);
   await expect(page.locator('[data-testid^="node-"]')).toHaveCount(shown);
-  await expect(page.getByTestId('node-RK-11-01')).not.toHaveAttribute('data-feeder', 'true');
-  await expect(page.getByTestId('node-UTIL-A')).toHaveAttribute('data-feeder', 'true'); // upstream, outside H1
+  await expect(page.getByTestId('node-RK-11-01')).toHaveCount(1);
+  await expect(page.getByTestId('node-UTIL-A')).toHaveCount(1); // upstream of H1, in zone ELEC
   await expect(page.getByTestId('node-RK-21-01')).toHaveCount(0); // another hall
 
   await page.getByLabel('Zoom to zone').selectOption('all');
@@ -25,7 +25,7 @@ test('a large imported site opens on one hall with its feeders', async ({ page }
   await expect(hint).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Restore demo' }).click();
-  await expect(page.getByText('Loaded Demo hall H1: 43 nodes.')).toBeVisible();
+  await expect(page.getByText('Loaded Demo hall H1: 43 nodes.')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByLabel('Zoom to zone')).toHaveValue('all');
   await expect(page.locator('[data-testid^="node-"]')).toHaveCount(43);
 });

@@ -8,18 +8,10 @@ const tab = (page: Page, name: string) => page.getByRole('navigation', { name: '
 const lostStat = (page: Page) => page.getByTestId('stat-Racks and workloads lost');
 
 async function setState(page: Page, id: string, state: 'maintenance' | 'failed') {
-  // Clicking cycles in service → maintenance → failed. The scenario badges update on click; the node's
-  // data-state follows the simulation, so wait for that after the badge.
-  const badge = (s: string) => page.getByText(`${id} · ${s}`, { exact: true });
-  if (!(await badge('maintenance').isVisible())) {
-    await node(page, id).click();
-    await expect(badge('maintenance')).toBeVisible();
-  }
-  if (state === 'failed') {
-    await node(page, id).click();
-    await expect(badge('failed')).toBeVisible();
-  }
-  await expect(node(page, id)).toHaveAttribute('data-state', state);
+  // Click the equipment to select it, then set its state from the selection card.
+  await node(page, id).click();
+  await page.getByRole('button', { name: state === 'failed' ? 'Fail' : 'Maintenance', exact: true }).click();
+  await expect(node(page, id)).toHaveAttribute('data-state', state === 'failed' ? 'down' : 'maint');
 }
 
 async function resetScenario(page: Page) {
