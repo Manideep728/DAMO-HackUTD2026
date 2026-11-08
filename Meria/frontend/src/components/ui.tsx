@@ -6,10 +6,10 @@ export function cx(...a: (string | false | undefined | null)[]) { return a.filte
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export function Button({ variant = 'secondary', kbd, className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; kbd?: string }) {
-  const base = 'inline-flex items-center gap-2 h-10 px-4 rounded-md text-[14px] font-semibold t disabled:opacity-45 disabled:cursor-not-allowed select-none';
+  const base = 'btn inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-[14px] font-semibold disabled:opacity-45 disabled:cursor-not-allowed select-none whitespace-nowrap';
   const v = {
-    primary: 'bg-accent text-accent-ink hover:brightness-110',
-    secondary: 'border border-border bg-surface hover:bg-surface-2 text-text',
+    primary: 'btn-primary text-accent-ink',
+    secondary: 'border border-border bg-surface-2/60 hover:bg-surface-3 hover:border-border-strong text-text',
     ghost: 'text-muted hover:text-text hover:bg-surface-2',
     danger: 'border border-critical text-critical hover:bg-critical/10',
   }[variant];
@@ -55,7 +55,7 @@ export function ModelBadge({ model }: { model: string }) { return <Badge tone="a
 export function Card({ children, className, header }: { children: ReactNode; className?: string; header?: ReactNode }) {
   return (
     <section className={cx('card', className)}>
-      {header && <header className="flex items-center gap-3 px-4 h-11 border-b hairline">{header}</header>}
+      {header && <header className="flex items-center gap-3 px-4 h-12 border-b hairline">{header}</header>}
       <div className="p-4">{children}</div>
     </section>
   );
@@ -68,11 +68,11 @@ export function Stepper({ stage }: { stage: string }) {
   const blocked = stage === 'blocked';
   const idx = blocked ? 2 : stages.indexOf(stage);
   return (
-    <ol className="flex items-center gap-1" aria-label={`Stage: ${blocked ? 'blocked at verified' : labels[stage]}`}>
+    <ol className="flex items-center gap-1 whitespace-nowrap" aria-label={`Stage: ${blocked ? 'blocked at verified' : labels[stage]}`}>
       {stages.map((s, i) => (
         <li key={s} className="flex items-center gap-1">
           <span className={cx('h-2 w-2 rounded-full border t', i < idx && 'bg-accent border-accent', i === idx && !blocked && 'border-accent border-2', i === idx && blocked && 'border-critical border-2', i > idx && 'border-border')} />
-          <span className={cx('text-[11px]', i === idx ? (blocked ? 'text-critical font-semibold' : 'text-text font-semibold') : 'text-muted')}>{i === idx && blocked ? 'Blocked' : labels[s]}</span>
+          <span className={cx('text-[11px] whitespace-nowrap', i === idx ? (blocked ? 'text-critical font-semibold' : 'text-text font-semibold') : 'text-muted')}>{i === idx && blocked ? 'Blocked' : labels[s]}</span>
           {i < stages.length - 1 && <span className="w-3 h-px bg-border mx-0.5" />}
         </li>
       ))}

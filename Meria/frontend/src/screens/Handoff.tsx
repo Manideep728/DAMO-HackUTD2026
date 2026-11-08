@@ -10,7 +10,7 @@ export default function Handoff() {
   return (
     <div className="max-w-[900px] grid gap-4">
       <div className="flex items-start gap-4">
-        <div><h1 className="text-[22px] font-semibold tracking-tight">Shift handoff</h1><p className="text-muted mt-1">{h.shift} · Written by {h.writtenBy}{h.reviewedBy ? `, reviewed by ${h.reviewedBy}` : ''}</p></div>
+        <div><h1 className="page-title">Shift handoff</h1><p className="text-muted mt-1">{h.shift} · Written by {h.writtenBy}{h.reviewedBy ? `, reviewed by ${h.reviewedBy}` : ''}</p></div>
         <div className="ml-auto">{h.acknowledgedBy ? <Badge tone="ok"><Check size={11} /> Acknowledged by {h.acknowledgedBy} · {h.acknowledgedAt}</Badge> : <Button variant="primary" disabled={empty} onClick={() => ds.acknowledgeHandoff('Dev K.')}>Acknowledge handoff</Button>}</div>
       </div>
       {empty && <Empty title="Nothing to hand off yet" body="Accept or dismiss findings on the Find screen, or sign off a check on Prove. Each decision lands here with a name and a time, so nobody types a handoff at 7 AM." />}

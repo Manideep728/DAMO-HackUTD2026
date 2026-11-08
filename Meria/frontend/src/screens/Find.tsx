@@ -57,7 +57,7 @@ export default function Find() {
     <div className="max-w-[1500px]">
       <div className="flex items-start gap-4 mb-4">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Find <span className="mono text-muted font-normal text-[16px]">{checkId}</span></h1>
+          <h1 className="page-title">Find <span className="mono text-muted font-normal text-[16px]">{checkId}</span></h1>
           <p className="text-muted mt-1">What the old check was hiding. The detectors found each problem; Nemotron wrote the sentence; you decide.</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -147,5 +147,5 @@ function FindingCard({ f, selected, onSelect, onAccept, onDismiss }: { f: Findin
 
 function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
   useEffect(() => { const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
-  return <div className="fixed inset-0 bg-black/50 grid place-items-center z-50" onClick={onClose}><div className="card p-5 w-[520px] shadow-[var(--shadow)]" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}><div className="font-semibold text-[15px] mb-2">{title}</div>{children}</div></div>;
+  return <div className="overlay fixed inset-0 bg-black/50 grid place-items-center z-50" onClick={onClose}><div className="card p-5 w-[520px] shadow-[var(--shadow)]" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}><div className="font-semibold text-[15px] mb-2">{title}</div>{children}</div></div>;
 }

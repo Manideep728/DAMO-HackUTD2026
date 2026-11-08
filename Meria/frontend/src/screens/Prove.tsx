@@ -39,7 +39,7 @@ export default function Prove() {
     <div className="max-w-[1400px] grid gap-6">
       <div className="flex items-start gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Prove <span className="mono text-muted font-normal text-[16px]">{checkId}</span></h1>
+          <h1 className="page-title">Prove <span className="mono text-muted font-normal text-[16px]">{checkId}</span></h1>
           <p className="text-muted mt-1">New Prometheus rules, and proof they lose nothing: the real plugin on every value the sensor can report, 500 timing traces, zero mismatches. Then a human signs off.</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -130,7 +130,7 @@ export default function Prove() {
       )}
 
       {confirm && (
-        <div className="fixed inset-0 bg-black/50 grid place-items-center z-50" onClick={() => setConfirm(false)}>
+        <div className="overlay fixed inset-0 bg-black/50 grid place-items-center z-50" onClick={() => setConfirm(false)}>
           <div className="card p-5 w-[480px] shadow-[var(--shadow)]" role="dialog" aria-label="Sign off" onClick={(e) => e.stopPropagation()}>
             <div className="font-semibold text-[15px] mb-2">Sign off {checkId}</div>
             <p className="text-[13px] text-muted mb-4">I've reviewed the certificate and the intentional differences. The old check keeps running until cutover; this records that the new rules are approved to replace it.</p>

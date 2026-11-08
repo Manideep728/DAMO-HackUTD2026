@@ -28,7 +28,7 @@ export default function Read() {
   return (
     <div className="grid grid-cols-[55fr_45fr] gap-6 max-w-[1400px]">
       <div className="min-w-0">
-        <h1 className="text-[22px] font-semibold tracking-tight">Read <span className="mono text-muted font-normal text-[16px]">{checkId}</span></h1>
+        <h1 className="page-title">Read <span className="mono text-muted font-normal text-[16px]">{checkId}</span></h1>
         <p className="text-muted mt-1 mb-4">The legacy check as it runs today: the plugin invocation and the Nagios config around it. Nobody on this team wrote it.</p>
         <div className="grid gap-3">{filesWithHi.map((f) => <CodeView key={f.file} file={f} highlights={hover} compact={f.file.endsWith('.csv') || f.file === 'hosts.cfg'} />)}</div>
       </div>
