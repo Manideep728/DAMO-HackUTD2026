@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, BellRing, Check, X, Wrench, ShieldCheck, ArrowRight, RotateCcw, Radio, WifiOff, Thermometer, Fan, Copy, ClipboardCheck, Sparkles, Loader2, HeartPulse, Pause, Play, CircleDot, Zap, Snowflake, ChevronRight, FastForward } from 'lucide-react';
+import { Bell, Check, X, Wrench, ShieldCheck, ArrowRight, RotateCcw, Radio, WifiOff, Thermometer, Fan, Copy, ClipboardCheck, Sparkles, Loader2, HeartPulse, Pause, Play, CircleDot, Zap, Snowflake, ChevronRight, FastForward } from 'lucide-react';
 import { cx } from '../components/ui';
 import { useModern } from '../modern/store';
 import { AgentRun } from '../modern/Live';
@@ -239,7 +239,7 @@ export default function Console() {
         {/* Hall H1: the same racks and feeds Preflight simulates */}
         <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2"><Hall m={m} running={running} feeds={feeds} rackState={rackState} selected={rack} onSelect={setRack} cur={cur} fixedAt={fixedAt} /></div>
       <section className="card lg:col-start-1 lg:row-start-2" aria-label="Event log">
-          <div className="px-5 h-12 flex items-center gap-2 border-b hairline"><BellRing size={16} className="text-muted" /><span className="font-semibold text-[14px]">Event log</span><span className="text-[12.5px] text-muted ml-auto hidden sm:inline">rules, paging and work orders never call the model</span></div>
+          <div className="px-5 h-12 flex items-center gap-2 border-b hairline"><span className="label text-text">Event log</span><span className="text-[12.5px] text-muted ml-auto hidden sm:inline">rules, paging and work orders never call the model</span></div>
           <ol className="max-h-[300px] overflow-auto divide-y divide-[var(--border)]">
             {feed.length === 0 && <li className="px-5 py-3 text-[14px] text-muted">Watching. Readings are evaluated every minute.</li>}
             {[...feed].reverse().map((f, i) => (
@@ -309,12 +309,16 @@ function Quiet({ m }: { m: number }) {
         <span className="text-muted">Tonight:</span>
         {beats.map((b, i) => <li key={b.text} className={cx('inline-flex items-center gap-1.5 t', m >= b.at ? 'text-text font-medium' : 'text-muted')}><span className="mono text-[12.5px]">{clock(b.at)}</span>{b.text}{i < beats.length - 1 && <ArrowRight size={13} className="text-faint" />}</li>)}
       </ol>
-      <div className="grid gap-2">{rows.map((r) => (
-        <div key={r.id} className="flex items-center gap-3 rounded-xl border hairline px-3.5 py-3 text-[14px]">
+      <div className="border-t border-text/80" role="table" aria-label="Servers in the incident racks">
+        <div role="row" className="flex items-center gap-3 px-1 h-9 border-b hairline th">
+          <span className="w-2.5" /><span className="w-[92px]">Host</span><span className="w-[104px]">Rack · U</span><span className="w-[56px]">CPU</span><span className="hidden sm:inline">Fan</span><span className="ml-auto">Data</span>
+        </div>
+        {rows.map((r) => (
+        <div key={r.id} role="row" className="flex items-center gap-3 px-1 h-12 border-b hairline text-[14px]">
           <span className={cx('h-2.5 w-2.5 rounded-full', r.fresh ? (r.fan < 100 ? 'bg-warning' : 'bg-ok') : 'bg-faint')} />
-          <span className="font-medium w-[86px]">{r.host}</span>
-          <span className="mono text-[14px] text-muted w-[86px]">{r.where}</span>
-          <span className="mono num text-muted">{r.fresh ? `${r.t.toFixed(0)} °C` : '— °C'}</span>
+          <span className="font-medium w-[92px]">{r.host}</span>
+          <span className="mono text-[14px] text-muted w-[104px] whitespace-nowrap">{r.where}</span>
+          <span className="mono num text-muted w-[56px]">{r.fresh ? `${r.t.toFixed(0)} °C` : '— °C'}</span>
           <span className={cx('mono num hidden sm:inline', r.fresh && r.fan < 100 ? 'text-warning' : 'text-muted')}>{r.fresh ? `${Math.round(r.fan)} rpm` : '— rpm'}</span>
           <span className={cx('ml-auto text-[14px]', r.fresh ? 'text-muted' : 'text-warning font-medium')}>{r.fresh ? 'fresh' : 'stale, not healthy'}</span>
         </div>))}

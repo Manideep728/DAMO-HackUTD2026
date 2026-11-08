@@ -32,11 +32,11 @@ Rack states: `.rack-ok` (neutral, with a faint warm tint only on the warmest rac
 
 ## 3. Type
 
-Geist 400–800 for the UI and Geist Mono for clocks, IDs, readings and code (`font-variant-numeric: tabular-nums` everywhere numbers change).
+IBM Plex Sans 400–700 for the UI, IBM Plex Sans Condensed 500–600 (uppercase, 0.08–0.1em tracking) for labels, table heads and severity words, and IBM Plex Mono for clocks, IDs, readings and code (`font-variant-numeric: tabular-nums` everywhere numbers change).
 
 | Role | Spec |
 |---|---|
-| Console clock | Geist Mono 38 / 600, −0.04em |
+| Console clock | Plex Mono 38 / 600, −0.04em |
 | Incident title | 22 / 600, −0.02em |
 | Page title (`.page-title`) | 30 / 600, −0.03em |
 | Section / card title | 13–17 / 600 |
@@ -157,3 +157,14 @@ Rule: every animation shows something real happening (a reading changing, an eva
 - **Touch rules (new, binding):** every target ≥ 48 px (`h-12`) on touch, with a `(pointer: coarse)` min-size safety net. Text ≥ 12 px, body 14 px. State words never truncate or break mid-word (use a shorter whole word on small tiles: HOT, WARN, STALE). Keyboard hints are hidden on touch. Inline IDs are chips, not underlined text.
 - **Map camera:** fit, but never below the zoom where nodes are 48 px (`READABLE = 48 / NODE_H`); the whole site is left-aligned when it overflows; when Why opens, frame only the affected equipment. Re-fit on row expand and collapse.
 - **iPad Preflight:** panels in a bottom sheet (handle bottom-right of the map); Why and Trace coexist; Plan picks from the map and sliders; admin actions in an Admin menu; explanations via tap tips (`Tip`).
+
+### v10: drafting overhaul (8 Nov 2026)
+Goal: stop looking like a generic AI app. Direction: an engineering drawing, not a SaaS dashboard.
+- **Type:** IBM Plex Sans / Condensed / Mono replace Geist. Section labels, table heads and severity words use `.label` / `.th` / `.sev`: condensed, uppercase, tracked, like a drawing's title block.
+- **Shape:** radius scale tightened in `@theme` (`rounded-lg` 5 px, `rounded-xl` 6 px, `rounded-2xl` 8 px); `.card` 4 px with a stronger hairline and no shadow. Dots and switches stay round.
+- **Paper:** the app background is a faint 24 px drafting grid. Cards sit on it as sheets.
+- **Structure:** page headers end in a 1.5 px ink rule (`.title-block`). Lists of things are ruled tables, not cards nested in cards (console server list). Landing sections are ruled grids with numbered items, no icon per item.
+- **Empty states:** left-aligned dashed sheet with a "Waiting" label, not a centered icon in a rounded square.
+- **Motion:** the staggered fade-in on every page is removed; motion that carries state (alarm glow, clock, sweep, sheet) stays.
+- **Accent:** light-theme accent deepened to drafting blue `#1B4D8C`. Cream `#F0EDE1` and ink `#161616` unchanged.
+- Rejected from the design-skills repo we looked at: custom cursors, glassmorphism, scrollytelling, 3D. They fight an iPad operations tool and read as template.

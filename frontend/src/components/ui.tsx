@@ -33,7 +33,7 @@ const sevMeta: Record<Severity | 'ok' | 'untrusted' | 'offline', { word: string;
 export function StatusPill({ kind, word, size = 'md' }: { kind: keyof typeof sevMeta; word?: string; size?: 'sm' | 'md' }) {
   const m = sevMeta[kind];
   return (
-    <span className={cx('inline-flex items-center gap-1 rounded-full font-semibold', m.cls, size === 'sm' ? 'h-5 px-2 text-[12px]' : 'h-6 px-2.5 text-[12px]')}>
+    <span className={cx('inline-flex items-center gap-1 rounded-sm font-semibold', m.cls, size === 'sm' ? 'h-5 px-2 text-[12px]' : 'h-6 px-2.5 text-[12px]')}>
       <m.Icon size={size === 'sm' ? 12 : 14} aria-hidden /> <span className="sev">{word ?? m.word}</span>
     </span>
   );
@@ -41,7 +41,7 @@ export function StatusPill({ kind, word, size = 'md' }: { kind: keyof typeof sev
 
 export function Badge({ children, tone = 'neutral', title }: { children: ReactNode; tone?: 'neutral' | 'accent' | 'ok' | 'warning' | 'critical'; title?: string }) {
   const t = { neutral: 'border-border text-muted', accent: 'border-accent/40 text-accent', ok: 'border-ok/40 text-ok', warning: 'border-warning/40 text-warning', critical: 'border-critical/40 text-critical' }[tone];
-  return <span title={title} className={cx('inline-flex items-center gap-1 h-[22px] px-2 rounded-md border text-[12px] font-medium whitespace-nowrap', t)}>{children}</span>;
+  return <span title={title} className={cx('inline-flex items-center gap-1 h-[22px] px-2 rounded-sm border text-[12px] font-medium whitespace-nowrap', t)}>{children}</span>;
 }
 
 export function ModeBadge({ mode }: { mode: Mode }) {
@@ -84,11 +84,11 @@ export function Kbd({ k }: { k: string }) { return <span className="kbd">{k}</sp
 
 export function Empty({ title, body, action, icon: Icon }: { title: string; body?: string; action?: ReactNode; icon?: LucideIcon }) {
   return (
-    <div className="card flex flex-col items-center text-center gap-3 px-6 py-14">
-      {Icon && <span className="h-11 w-11 grid place-items-center rounded-xl bg-surface-2 border hairline text-muted mb-1"><Icon size={20} aria-hidden /></span>}
-      <div className="font-semibold text-[16px] tracking-[-0.01em]">{title}</div>
-      {body && <div className="text-muted text-[14px] max-w-[460px] leading-relaxed">{body}</div>}
-      {action && <div className="mt-2">{action}</div>}
+    <div className="empty-sheet flex flex-col items-start gap-2.5 px-7 py-9">
+      <div className="label flex items-center gap-2">{Icon && <Icon size={14} aria-hidden />}Waiting</div>
+      <div className="font-semibold text-[18px] tracking-[-0.01em]">{title}</div>
+      {body && <div className="text-muted text-[14.5px] max-w-[620px] leading-relaxed">{body}</div>}
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }
@@ -96,7 +96,7 @@ export function Empty({ title, body, action, icon: Icon }: { title: string; body
 /** One header for every screen: optional step label, title, subtitle, actions on the right. */
 export function PageHeader({ kicker, title, meta, subtitle, actions }: { kicker?: ReactNode; title: ReactNode; meta?: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <header className="flex flex-wrap items-end gap-x-8 gap-y-4 mb-8">
+    <header className="title-block flex flex-wrap items-end gap-x-8 gap-y-4 mb-8">
       <div className="min-w-0 flex-[1_1_480px]">
         {kicker && <div className="kicker mb-2 flex items-center gap-2">{kicker}</div>}
         <h1 className="page-title">{title}</h1>
