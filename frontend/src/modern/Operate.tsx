@@ -167,13 +167,13 @@ export function OpsInvestigate() {
   const d = useDerived(); const { s, o } = d; const nav = useNavigate();
   const [agentOn, setAgentOn] = useState(false);
   if (!d.wo) return <Page><PageHeader kicker="Operate · R3–R4" title="Preserve evidence, investigate" /><Empty icon={Wrench} title="No incident yet" body="Play the night on the Alerts screen first. The work order and evidence appear once an alert fires." action={<Button variant="primary" onClick={() => nav('/operate')}>Go to alerts</Button>} /></Page>;
-  const scriptedInvestigate = () => s.run('r4', ['query_telemetry hpc-c2 thermal, fans (02:00–02:45)', 'lookup_asset hpc-c2 → R12 · U16, HPC Ops, Research Computing', 'read_logbook WO-1042 (original note + correction)', 'search_runbook "single fan failure"', '2 hypotheses · 1 unresolved · next task for Technician'], () => s.setOps({ investigated: true, noteShown: true }), 550);
+  const scriptedInvestigate = () => s.run('r4', ['query_telemetry hpc-c2 thermal, fans (02:00–02:45)', 'lookup_asset hpc-c2 → R1-03 · U16, HPC Ops, Research Computing', 'read_logbook WO-1042 (original note + correction)', 'search_runbook "single fan failure"', '2 hypotheses · 1 unresolved · next task for Technician'], () => s.setOps({ investigated: true, noteShown: true }), 550);
   const investigate = async () => { if (s.live) { await api.ops('model', { offline: o.offline }).catch(() => undefined); setAgentOn(true); } else scriptedInvestigate(); };
   return (
     <Page>
       <PageHeader kicker="Operate · R3–R4" title="Preserve evidence, investigate"
         subtitle="Original technician notes, timestamps and corrections are kept as written. Nemotron returns cited hypotheses and uncertainty, and suggests a next task for the responsible role. It cannot assign owners, approve itself or change infrastructure."
-        meta={<><Badge>WO-1042</Badge><Badge tone="warning">hpc-c2 · R12 · U16</Badge>{o.investigated && <ModelBadge model="Nemotron Nano" />}</>}
+        meta={<><Badge>WO-1042</Badge><Badge tone="warning">hpc-c2 · R1-03 · U16</Badge>{o.investigated && <ModelBadge model="Nemotron Nano" />}</>}
         actions={o.investigated ? <Button variant="primary" onClick={() => nav('/operate/handoff')}>Verify recovery <ArrowRight size={15} /></Button> : <Button variant="primary" disabled={o.offline || !!s.busy} title={o.offline ? 'Nemotron is offline' : undefined} onClick={investigate}><Sparkles size={15} /> Investigate with Nemotron</Button>} />
       {o.offline && <div className="card px-5 py-3.5 mb-6 flex items-center gap-3 text-[13.5px] border-warning/50"><WifiOff size={16} className="text-warning" />Nemotron is offline. Investigation waits; alerting, delivery and work orders keep running.</div>}
       {agentOn && !o.investigated && <AgentRun job="investigate" title="Nemotron investigating" onDone={(e) => {
@@ -245,7 +245,7 @@ export function OpsHandoff() {
       <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-start">
         <div className="grid gap-4">
           <Card header={<><Wrench size={14} className="text-muted" /><span className="font-semibold text-[13px]">Work order WO-1042</span><span className="text-[12px] text-muted ml-auto">{o.woClosed ? 'closed by technician' : 'open'}</span></>}>
-            <p className="text-[13.5px] mb-3">Fan 4 replaced on Compute2 (R12 · U16) by Ana P. at 02:58.</p>
+            <p className="text-[13.5px] mb-3">Fan 4 replaced on Compute2 (R1-03 · U16) by Ana P. at 02:58.</p>
             {!o.woClosed ? <Button onClick={async () => { if (d.L) s.setLive({ opsState: await api.ops('close', { asset_id: 'hpc-c2' }) }); s.setOps({ woClosed: true, closeBlocked: true }); }}><Check size={15} /> Close work order</Button>
               : <div className={cx('rounded-lg border p-3.5 text-[13px] flex items-start gap-2.5', o.recovered ? 'border-ok/40' : 'border-warning/50')}>{o.recovered ? <Check size={15} className="text-ok shrink-0 mt-0.5" /> : <AlertTriangle size={15} className="text-warning shrink-0 mt-0.5" />}<span>{o.recovered ? 'Incident closed: work order closed and recovery verified.' : 'Work order closed, but the incident stays open: no fresh measurement or recovery check yet.'}</span></div>}
           </Card>

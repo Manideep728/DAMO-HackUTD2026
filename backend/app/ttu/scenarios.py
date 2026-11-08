@@ -7,7 +7,7 @@ Fan RPM is tracked separately for the early-warning case.
 """
 from dataclasses import dataclass, field
 
-ASSET = {"asset_id": "hpc-c2", "host": "Compute2", "rack": "R12-U16", "owner": "HPC Ops"}
+ASSET = {"asset_id": "hpc-c2", "host": "Compute2", "rack": "R1-03 · U16", "owner": "HPC Ops"}
 OWNERS = {"HPC Ops": {"receiver": "hpc-ops-primary", "primary": "Luis O.", "fallback": "Priya N."},
           "Platform": {"receiver": "platform-primary", "primary": "Dev K.", "fallback": "Priya N."}}
 

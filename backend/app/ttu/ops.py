@@ -13,9 +13,9 @@ from . import harness, candidate, legacy
 from .scenarios import Scenario, OWNERS
 
 ASSETS = {
-    "hpc-c1": {"host": "Compute1", "bmc": "10.9.1.1", "rack": "R12-U14", "owner": "HPC Ops", "workload_owner": "Research Computing"},
-    "hpc-c2": {"host": "Compute2", "bmc": "10.9.1.2", "rack": "R12-U16", "owner": "HPC Ops", "workload_owner": "Research Computing"},
-    "hpc-c3": {"host": "Compute3", "bmc": "10.9.1.3", "rack": "R13-U02", "owner": "Platform", "workload_owner": "Platform"},
+    "hpc-c1": {"host": "Compute1", "bmc": "10.9.1.1", "rack": "R1-03 · U14", "owner": "HPC Ops", "workload_owner": "Research Computing"},
+    "hpc-c2": {"host": "Compute2", "bmc": "10.9.1.2", "rack": "R1-03 · U16", "owner": "HPC Ops", "workload_owner": "Research Computing"},
+    "hpc-c3": {"host": "Compute3", "bmc": "10.9.1.3", "rack": "R1-04 · U02", "owner": "Platform", "workload_owner": "Platform"},
 }
 START = "02:00"  # minute 0 of the night
 NIGHT = Scenario("night", "Night of Nov 8", "Fan 4 on Compute2 stops at 02:06; CPU Health Critical at 02:10",
@@ -165,7 +165,7 @@ def telemetry(asset_id):
     return {"asset_id": asset_id, "evidence": [
         {"id": "e1", "fact": "redfish_thermal_health{CPU1 Temp} = Critical (2) since 02:10, reading 91 °C"},
         {"id": "e2", "fact": "redfish_fan_rpm{Fan4} = 0 since 02:06; Fan1-3, 5-6 at ~9400 RPM"},
-        {"id": "e3", "fact": "System Board Inlet Temp 22 °C, Health OK; rack R12 neighbours normal"}]}
+        {"id": "e3", "fact": "System Board Inlet Temp 22 °C, Health OK; rack R1-03 neighbours normal"}]}
 
 
 def asset(asset_id):

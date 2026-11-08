@@ -61,9 +61,9 @@ define service {            ; parent
 
 export interface Asset { id: string; host: string; bmc: string; rack: string; owner: string; primary: string; fallback: string; workload: string }
 export const assets: Asset[] = [
-  { id: 'hpc-c1', host: 'Compute1', bmc: '10.9.1.1', rack: 'R12 · U14', owner: 'HPC Ops', primary: 'Luis O.', fallback: 'Priya N.', workload: 'Research Computing (job owner)' },
-  { id: 'hpc-c2', host: 'Compute2', bmc: '10.9.1.2', rack: 'R12 · U16', owner: 'HPC Ops', primary: 'Luis O.', fallback: 'Priya N.', workload: 'Research Computing (job owner)' },
-  { id: 'hpc-c3', host: 'Compute3', bmc: '10.9.1.3', rack: 'R13 · U02', owner: 'Platform', primary: 'Dev K.', fallback: 'Priya N.', workload: 'Platform (job owner)' },
+  { id: 'hpc-c1', host: 'Compute1', bmc: '10.9.1.1', rack: 'R1-03 · U14', owner: 'HPC Ops', primary: 'Luis O.', fallback: 'Priya N.', workload: 'Research Computing (job owner)' },
+  { id: 'hpc-c2', host: 'Compute2', bmc: '10.9.1.2', rack: 'R1-03 · U16', owner: 'HPC Ops', primary: 'Luis O.', fallback: 'Priya N.', workload: 'Research Computing (job owner)' },
+  { id: 'hpc-c3', host: 'Compute3', bmc: '10.9.1.3', rack: 'R1-04 · U02', owner: 'Platform', primary: 'Dev K.', fallback: 'Priya N.', workload: 'Platform (job owner)' },
 ];
 
 // ---------------------------------------------------------------- M2 · behavior and intent
@@ -189,7 +189,7 @@ export const opsScript: OpsEvent[] = [
   { t: '02:13:00', kind: 'alert', text: 'ThermalHealthCritical fired for hpc-c2 (for: 3m satisfied). Evaluated by deterministic rules.', tone: 'critical' },
   { t: '02:13:02', kind: 'delivery', text: 'Page → Luis O. (HPC Ops primary): FAILED, receiver returned 503', tone: 'critical' },
   { t: '02:13:05', kind: 'delivery', text: 'Fallback SMS → Priya N.: DELIVERED', tone: 'ok' },
-  { t: '02:13:05', kind: 'workorder', text: 'Work order WO-1042 opened for hpc-c2 · R12 · U16' },
+  { t: '02:13:05', kind: 'workorder', text: 'Work order WO-1042 opened for hpc-c2 · R1-03 · U16' },
   { t: '02:15:00', kind: 'dedupe', text: 'Duplicate: CPU2 Temp also Critical on hpc-c2. Grouped into the same incident; WO-1042 reused, no new work order.', tone: 'muted' },
 ];
 
@@ -198,7 +198,7 @@ export const techNote = { occurred: '02:31', entered: '02:40', author: 'Ana P. (
 export const evidence = [
   { id: 'e1', label: 'redfish_thermal_health{asset_id="hpc-c2"} = 2 since 02:10', source: 'telemetry', supports: 'Overheating' },
   { id: 'e2', label: 'Fan4 reading 0 RPM since 02:06; Fan1–3, 5–6 normal', source: 'telemetry', supports: 'Fan failure' },
-  { id: 'e3', label: 'Rack R12 inlet 22.4 °C (neighbour sensors normal)', source: 'telemetry', supports: 'Not a room problem' },
+  { id: 'e3', label: 'Rack R1-03 inlet 22.4 °C (neighbour sensors normal)', source: 'telemetry', supports: 'Not a room problem' },
   { id: 'e4', label: 'Technician note 02:31 (corrected 02:44): fan 4 not spinning, inlet normal', source: 'logbook', supports: 'Fan failure' },
   { id: 'e5', label: 'Runbook §3: a single failed fan can raise CPU temperature within minutes under load', source: 'runbook', supports: 'Fan failure' },
 ];
