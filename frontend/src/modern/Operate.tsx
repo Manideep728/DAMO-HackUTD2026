@@ -165,8 +165,8 @@ function EventIcon({ k, tone }: { k: string; tone?: string }) {
 // ---------------------------------------------------------------- R3–R4
 export function OpsInvestigate() {
   const d = useDerived(); const { s, o } = d; const nav = useNavigate();
-  if (!d.wo) return <Page><PageHeader kicker="Operate · R3–R4" title="Preserve evidence, investigate" /><Empty icon={Wrench} title="No incident yet" body="Play the night on the Alerts screen first. The work order and evidence appear once an alert fires." action={<Button variant="primary" onClick={() => nav('/operate')}>Go to alerts</Button>} /></Page>;
   const [agentOn, setAgentOn] = useState(false);
+  if (!d.wo) return <Page><PageHeader kicker="Operate · R3–R4" title="Preserve evidence, investigate" /><Empty icon={Wrench} title="No incident yet" body="Play the night on the Alerts screen first. The work order and evidence appear once an alert fires." action={<Button variant="primary" onClick={() => nav('/operate')}>Go to alerts</Button>} /></Page>;
   const scriptedInvestigate = () => s.run('r4', ['query_telemetry hpc-c2 thermal, fans (02:00–02:45)', 'lookup_asset hpc-c2 → R12 · U16, HPC Ops, Research Computing', 'read_logbook WO-1042 (original note + correction)', 'search_runbook "single fan failure"', '2 hypotheses · 1 unresolved · next task for Technician'], () => s.setOps({ investigated: true, noteShown: true }), 550);
   const investigate = async () => { if (s.live) { await api.ops('model', { offline: o.offline }).catch(() => undefined); setAgentOn(true); } else scriptedInvestigate(); };
   return (
@@ -228,8 +228,8 @@ export function OpsInvestigate() {
 // ---------------------------------------------------------------- R5
 export function OpsHandoff() {
   const d = useDerived(); const { s, o } = d; const nav = useNavigate();
-  if (!d.wo) return <Page><PageHeader kicker="Operate · R5" title="Verify recovery, hand off" /><Empty icon={ShieldCheck} title="Nothing to verify yet" body="Play the night on the Alerts screen first." action={<Button variant="primary" onClick={() => nav('/operate')}>Go to alerts</Button>} /></Page>;
   const [verifying, setVerifying] = useState(false);
+  if (!d.wo) return <Page><PageHeader kicker="Operate · R5" title="Verify recovery, hand off" /><Empty icon={ShieldCheck} title="Nothing to verify yet" body="Play the night on the Alerts screen first." action={<Button variant="primary" onClick={() => nav('/operate')}>Go to alerts</Button>} /></Page>;
   const scriptedFresh = () => s.run('r5', ['GET /redfish/v1/Chassis/{first}/Thermal on 10.9.1.2', 'CPU1 Temp Health OK · 64 °C · sample 03:02:10 (12 s old)', 'Recovery check: Health OK on 3 consecutive 1-min evaluations ✓'], () => s.setOps({ freshReading: '03:02:10', recovered: true }), 600);
   const fresh = async () => {
     if (!d.L) return scriptedFresh();

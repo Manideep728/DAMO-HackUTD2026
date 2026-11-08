@@ -1,6 +1,6 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests"]
+testpaths = ["tests/preflight"]  # tests/test_harness.py is a script: python -m tests.test_harness
 
 [tool.ruff]
 line-length = 120
