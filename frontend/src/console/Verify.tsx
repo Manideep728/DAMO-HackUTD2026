@@ -64,7 +64,7 @@ export default function Verify() {
     <div className="mx-auto w-full max-w-[1360px] -mt-4">
       <div className="flex flex-wrap items-end gap-4 mb-6">
         <div>
-          <div className="text-[13px] text-muted mb-1.5">Verify a change</div>
+          <div className="text-[14px] text-muted mb-1.5">Verify a change</div>
           <h1 className="page-title">Prove the alarm path still works</h1>
           <p className="text-[14.5px] text-muted mt-2 max-w-[640px]">Old and new run on the same scenarios. The expectations and held-out cases are fixed before the change is written, so the model can't grade its own work.</p>
         </div>
@@ -80,15 +80,15 @@ export default function Verify() {
       <div className="grid lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] gap-5 items-start">
         <section className="card overflow-hidden min-w-0">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3.5 border-b hairline">
-            <span className="text-[13px] font-semibold">Change: replace the TTU temperature check with Prometheus rules</span>
+            <span className="text-[14px] font-semibold">Change: replace the TTU temperature check with Prometheus rules</span>
             <span className="mono text-[12px] text-muted">candidate v{version}</span>
-            <span className={cx('ml-auto text-[13px] font-semibold num t', phase === 'idle' ? 'text-faint' : !allShown ? 'text-muted' : passes === cases.length ? 'text-ok' : 'text-critical')}>
+            <span className={cx('ml-auto text-[14px] font-semibold num t', phase === 'idle' ? 'text-faint' : !allShown ? 'text-muted' : passes === cases.length ? 'text-ok' : 'text-critical')}>
               {phase === 'idle' ? 'not run' : <><Num value={allShown ? passes : passingSoFar} ms={250} />/{cases.length} cases pass{!allShown && <span className="text-faint font-normal"> · {rowsDone}/{cases.length} run</span>}</>}
             </span>
           </div>
           <div className="h-[2px] bg-surface-2 overflow-hidden">{(phase === 'testing1' || phase === 'testing2') && <div className="h-full bg-text seg-fill" style={{ width: `${(filled / TOTAL) * 100}%` }} />}{phase === 'repairing' && <div className="h-full w-1/3 bg-accent indeterminate" />}</div>
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px] min-w-[640px]">
+            <table className="w-full text-[14px] min-w-[640px]">
               <thead className="text-left border-b hairline"><tr><th className="th pl-5 h-10">Scenario</th>{DIMS.map(([, l]) => <th key={l} className="th text-center px-2 whitespace-nowrap">{l}</th>)}</tr></thead>
               <tbody>{cases.map((c, ci) => {
                 const r = result(ci);
@@ -122,12 +122,12 @@ export default function Verify() {
         <aside className="grid gap-4 min-w-0">
           {(phase === 'repairing' || log.length > 0) && (
             <div className="panel rounded-[16px] p-5">
-              <div className="flex items-center gap-2 mb-3 text-[13px]">{phase === 'repairing' ? <Loader2 size={14} className="animate-spin text-[var(--panel-accent)]" /> : <Check size={14} className="text-[var(--panel-ok)]" />}<span className="font-semibold">Nemotron repair loop</span><span className="text-[var(--panel-muted)] text-[12px]">· scripted run</span></div>
+              <div className="flex items-center gap-2 mb-3 text-[14px]">{phase === 'repairing' ? <Loader2 size={14} className="animate-spin text-[var(--panel-accent)]" /> : <Check size={14} className="text-[var(--panel-ok)]" />}<span className="font-semibold">Nemotron repair loop</span><span className="text-[var(--panel-muted)] text-[12px]">· scripted run</span></div>
               <ol className="grid gap-1.5 mono text-[12px]">{log.map((l) => <li key={l} className="flex gap-2 enter-row"><span className="text-[var(--panel-accent)]">›</span><span className="text-[var(--panel-text)]">{l}</span></li>)}</ol>
             </div>
           )}
           <div className="card">
-            <div className="px-5 h-11 flex items-center gap-2 border-b hairline text-[13px] font-semibold"><GitCompare size={14} className="text-muted" /> What changed in v2</div>
+            <div className="px-5 h-11 flex items-center gap-2 border-b hairline text-[14px] font-semibold"><GitCompare size={14} className="text-muted" /> What changed in v2</div>
             <pre className="m-0 p-4 text-[12px] leading-[1.7] overflow-x-auto">
 {done || phase === 'testing2' ? <>{[
   ['ok', '+ for: 3m', '            # old check: 4 attempts × 1 min'],
@@ -135,19 +135,19 @@ export default function Verify() {
   ['ok', '+   expr: min(redfish_fan_rpm) == 0', ''],
   ['critical', '- receiver: admins', ''],
   ['ok', '+ receiver: hpc-ops-primary', '   # owner map'],
-].map(([tone, code, note], i) => <span key={code} className="block type-in" style={{ animationDelay: `${i * 0.28}s` }}><span className={tone === 'ok' ? 'text-ok' : 'text-critical'}>{code}</span><span className="text-faint">{note}</span></span>)}</> : <span className="text-faint whitespace-normal font-sans text-[13px]">Run the tests, then let Nemotron repair the failures. The diff appears here.</span>}
+].map(([tone, code, note], i) => <span key={code} className="block type-in" style={{ animationDelay: `${i * 0.28}s` }}><span className={tone === 'ok' ? 'text-ok' : 'text-critical'}>{code}</span><span className="text-faint">{note}</span></span>)}</> : <span className="text-faint whitespace-normal font-sans text-[14px]">Run the tests, then let Nemotron repair the failures. The diff appears here.</span>}
             </pre>
           </div>
           {phase === 'released' ? (
             <div className="card p-5 border-ok/50">
               <div className="flex items-center gap-2 font-semibold"><Rocket size={16} className="text-ok" /> Released ttu-redfish-temperature v1.0.0</div>
-              <p className="text-[13px] text-muted mt-1">Approved by the operations lead, with test evidence and a rollback plan. The old check keeps running until cutover.</p>
-              <div className="flex flex-wrap gap-2 mt-3"><Link to="/" className="btn btn-primary h-10 px-4 rounded-lg inline-flex items-center gap-2 text-[13.5px] font-medium">Back to the console <ArrowRight size={15} /></Link><Link to="/modernize/import" className="h-10 px-4 rounded-lg border hairline inline-flex items-center gap-2 text-[13.5px] hover:bg-surface-2 t"><FileCode2 size={15} /> Full walkthrough</Link></div>
+              <p className="text-[14px] text-muted mt-1">Approved by the operations lead, with test evidence and a rollback plan. The old check keeps running until cutover.</p>
+              <div className="flex flex-wrap gap-2 mt-3"><Link to="/" className="btn btn-primary h-10 px-4 rounded-lg inline-flex items-center gap-2 text-[14px] font-medium">Back to the console <ArrowRight size={15} /></Link><Link to="/modernize/import" className="h-10 px-4 rounded-lg border hairline inline-flex items-center gap-2 text-[14px] hover:bg-surface-2 t"><FileCode2 size={15} /> Full walkthrough</Link></div>
             </div>
           ) : (
             <div className="card p-5">
-              <div className="text-[13px] font-semibold mb-1">Why this matters</div>
-              <p className="text-[13px] text-muted leading-relaxed">Every firmware update, remapped point or ownership change can silently drop an alarm. Damo reruns the alarm paths and blocks the change until they pass.</p>
+              <div className="text-[14px] font-semibold mb-1">Why this matters</div>
+              <p className="text-[14px] text-muted leading-relaxed">Every firmware update, remapped point or ownership change can silently drop an alarm. Damo reruns the alarm paths and blocks the change until they pass.</p>
               <div className="text-[12.5px] text-faint mt-3 flex items-center gap-1.5"><Droplets size={13} /> Next: the same check for a coolant unit's leak alarm.</div>
             </div>
           )}

@@ -19,18 +19,25 @@ export const clock = (m: number) => {
 };
 
 export type RackState = 'ok' | 'warning' | 'critical' | 'stale' | 'recovered';
-export interface Rack { id: string; row: number; col: number; liquid?: boolean; assets?: string[] }
+export interface Rack { id: string; row: number; col: number; assets?: string[] }
 
-export const racks: Rack[] = Array.from({ length: 4 * 8 }, (_, i) => {
+/** Hall H1, the same hall Preflight simulates: rows R1 and R2, eight racks each, same IDs on every screen. */
+export const HALL = 'H1';
+export const INCIDENT_RACK = 'R1-03';
+export const STALE_RACK = 'R1-04';
+export const racks: Rack[] = Array.from({ length: 2 * 8 }, (_, i) => {
   const row = Math.floor(i / 8) + 1, col = i % 8;
-  const id = `R${row}${col}`;
-  return { id, row, col, liquid: row === 4 && col < 4, assets: id === 'R12' ? ['hpc-c1', 'hpc-c2'] : id === 'R13' ? ['hpc-c3'] : undefined };
+  const id = `R${row}-${String(col + 1).padStart(2, '0')}`;
+  return { id, row, col, assets: id === INCIDENT_RACK ? ['hpc-c1', 'hpc-c2'] : id === STALE_RACK ? ['hpc-c3'] : undefined };
 });
 
+/** What feeds the incident rack, used when the facility API is unreachable. The live values come from /api/preflight/facility. */
+export const FALLBACK_FEEDS = { power: ['PDU-A1', 'PDU-B1'], cooling: ['CRAH-1', 'CRAH-2'] };
+
 export const assets = {
-  'hpc-c1': { host: 'Compute1', rack: 'R12', u: 'U14', owner: 'HPC Ops', primary: 'Luis O.', fallback: 'Priya N.' },
-  'hpc-c2': { host: 'Compute2', rack: 'R12', u: 'U16', owner: 'HPC Ops', primary: 'Luis O.', fallback: 'Priya N.' },
-  'hpc-c3': { host: 'Compute3', rack: 'R13', u: 'U02', owner: 'Platform', primary: 'Dev K.', fallback: 'Priya N.' },
+  'hpc-c1': { host: 'Compute1', rack: 'R1-03', u: 'U14', owner: 'HPC Ops', primary: 'Luis O.', fallback: 'Priya N.' },
+  'hpc-c2': { host: 'Compute2', rack: 'R1-03', u: 'U16', owner: 'HPC Ops', primary: 'Luis O.', fallback: 'Priya N.' },
+  'hpc-c3': { host: 'Compute3', rack: 'R1-04', u: 'U02', owner: 'Platform', primary: 'Dev K.', fallback: 'Priya N.' },
 } as const;
 
 /** Deterministic pseudo-noise so the hall looks alive without randomness between renders. */
@@ -62,20 +69,20 @@ export const autoFeed: FeedItem[] = [
   { m: EARLY_WARN, kind: 'alert', text: 'FanStalledEarlyWarning on hpc-c2. Rules evaluated without the model.', tone: 'warning' },
   { m: EARLY_WARN, kind: 'delivery', text: 'Page to Luis O. (HPC Ops primary) failed: receiver returned 503.', tone: 'critical' },
   { m: EARLY_WARN, kind: 'delivery', text: 'Fallback SMS to Priya N. delivered.', tone: 'ok' },
-  { m: EARLY_WARN, kind: 'workorder', text: 'Incident INC-1042 and work order WO-1042 opened for R12 · U16.' },
+  { m: EARLY_WARN, kind: 'workorder', text: 'Incident INC-1042 and work order WO-1042 opened for R1-03 · U16.' },
   { m: THERMAL_CRIT, kind: 'telemetry', text: 'Compute2: BMC reports CPU1 Temp Critical (91 °C).', tone: 'critical' },
   { m: DUP_ALERT, kind: 'dedupe', text: 'ThermalHealthCritical grouped into INC-1042. Same work order, no duplicate.', tone: 'muted' },
   { m: OLD_PAGE, kind: 'alert', text: 'The old Nagios check would page now, to nagios@localhost. Damo warned 6 min earlier.', tone: 'muted' },
 ];
 
 export const evidence = [
-  { id: 'e1', text: 'Fan 4 at 0 RPM since 02:06; fans 1–3 and 5–6 normal', src: 'telemetry' },
-  { id: 'e2', text: 'CPU1 Temp Critical since 02:10, reading 91 °C', src: 'telemetry' },
-  { id: 'e3', text: 'Rack R12 inlet 22.4 °C; neighbouring racks normal', src: 'telemetry' },
-  { id: 'e4', text: 'Runbook §3: one failed fan can heat a CPU within minutes while inlet stays normal', src: 'runbook' },
+  { id: 'e1', short: 'Fan 4 at 0 RPM', text: 'Fan 4 at 0 RPM since 02:06; fans 1–3 and 5–6 normal', src: 'telemetry' },
+  { id: 'e2', short: 'CPU1 91 °C', text: 'CPU1 Temp Critical since 02:10, reading 91 °C', src: 'telemetry' },
+  { id: 'e3', short: 'Inlet and feeds normal', text: 'Rack R1-03 inlet 22.4 °C; PDU-A1/B1 and CRAH-1/2 in service', src: 'telemetry' },
+  { id: 'e4', short: 'Single fan failure (§3)', text: 'Runbook §3: one failed fan can heat a CPU within minutes while inlet stays normal', src: 'runbook' },
 ];
 
 export const hypotheses = [
-  { title: 'Fan 4 failed; the CPU is genuinely hot', confidence: 'Likely', cites: 'e1 e2 e4', note: 'A local cause: only one host affected, inlet normal.' },
-  { title: 'Thermal sensor misreporting', confidence: 'Unresolved', cites: 'e3', note: 'Normal inlet does not prove the sensor wrong. Verify, do not conclude.' },
+  { title: 'Fan 4 failed; the CPU is genuinely hot', confidence: 'Likely', cites: ['e1', 'e2', 'e4'], note: 'A local cause: only one host affected, inlet normal.' },
+  { title: 'Thermal sensor misreporting', confidence: 'Unresolved', cites: ['e3'], note: 'Normal inlet does not prove the sensor wrong. Verify, do not conclude.' },
 ];

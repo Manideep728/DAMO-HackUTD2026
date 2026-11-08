@@ -23,7 +23,8 @@ test('a large imported site opens on one hall with its feeders', async ({ page }
   await expect(page.getByTestId('node-row:RK-21')).toHaveCount(1); // other halls appear on Whole site
   await expect(hint).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Restore demo' }).click();
+  await page.getByRole('button', { name: 'Admin' }).click(); // Import / Export / Restore live in the Admin menu
+  await page.getByRole('menuitem', { name: 'Restore demo' }).click();
   await expect(page.getByText('Loaded Demo hall H1: 43 nodes.')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByLabel('Zoom to zone')).toHaveValue('all');
   await expect(page.locator('[data-testid^="node-"]')).toHaveCount(29); // 27 equipment + 2 rack rows

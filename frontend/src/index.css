@@ -63,7 +63,7 @@ pre, code { font-family: var(--font-mono); }
 .page-title .mono { color: var(--text-muted); letter-spacing: 0; }
 .section-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
 .kicker { font-size: 13px; font-weight: 500; color: var(--text-muted); }
-.sev { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.sev { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .th { font-size: 12px; font-weight: 500; color: var(--text-muted); }
 
 /* Controls */
@@ -197,3 +197,32 @@ pre, code { font-family: var(--font-mono); }
 .alarm-card { animation: popIn .32s cubic-bezier(.2,.8,.2,1.1) both, alarmGlow 2s ease-in-out .4s infinite; }
 .alarm-card-warn { animation: popIn .32s cubic-bezier(.2,.8,.2,1.1) both, alarmGlowWarn 2s ease-in-out .4s infinite; }
 @media (prefers-reduced-motion: reduce) { .alarm-card, .alarm-card-warn { animation: none; } }
+
+/* ---------- Touch: glove-sized targets on iPad (pointer: coarse). Desktop keeps its density. */
+.fm .react-flow__controls-button { width: 48px; height: 48px; padding: 12px; }
+.fm .react-flow__controls-button svg { max-width: 18px; max-height: 18px; }
+.fm .react-flow__controls { border-radius: 12px; overflow: hidden; border: 1px solid var(--panel-border); }
+@media (pointer: coarse) {
+  :where(button, select, summary, [role=button], [role=menuitem]) { min-height: 48px; }
+  :where(button, [role=button]) { min-width: 48px; }
+}
+
+/* Bottom sheet (iPad panels) */
+@keyframes sheetIn { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet-in { animation: sheetIn .26s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) { .sheet-in { animation: none; } }
+
+/* Sliders sized for a thumb, not a mouse */
+.range { -webkit-appearance: none; appearance: none; width: 100%; height: 48px; background: transparent; cursor: pointer; }
+.range::-webkit-slider-runnable-track { height: 8px; border-radius: 999px; background: var(--surface-3); }
+.range::-moz-range-track { height: 8px; border-radius: 999px; background: var(--surface-3); }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; margin-top: -11px; border-radius: 999px; background: var(--surface); border: 2px solid var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.range::-moz-range-thumb { width: 30px; height: 30px; border-radius: 999px; background: var(--surface); border: 2px solid var(--text); }
+.range-dual { position: absolute; inset: 0; pointer-events: none; }
+.range-dual::-webkit-slider-runnable-track { background: transparent; }
+.range-dual::-moz-range-track { background: transparent; }
+.range-dual::-webkit-slider-thumb { pointer-events: auto; }
+.range-dual::-moz-range-thumb { pointer-events: auto; }
+
+/* Keyboard hints mean nothing on a touchscreen */
+@media (pointer: coarse) { .kbd { display: none !important; } }

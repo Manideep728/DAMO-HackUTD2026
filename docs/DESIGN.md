@@ -116,7 +116,7 @@ Rule: every animation shows something real happening (a reading changing, an eva
 - **iPad layout (primary device):** up to 1400 px the map leads, at full width, sized to the screen with no page scroll. A row of 44 px scenario buttons sits above it, and the verdict and tabs sit below. From 1400 px (laptops, desktops) the 400 px side rail returns. Phones put the rail first.
 - **Targets:** at least 44 pt for every control. Nodes are 101×43 (Air landscape) and 118×50 (Pro landscape) at the default zoom. Portrait opens as a whole-site overview; pinch to zoom.
 - **Rail order:** one-click scenarios (safe, at risk, and the two outage cases) → selected equipment → **verdict** → tabs (Impact, Weak points, Findings, Plan, Ask; all original functionality kept).
-- **Meter evidence:** in a finding's evidence list, a meters row uses a gauge icon (accent) instead of the document icon, reads "Meters · Tiger · synthetic · <date>", and shows its statement without quote marks: it is a measurement, not a quote. The Plan tab shows one muted line under the button saying which load was simulated: measured (with sync time, or "offline, last synced") or the hand-written profile.
+- **Meter evidence:** in a finding's evidence list, a meters row uses a gauge icon (accent) instead of the document icon, reads "Meters · Tiger · synthetic · <date>", and shows its statement without quote marks: it is a measurement, not a quote. The Plan tab shows a 14 px line with a gauge icon under the button saying which load was simulated: **measured** (Tiger, with sync time; an amber *offline* badge when running from the last snapshot) or the hand-written profile. **Sync meters** lives in the Admin menu (48 px item, subtitle shows the last sync); a failed sync is an error line that suggests a hotspot, and the app keeps running on the snapshot.
 - **Verdict:** Outage (red) when services are lost, showing load lost · "Safe, but exposed" (amber) when nothing is lost but services drop to N or headroom is under 10% · Safe (green). New single points of failure appear as purple chips that highlight on the map, plus "show all".
 
 ## 11. Attention rules (v8)
@@ -149,3 +149,11 @@ Rule: every animation shows something real happening (a reading changing, an eva
 | v8 | Console 10 · Preflight 10 | Console: story line, full-width race hero, solid alarm header with glow, hall key as caption. Preflight: Why panel (root-cause chain + automatic Nemotron check), docked on desktop, beside a re-fitted map on iPad | The comparison was buried, alarms blended in, the root cause and agent steps were hidden in tabs |
 
 **To reach a true 10:** the same flows driven live (install the tools and the NVIDIA key, so the matrix and agent panels show "live"), and a recorded backup run.
+
+### v9: technician audit fixes (8 Nov 2026)
+- **One facility:** the console hall is Preflight's H1. Same rack and feed IDs everywhere; chips deep-link to `#/preflight?focus=<id>`.
+- **Alarm first:** incident top-left; the race is a white chip in the alarm header; the primary action sits above any detail; the event log is under the incident, the full race below the hall.
+- **Model optional:** "Skip, dispatch now"; offline shows a banner, never a disabled main button; a skipped step reads "skipped" in the lifecycle.
+- **Touch rules (new, binding):** every target ≥ 48 px (`h-12`) on touch, with a `(pointer: coarse)` min-size safety net. Text ≥ 12 px, body 14 px. State words never truncate or break mid-word (use a shorter whole word on small tiles: HOT, WARN, STALE). Keyboard hints are hidden on touch. Inline IDs are chips, not underlined text.
+- **Map camera:** fit, but never below the zoom where nodes are 48 px (`READABLE = 48 / NODE_H`); the whole site is left-aligned when it overflows; when Why opens, frame only the affected equipment. Re-fit on row expand and collapse.
+- **iPad Preflight:** panels in a bottom sheet (handle bottom-right of the map); Why and Trace coexist; Plan picks from the map and sliders; admin actions in an Admin menu; explanations via tap tips (`Tip`).

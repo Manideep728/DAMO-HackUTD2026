@@ -83,6 +83,8 @@ export const pf = {
     return data as { name: string; nodes: number };
   },
   restoreDemo: () => j<{ name: string; nodes: number }>('/facility/demo', {}),
+  /** Pull measured load and meter evidence from Tiger. 503 when the meter database can't be reached. */
+  syncMeters: () => j<LoadSource>('/meters/sync', {}),
   decide: (id: string, decision: 'confirmed' | 'rejected', actor: string, note = '') =>
     j<Finding>(`/findings/${encodeURIComponent(id)}/decision`, { decision, actor, note }),
   searchPlans: (task: { name: string; nodes: string[]; duration_h: number; earliest: number; latest: number }) =>

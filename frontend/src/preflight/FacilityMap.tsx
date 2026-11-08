@@ -1,5 +1,5 @@
-import { memo, useMemo } from 'react';
-import { ReactFlow, Background, Controls, Handle, Position, MarkerType, type Edge, type Node, type NodeProps } from '@xyflow/react';
+import { memo, useEffect, useMemo, useRef } from 'react';
+import { ReactFlow, Background, Controls, Handle, Position, MarkerType, useNodesInitialized, useReactFlow, useStore, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Zap, Fuel, ArrowLeftRight, ToggleRight, BatteryCharging, Plug, Snowflake, Waves, Droplets, Fan, Server, Cpu, Box, Rows3 } from 'lucide-react';
 import { cx } from '../components/ui';
@@ -10,7 +10,7 @@ import type { Facility, FEdge, FNode, NodeState, SimResult } from './api';
  * Racks are grouped by row ("Row R1 · 8 racks") until a row is expanded, which removes the fan of crossing links
  * and lets every node be large enough to read and tap on an iPad (≥ 44 pt at the default zoom).
  */
-const COL_W = 156, NODE_W = 132, NODE_H = 56, PITCH = 76;
+const COL_W = 158, NODE_W = 140, NODE_H = 66, PITCH = 82;
 export const LAYERS = ['Utility', 'Transfer', 'Switchgear', 'UPS · MCC', 'PDU · plant', 'CHW loop', 'CRAH', 'Racks', 'Workloads'];
 const ICON: Record<string, typeof Zap> = {
   utility_feed: Zap, generator: Fuel, ats: ArrowLeftRight, switchgear: ToggleRight, ups: BatteryCharging, rpp: Plug, pdu: Plug,
@@ -48,13 +48,13 @@ const EquipmentNode = memo(function EquipmentNode({ data }: NodeProps<Node<MapNo
       aria-label={`${data.label}: ${word}`}>
       <Handle type="target" position={Position.Left} className="!opacity-0 !w-1 !h-1 !min-w-0 !min-h-0 !border-0" />
       <div className="flex items-center gap-1.5">
-        <I size={14} className="shrink-0 opacity-85" aria-hidden />
-        <span className="mono text-[13px] font-semibold truncate">{group ? `Row ${id.slice(4)}` : id}</span>
+        <I size={16} className="shrink-0 opacity-85" aria-hidden />
+        <span className="mono text-[17px] leading-tight font-semibold truncate">{group ? `Row ${id.slice(4)}` : id}</span>
         {critical && <span className="ml-auto h-2 w-2 rounded-full bg-[var(--panel-accent)] shrink-0" title="Critical service" />}
       </div>
       <div className="flex items-center gap-1 mt-0.5">
-        <span className={cx('text-[11px] font-semibold uppercase tracking-wide truncate', `fm-word-${tone}`)}>{word}</span>
-        {spareKw !== null && !group && <span className="ml-auto mono text-[10.5px] text-[var(--panel-muted)] shrink-0">{Math.round(spareKw)} kW</span>}
+        <span className={cx('text-[14px] font-bold uppercase tracking-[0.01em] whitespace-nowrap', `fm-word-${tone}`)}>{word}</span>
+        {spareKw !== null && !group && tone === 'ok' && <span className="ml-auto mono text-[13px] text-[var(--panel-muted)] shrink-0">{Math.round(spareKw)} kW</span>}
       </div>
       <div className="absolute left-2.5 right-2.5 bottom-1.5 h-[3px] rounded-full bg-[var(--panel-3)] overflow-hidden">
         <div className="fm-bar h-full rounded-full" style={{ width: `${headroom === null ? 100 : Math.max(4, Math.min(100, headroom * 100))}%`, transitionDelay: `${delay}ms` }} />
@@ -65,9 +65,34 @@ const EquipmentNode = memo(function EquipmentNode({ data }: NodeProps<Node<MapNo
 });
 
 const LabelNode = memo(function LabelNode({ data }: NodeProps<Node<{ text: string }>>) {
-  return <div className="text-[12px] font-semibold tracking-wide text-[var(--panel-muted)] whitespace-nowrap" style={{ width: NODE_W }}>{data.text}</div>;
+  return <div className="text-[15px] font-semibold tracking-wide text-[var(--panel-muted)] whitespace-nowrap" style={{ width: NODE_W }}>{data.text}</div>;
 });
 const nodeTypes = { equipment: EquipmentNode, label: LabelNode };
+
+/** Nodes must stay ≥ 48 pt on an iPad: if fitting everything would shrink them, keep a readable zoom instead
+ *  (left-aligned for the whole site, centred on the framed equipment) and let the user pan; Fit view gives the overview. */
+const READABLE = 48 / NODE_H;
+function ViewportGuard({ frame }: { frame?: string[] }) {
+  const ready = useNodesInitialized();
+  const rf = useReactFlow();
+  const w = useStore((s) => s.width), h = useStore((s) => s.height);
+  const done = useRef(false);
+  useEffect(() => {
+    if (!ready || done.current || !w || !h) return;
+    // fitView (clamped at READABLE) has centred the graph; when the whole site is wider than the view, start from the utility side.
+    const id = window.setTimeout(() => {
+      done.current = true;
+      if (frame && frame.length) return;
+      const z = rf.getZoom();
+      const b = rf.getNodesBounds(rf.getNodes());
+      if (b.width * z <= w) return;
+      const vp = rf.getViewport();
+      rf.setViewport({ x: 16 - b.x * z, y: vp.y, zoom: z });
+    }, 80);
+    return () => window.clearTimeout(id);
+  }, [ready, w, h, rf, frame]);
+  return null;
+}
 
 /** The displayed graph: racks folded into row groups unless their row is expanded. Shared with the trace view. */
 export function displayGraph(facility: Facility, expanded: Set<string>) {
@@ -93,9 +118,11 @@ export function displayGraph(facility: Facility, expanded: Set<string>) {
 export interface MapProps {
   facility: Facility; sim: SimResult | null; toggles: Record<string, string>; selected: string | null; hover: string | null;
   picked: Set<string>; expanded: Set<string>; onSelect: (id: string) => void; onHover: (id: string | null) => void;
+  /** Equipment the camera should frame on mount (the scenario's affected equipment); the whole site when empty. */
+  frame?: string[];
 }
 
-export function FacilityMap({ facility, sim, toggles, selected, hover, picked, expanded, onSelect, onHover }: MapProps) {
+export function FacilityMap({ facility, sim, toggles, selected, hover, picked, expanded, onSelect, onHover, frame }: MapProps) {
   const g = useMemo(() => displayGraph(facility, expanded), [facility, expanded]);
   const adj = useMemo(() => {
     const up = new Map<string, string[]>(), down = new Map<string, string[]>();
@@ -178,19 +205,20 @@ export function FacilityMap({ facility, sim, toggles, selected, hover, picked, e
       style: { stroke: color, strokeWidth: inChain || suspected || broken ? 2.2 : 1.4, strokeDasharray: suspected ? '6 5' : broken ? '4 5' : undefined, opacity, transition: 'opacity .25s ease, stroke .4s ease' },
       markerEnd: inChain || suspected ? { type: MarkerType.ArrowClosed, color, width: 14, height: 14 } : undefined,
       label: suspected && (!chain || inChain) ? (e.status === 'suspected' ? `suspected · ${Math.round(e.confidence * 100)}%` : 'from records') : undefined,
-      labelStyle: { fill: 'var(--untrusted)', fontSize: 11, fontWeight: 600 }, labelBgStyle: { fill: 'var(--panel)' }, labelBgPadding: [4, 2] as [number, number],
+      labelStyle: { fill: 'var(--untrusted)', fontSize: 14, fontWeight: 600 }, labelBgStyle: { fill: 'var(--panel)' }, labelBgPadding: [4, 2] as [number, number],
     };
   });
 
   return (
     <div className="fm relative h-full w-full" aria-label="Dependency map: power and cooling flow left to right">
-      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.05, minZoom: 0.5 }} minZoom={0.35} maxZoom={2}
-        nodesConnectable={false} nodesDraggable={false} elementsSelectable={false} proOptions={{ hideAttribution: true }} onPaneClick={() => onSelect('')}
+      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={frame && frame.length ? { nodes: [...new Set(frame.map(g.mapId))].map((id) => ({ id })), padding: 0.06, minZoom: READABLE, maxZoom: 1.05 } : { padding: 0.04, minZoom: READABLE }} minZoom={0.35} maxZoom={2}
+        nodesConnectable={false} nodesDraggable={false} elementsSelectable={false} edgesFocusable={false} proOptions={{ hideAttribution: true }} onPaneClick={() => onSelect('')}
         onNodeClick={(_, nd) => { if (nd.type === 'equipment') onSelect(nd.id); }}
         onNodeMouseEnter={(_, nd) => { if (nd.type === 'equipment') onHover(nd.id); }}
         onNodeMouseLeave={() => onHover(null)}>
         <Background gap={24} size={1} color="var(--panel-border)" />
-        <Controls showInteractive={false} position="bottom-right" />
+        <Controls showInteractive={false} position="top-right" />
+        <ViewportGuard frame={frame && frame.length ? [...new Set(frame.map(g.mapId))] : undefined} />
       </ReactFlow>
     </div>
   );

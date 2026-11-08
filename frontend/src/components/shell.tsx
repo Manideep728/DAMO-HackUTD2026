@@ -36,33 +36,33 @@ export function Shell({ children }: { children: ReactNode }) {
   const legacy = screen !== null || loc.pathname.startsWith('/checks') || loc.pathname.startsWith('/handoff');
   return (
     <div className="h-full flex flex-col">
-      <header className="shrink-0 h-[60px] flex items-center gap-6 px-5 lg:px-8 border-b hairline bg-surface z-10">
-        <NavLink to="/" className="flex items-center gap-2.5 shrink-0" aria-label="Damo, home">
+      <header className="shrink-0 h-[64px] flex items-center gap-5 px-5 lg:px-8 border-b hairline bg-surface z-10">
+        <NavLink to="/" className="h-12 px-1 flex items-center gap-2.5 shrink-0 rounded-lg" aria-label="Damo, home">
           <Logo />
         </NavLink>
         <nav className="flex items-center gap-1 min-w-0 overflow-x-auto" aria-label="Workflows">
           {nav.map(({ to, match, label, tag, exact }) => {
             const active = exact ? loc.pathname === match : loc.pathname.startsWith(match);
             return (
-              <NavLink key={to} to={to} className={cx('tab h-9 px-3 inline-flex items-center gap-2 rounded-lg text-[13.5px] font-medium whitespace-nowrap t', active ? 'active text-text' : 'text-muted hover:text-text hover:bg-surface-2')}>
-                {label}{tag && <span className="mono text-[10.5px] text-faint hidden md:inline">{tag}</span>}
+              <NavLink key={to} to={to} className={cx('tab h-12 px-3.5 inline-flex items-center gap-2 rounded-lg text-[14px] font-medium whitespace-nowrap t', active ? 'active text-text' : 'text-muted hover:text-text hover:bg-surface-2')}>
+                {label}{tag && <span className="mono text-[12px] text-faint hidden xl:inline">{tag}</span>}
               </NavLink>
             );
           })}
         </nav>
         <div className="ml-auto flex items-center gap-2 shrink-0">
           {loc.pathname.startsWith('/preflight') ? <span className="hidden sm:inline-flex"><Badge title="Results computed by the simulator on a synthetic facility">Simulated facility</Badge></span> : legacy ? <ModeBadge mode={state.mode} /> : <span className="hidden sm:inline-flex"><Badge title="Scripted demo on illustrative data. Legacy facts come from the public TTU repo.">Scripted demo</Badge></span>}
-          <button className="h-9 w-9 grid place-items-center rounded-lg text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
-          <button className="h-9 w-9 grid place-items-center rounded-lg text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setHelp(true)} aria-label="Keyboard shortcuts"><HelpCircle size={16} /></button>
-          <span className="h-8 w-8 ml-1 hidden sm:grid place-items-center rounded-full bg-surface-3 text-[11.5px] font-semibold" title="Maya R. · night shift">MR</span>
+          <button className="h-12 w-12 grid place-items-center rounded-xl text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
+          <button className="h-12 w-12 hidden lg:grid place-items-center rounded-xl text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setHelp(true)} aria-label="Keyboard shortcuts"><HelpCircle size={16} /></button>
+          <span className="h-8 w-8 ml-1 hidden sm:grid place-items-center rounded-full bg-surface-3 text-[12px] font-semibold" title="Maya R. · night shift">MR</span>
         </div>
       </header>
-      <main className="flex-1 overflow-auto min-w-0"><div key={loc.pathname} className="enter px-5 lg:px-8 pt-10 pb-24">{children}</div></main>
+      <main className="flex-1 overflow-auto min-w-0"><div key={loc.pathname} className="enter px-4 sm:px-5 lg:px-8 pt-10 pb-16">{children}</div></main>
       {help && (
         <div className="overlay fixed inset-0 bg-black/50 grid place-items-center z-50" onClick={() => setHelp(false)}>
           <div className="card p-6 w-[440px] shadow-[var(--shadow)]" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Keyboard shortcuts">
             <div className="flex items-center justify-between mb-4"><span className="font-semibold text-[15px]">Keyboard shortcuts</span><button className="text-muted hover:text-text" onClick={() => setHelp(false)} aria-label="Close"><X size={16} /></button></div>
-            <table className="w-full text-[13px]"><tbody>
+            <table className="w-full text-[14px]"><tbody>
               {[['Enter', 'Do the next action on the console'], ['1', 'Console'], ['2', 'Verify a change'], ['3', 'Preflight'], ['4', 'Modernize (M1–M5)'], ['?', 'This panel'], ['Esc', 'Close']].map(([k, v]) => <tr key={k}><td className="py-1.5 w-32"><Kbd k={k} /></td><td className="text-muted">{v}</td></tr>)}
             </tbody></table>
           </div>
@@ -82,7 +82,7 @@ function Director({ onClose, screen }: { onClose: () => void; screen: Screen | n
   const speeds: (1 | 2 | 5)[] = [1, 2, 5];
   return (
     <aside className="fixed bottom-4 right-4 card p-4 w-[340px] z-40 shadow-[var(--shadow)]" role="dialog" aria-label="Director panel">
-      <div className="flex items-center justify-between mb-2"><b className="text-[13px]">Director</b><button onClick={onClose} aria-label="Close"><X size={14} /></button></div>
+      <div className="flex items-center justify-between mb-2"><b className="text-[14px]">Director</b><button onClick={onClose} aria-label="Close"><X size={14} /></button></div>
       <div className="flex gap-2 mb-3">
         <Button variant="secondary" className="h-8 px-3 text-[12px]" disabled={!screen} onClick={() => screen && ds.director.restart(screen)}><Play size={13} /> Replay</Button>
         <Button variant="secondary" className="h-8 px-3 text-[12px]" disabled={!screen} onClick={() => screen && ds.director.jumpToEnd(screen)}><SkipForward size={13} /> Jump to end</Button>
@@ -94,7 +94,7 @@ function Director({ onClose, screen }: { onClose: () => void; screen: Screen | n
           <label key={f} className="flex items-center gap-2"><input type="checkbox" checked={flags[f]} onChange={() => toggle(f)} /> {l}</label>
         ))}
       </div>
-      <div className="text-[11px] text-muted mt-3">Toggles apply on the next Replay. Source: <span className="mono">?source={ds.kind}</span></div>
+      <div className="text-[12px] text-muted mt-3">Toggles apply on the next Replay. Source: <span className="mono">?source={ds.kind}</span></div>
     </aside>
   );
 }

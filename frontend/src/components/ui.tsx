@@ -6,7 +6,7 @@ export function cx(...a: (string | false | undefined | null)[]) { return a.filte
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export function Button({ variant = 'secondary', kbd, className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; kbd?: string }) {
-  const base = 'btn inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg text-[13.5px] font-medium disabled:opacity-45 disabled:cursor-not-allowed select-none whitespace-nowrap';
+  const base = 'btn inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg text-[14px] font-medium disabled:opacity-45 disabled:cursor-not-allowed select-none whitespace-nowrap';
   const v = {
     primary: 'btn-primary',
     secondary: 'border border-border bg-surface hover:bg-surface-2 hover:border-border-strong text-text',
@@ -33,7 +33,7 @@ const sevMeta: Record<Severity | 'ok' | 'untrusted' | 'offline', { word: string;
 export function StatusPill({ kind, word, size = 'md' }: { kind: keyof typeof sevMeta; word?: string; size?: 'sm' | 'md' }) {
   const m = sevMeta[kind];
   return (
-    <span className={cx('inline-flex items-center gap-1 rounded-full font-semibold', m.cls, size === 'sm' ? 'h-5 px-2 text-[11px]' : 'h-6 px-2.5 text-[12px]')}>
+    <span className={cx('inline-flex items-center gap-1 rounded-full font-semibold', m.cls, size === 'sm' ? 'h-5 px-2 text-[12px]' : 'h-6 px-2.5 text-[12px]')}>
       <m.Icon size={size === 'sm' ? 12 : 14} aria-hidden /> <span className="sev">{word ?? m.word}</span>
     </span>
   );
@@ -41,7 +41,7 @@ export function StatusPill({ kind, word, size = 'md' }: { kind: keyof typeof sev
 
 export function Badge({ children, tone = 'neutral', title }: { children: ReactNode; tone?: 'neutral' | 'accent' | 'ok' | 'warning' | 'critical'; title?: string }) {
   const t = { neutral: 'border-border text-muted', accent: 'border-accent/40 text-accent', ok: 'border-ok/40 text-ok', warning: 'border-warning/40 text-warning', critical: 'border-critical/40 text-critical' }[tone];
-  return <span title={title} className={cx('inline-flex items-center gap-1 h-[22px] px-2 rounded-md border text-[11.5px] font-medium whitespace-nowrap', t)}>{children}</span>;
+  return <span title={title} className={cx('inline-flex items-center gap-1 h-[22px] px-2 rounded-md border text-[12px] font-medium whitespace-nowrap', t)}>{children}</span>;
 }
 
 export function ModeBadge({ mode }: { mode: Mode }) {
@@ -72,7 +72,7 @@ export function Stepper({ stage }: { stage: string }) {
       {stages.map((s, i) => (
         <li key={s} className="flex items-center gap-1">
           <span className={cx('h-2 w-2 rounded-full border t', i < idx && 'bg-accent border-accent', i === idx && !blocked && 'border-accent border-2', i === idx && blocked && 'border-critical border-2', i > idx && 'border-border')} />
-          <span className={cx('text-[11px] whitespace-nowrap', i === idx ? (blocked ? 'text-critical font-semibold' : 'text-text font-semibold') : 'text-muted')}>{i === idx && blocked ? 'Blocked' : labels[s]}</span>
+          <span className={cx('text-[12px] whitespace-nowrap', i === idx ? (blocked ? 'text-critical font-semibold' : 'text-text font-semibold') : 'text-muted')}>{i === idx && blocked ? 'Blocked' : labels[s]}</span>
           {i < stages.length - 1 && <span className="w-3 h-px bg-border mx-0.5" />}
         </li>
       ))}
@@ -87,7 +87,7 @@ export function Empty({ title, body, action, icon: Icon }: { title: string; body
     <div className="card flex flex-col items-center text-center gap-3 px-6 py-14">
       {Icon && <span className="h-11 w-11 grid place-items-center rounded-xl bg-surface-2 border hairline text-muted mb-1"><Icon size={20} aria-hidden /></span>}
       <div className="font-semibold text-[16px] tracking-[-0.01em]">{title}</div>
-      {body && <div className="text-muted text-[13.5px] max-w-[460px] leading-relaxed">{body}</div>}
+      {body && <div className="text-muted text-[14px] max-w-[460px] leading-relaxed">{body}</div>}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );
@@ -111,7 +111,7 @@ export function PageHeader({ kicker, title, meta, subtitle, actions }: { kicker?
 export function SectionHeader({ title, subtitle, right }: { title: ReactNode; subtitle?: ReactNode; right?: ReactNode }) {
   return (
     <div className="flex items-end gap-4 mb-4">
-      <div className="min-w-0"><h2 className="section-title">{title}</h2>{subtitle && <p className="text-[13.5px] text-muted mt-1">{subtitle}</p>}</div>
+      <div className="min-w-0"><h2 className="section-title">{title}</h2>{subtitle && <p className="text-[14px] text-muted mt-1">{subtitle}</p>}</div>
       {right && <div className="ml-auto">{right}</div>}
     </div>
   );
