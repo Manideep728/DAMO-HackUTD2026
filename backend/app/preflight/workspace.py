@@ -1,0 +1,89 @@
+"""The working copy the API and the agent share: documented facility, records, decisions and plans."""
+
+from __future__ import annotations
+
+import threading
+from dataclasses import dataclass, field
+
+from engine.model import Facility, State
+from engine.timestep import Window
+
+from .data.demo import demo_facility, demo_profiles, demo_windows
+from .discovery import DiscoveryResult, Doc, Finding, apply_finding, discover, load_corpus
+from .store import Store
+
+
+@dataclass
+class Workspace:
+    store: Store
+    documented: Facility = field(default_factory=demo_facility)
+    docs: list[Doc] = field(default_factory=lambda: load_corpus()[0])
+    labels: list[dict] = field(default_factory=lambda: load_corpus()[1])
+    profiles: dict[str, list[float]] = field(default_factory=demo_profiles)
+    windows: list[Window] = field(default_factory=demo_windows)
+    _discovery: DiscoveryResult | None = None
+    _lock: threading.Lock = field(default_factory=threading.Lock)
+
+    def discovery(self) -> DiscoveryResult:
+        with self._lock:
+            if self._discovery is None:
+                self._discovery = discover(self.documented, self.docs)
+            return self._discovery
+
+    def findings(self) -> list[Finding]:
+        decided = self.store.decisions()
+        out = []
+        for f in self.discovery().findings:
+            d = decided.get(f.id)
+            if d and f.status != "superseded":
+                f.status = d["decision"]
+            out.append(f)
+        return out
+
+    def finding(self, finding_id: str) -> Finding:
+        for f in self.findings():
+            if f.id == finding_id:
+                return f
+        raise KeyError(finding_id)
+
+    def facility(self) -> Facility:
+        """Documented graph plus every finding an engineer has confirmed."""
+        fac = self.documented
+        for f in self.findings():
+            if f.status == "confirmed" and f.classification != "confirms":
+                fac = apply_finding(fac, f)
+        return fac
+
+    def decide(self, finding_id: str, decision: str, actor: str, note: str = "") -> Finding:
+        f = self.finding(finding_id)
+        self.store.decide(f.id, decision, actor, note)
+        f.status = decision
+        return f
+
+    def add_suspected(self, finding: Finding, actor: str) -> Finding:
+        """Register a dependency proposed by the agent. It is suspected until an engineer confirms it."""
+        result = self.discovery()
+        if any(f.id == finding.id for f in result.findings):
+            return next(f for f in result.findings if f.id == finding.id)
+        finding.status = "open"
+        result.findings.append(finding)
+        self.store.audit(actor, "finding.proposed", {"finding": finding.id, "claim": finding.claim_text()})
+        return finding
+
+    def replace_facility(self, facility: Facility, actor: str) -> None:
+        with self._lock:
+            self.documented = facility
+            self._discovery = None
+        self.store.audit(actor, "facility.imported", {"name": facility.name, "nodes": len(facility.nodes)})
+
+
+def parse_states(raw: dict[str, str] | None, facility: Facility) -> dict[str, State]:
+    known = facility.by_id()
+    out: dict[str, State] = {}
+    for nid, st in (raw or {}).items():
+        if nid not in known:
+            raise KeyError(f"unknown node {nid}")
+        state = State(st)
+        if state in (State.failed, State.maintenance):
+            out[nid] = state
+    return out

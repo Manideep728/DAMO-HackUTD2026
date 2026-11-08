@@ -1,0 +1,25 @@
+# Agent eval. Expected answers are computed by the engine at test time, never written here.
+- {q: "When is the safest time to take CRAH-3 offline for 4 hours?", tools: [search_plans, evaluate_plan, find_cut_sets], expect: {plan: {nodes: [CRAH-3], duration_h: 4}}}
+- {q: "Schedule a 6 hour UTIL-A breaker test", tools: [search_plans, evaluate_plan], expect: {plan: {nodes: [UTIL-A], duration_h: 6}}}
+- {q: "Plan maintenance on Pump A for 6 hours", tools: [search_plans], expect: {plan: {nodes: [PUMP-A], duration_h: 6}}}
+- {q: "What's the safest window to service CRAH-1 for 3 hours?", tools: [search_plans], expect: {plan: {nodes: [CRAH-1], duration_h: 3}}}
+- {q: "When should we take PDU-A1 down for 2 hours?", tools: [search_plans], expect: {plan: {nodes: [PDU-A1], duration_h: 2}}}
+- {q: "What happens if ATS-1 fails?", tools: [simulate], expect: {lost: [ATS-1]}}
+- {q: "What happens if SWGR-A trips?", tools: [simulate], expect: {lost: [SWGR-A]}}
+- {q: "If CRAH-1 and CRAH-2 both fail, what do we lose?", tools: [simulate], expect: {lost: [CRAH-1, CRAH-2], mentions: [WL-INFER]}}
+- {q: "What if UPS-A goes offline?", tools: [simulate], expect: {lost: [UPS-A]}}
+- {q: "What do we lose if the chilled-water loop fails?", tools: [simulate], expect: {lost: [CHW-LOOP]}}
+- {q: "What happens if Pump A and Pump B fail?", tools: [simulate], expect: {lost: [PUMP-A, PUMP-B]}}
+- {q: "What are the single points of failure?", tools: [find_cut_sets], expect: {single_points: []}}
+- {q: "What becomes a single point of failure while UTIL-A is in maintenance?", tools: [find_cut_sets], expect: {single_points: [UTIL-A]}}
+- {q: "Show the weak points of the facility", tools: [find_cut_sets], expect: {single_points: []}}
+- {q: "List the cut sets", tools: [find_cut_sets], expect: {single_points: []}}
+- {q: "Are Pump A and Pump B independent?", tools: [get_neighbors, get_neighbors, find_cut_sets, search_docs, propose_dependency], expect: {mentions: [ATS-1]}}
+- {q: "Do CRAH-1 and CRAH-2 share a single point of failure?", tools: [get_neighbors, get_neighbors, find_cut_sets], expect: {}}
+- {q: "Is UPS-A a backup for UPS-B?", tools: [get_neighbors, get_neighbors, find_cut_sets], expect: {}}
+- {q: "What do the records say about pump mcc b?", tools: [search_docs], expect: {mentions: [CHG-2291]}}
+- {q: "Find work orders mentioning ATS-1", tools: [search_docs], expect: {}}
+- {q: "What's the CFD airflow distribution in hall 1?", tools: [], expect: {refused: true}}
+- {q: "Write me a poem about chillers", tools: [], expect: {refused: true}}
+- {q: "What is the arc flash rating of SWGR-A?", tools: [], expect: {refused: true}}
+- {q: "What's the weather tomorrow?", tools: [], expect: {refused: true}}
