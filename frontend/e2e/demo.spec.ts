@@ -36,7 +36,8 @@ test('Pump A and ATS-1 demo, as scripted in docs/DEMO.md', async ({ page }) => {
 
   await beat('1. the claim: map loads with the demo hall', async () => {
     await expect(page.getByText('Preflight · Demo hall H1')).toBeVisible();
-    await expect(page.locator('[data-testid^="node-"]')).toHaveCount(43);
+    // 27 pieces of equipment plus 2 rack rows (R1, R2); racks are grouped by row until a row is expanded.
+    await expect(page.locator('[data-testid^="node-"]')).toHaveCount(29);
   });
 
   await beat('2. rehearse: Pump A in maintenance', async () => {

@@ -107,13 +107,10 @@ export default function Console() {
           <div className="flex items-center gap-2 text-[14px] font-medium">
             {!warned ? <><span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full rounded-full bg-ok opacity-60 animate-ping" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-ok" /></span>Watching Hall 1</>
               : resolved ? <><Check size={16} className="text-ok" />INC-1042 resolved</>
-                : <><span className={cx('h-2.5 w-2.5 rounded-full', crit ? 'bg-critical' : 'bg-warning')} />INC-1042 · {crit ? 'Critical' : 'Warning'} on Compute2</>}
+                : <span className={cx('alarm-pill inline-flex items-center gap-2 h-7 px-3 rounded-full text-white font-semibold', crit ? 'bg-critical' : 'bg-warning')}><span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-70 animate-ping" /><span className="relative inline-flex h-2 w-2 rounded-full bg-white" /></span>INC-1042 · {crit ? 'Critical' : 'Warning'} on Compute2</span>}
           </div>
           <div className="text-[12.5px] text-faint">Night shift · scripted night, illustrative data</div>
         </div>
-        {warned && (m >= OLD_PAGE
-          ? <span key="lead" className="h-8 px-3 rounded-full bg-ok/12 text-ok text-[13px] font-semibold inline-flex items-center gap-1.5 pop-in">Warned 6 min before the old check</span>
-          : <span key="silent" className="h-8 px-3 rounded-full bg-surface-2 text-muted text-[13px] font-medium inline-flex items-center gap-1.5 pop-in">Damo paged at 02:07 · old check still silent</span>)}
         <div className="ml-auto flex items-center gap-2">
           <Link to="/verify" className="h-9 px-3 rounded-lg border border-border hover:bg-surface-2 text-[13px] inline-flex items-center gap-2 t"><ShieldCheck size={15} className="text-ok" /> 6/6 alarm paths verified</Link>
           <button onClick={() => setOffline((v) => !v)} className={cx('h-9 px-3 rounded-lg border text-[13px] font-medium inline-flex items-center gap-2 t', offline ? 'border-warning/60 text-warning bg-warning/10' : 'border-border hover:bg-surface-2')} title="Alerting never depends on the model">
@@ -124,12 +121,15 @@ export default function Console() {
         </div>
       </div>
 
+      <Story m={m} warned={warned} />
+      <RaceHero m={m} />
+
       <div className="grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-5 items-start">
         {/* Hall */}
         <section className="panel rounded-[18px] p-4 sm:p-5 order-2 lg:order-none">
           <div className="flex items-center gap-3 mb-4">
-            <span className="font-semibold text-[14px]">Hall 1</span>
-            <span className="text-[12px] text-[var(--panel-muted)] hidden sm:inline">32 racks · inlet °C</span>
+            <span className="font-semibold text-[14px] whitespace-nowrap">Hall 1</span>
+            <span className="text-[12px] text-[var(--panel-muted)] whitespace-nowrap">32 racks</span>
             <div className="ml-auto flex flex-wrap justify-end items-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--panel-muted)]">
               <Legend c="var(--warning)" l="Warning" /><Legend c="var(--critical)" l="Critical" /><Legend hatch l="Stale" /><Legend c="var(--panel-accent)" l="Liquid" />
             </div>
@@ -142,7 +142,8 @@ export default function Console() {
               </div>
             ))}
           </div>
-          <div className="mt-5 pt-4 border-t border-[var(--panel-border)]">
+          <div className="mt-2.5 text-[12px] text-[var(--panel-muted)]">Each tile is a rack; the number is its inlet temperature in °C. <span className="text-[var(--panel-text)]">R12 holds Compute2</span>, the server in trouble.</div>
+          <div className="mt-4 pt-4 border-t border-[var(--panel-border)]">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-[13px] font-medium">Compute2 · R12 · U16</span>
               <span className="mono text-[12px] text-[var(--panel-muted)] ml-auto num inline-flex items-center gap-3">
@@ -157,13 +158,14 @@ export default function Console() {
         {/* The repeated use case: one incident, one next action */}
         <section className="grid gap-4 order-1 lg:order-none">
           {!warned ? <Quiet m={m} /> : (
-            <div className={cx('card overflow-hidden pop-in', crit ? 'border-critical/50' : resolved ? 'border-ok/50' : 'border-warning/60')}>
-              <div className="px-5 pt-5">
-                <div className="flex items-center gap-2 mb-2 text-[12px]">
-                  <span className={cx('sev px-2 h-[22px] inline-flex items-center rounded-md', crit ? 'bg-critical/15 text-critical' : resolved ? 'bg-ok/15 text-ok' : 'bg-warning/15 text-warning')}>{crit ? 'Critical' : resolved ? 'Resolved' : 'Warning'}</span>
-                  <span className="mono text-muted">INC-1042</span><span className="text-faint">·</span><span className="text-muted">R12 · U16</span>
-                  <span className="ml-auto text-muted">owner <span className="text-text">HPC Ops</span></span>
-                </div>
+            <div className={cx('card overflow-hidden pop-in border-2', crit ? 'border-critical alarm-card' : resolved ? 'border-ok' : 'border-warning alarm-card-warn')}>
+              <div className={cx('flex items-center gap-2 px-5 h-11 text-white text-[13px] font-semibold', crit ? 'bg-critical' : resolved ? 'bg-ok' : 'bg-warning')}>
+                {!resolved && <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-70 animate-ping" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" /></span>}
+                <span className="uppercase tracking-wide">{crit ? 'Critical alarm' : resolved ? 'Resolved' : 'Early warning'}</span>
+                <span className="opacity-80 mono font-normal">INC-1042 · R12 · U16</span>
+                <span className="ml-auto opacity-90 font-normal">owner HPC Ops</span>
+              </div>
+              <div className="px-5 pt-4">
                 <h2 className="text-[22px] font-semibold tracking-[-0.02em] leading-snug">{m >= THERMAL_CRIT ? 'CPU overheating on Compute2' : 'Fan 4 stalled on Compute2'}</h2>
                 <p className="text-[13.5px] text-muted mt-1">{resolved ? 'Fan 4 replaced and recovery verified with fresh readings.' : m >= THERMAL_CRIT ? 'Fan 4 stopped at 02:06. Damo paged at 02:07, before the heat. The BMC reports Critical now.' : 'Fan 4 reads 0 RPM. The CPU is still OK, so the old check sees nothing yet.'}</p>
               </div>
@@ -228,7 +230,6 @@ export default function Console() {
             </div>
           )}
 
-          <Race m={Math.min(m, 16)} />
         </section>
       </div>
 
@@ -271,26 +272,6 @@ function Quiet({ m }: { m: number }) {
   );
 }
 
-/** Two lanes, one fault: when each monitor reaches a person. */
-function Race({ m }: { m: number }) {
-  const W = 16, x = (v: number) => `${(v / W) * 100}%`;
-  return (
-    <div className="card p-5">
-      <div className="flex items-center mb-4"><span className="text-[13px] font-semibold">Same fault, two monitors</span><span className="ml-auto mono text-[12px] text-faint">02:00 → 02:16</span></div>
-      {[{ name: 'Damo', at: EARLY_WARN, who: 'pages the owner', color: 'bg-ok', text: 'text-ok' }, { name: 'Old Nagios check', at: OLD_PAGE, who: 'pages nagios@localhost', color: 'bg-legacy', text: 'text-legacy' }].map((lane) => (
-        <div key={lane.name} className="mb-4 last:mb-0">
-          <div className="flex items-baseline gap-2 mb-1.5 text-[12.5px]"><span className={cx('font-medium', lane.text)}>{lane.name}</span><span className="text-faint">{m >= lane.at ? `${clock(lane.at)} · ${lane.who}` : 'waiting…'}</span></div>
-          <div className="relative h-2 rounded-full bg-surface-2">
-            <div className={cx('absolute inset-y-0 left-0 rounded-full t', lane.color, m >= lane.at ? 'opacity-70' : 'opacity-25')} style={{ width: x(Math.min(m, lane.at)) }} />
-            <span className="absolute -top-1 h-4 w-[2px] bg-text/30" style={{ left: x(FAN_STOP) }} title="fan stopped" />
-            {m >= lane.at && <span className={cx('absolute -top-[5px] h-[18px] w-[18px] -ml-[9px] rounded-full border-2 border-[var(--surface)] pop-in', lane.color)} style={{ left: x(lane.at) }} />}
-          </div>
-        </div>
-      ))}
-      <div className="text-[12px] text-faint mt-3">{m >= OLD_PAGE ? <><span className="text-text font-medium">6 minutes</span> between the two pages. The tick marks 02:06, when fan 4 stopped.</> : 'The tick marks 02:06, when fan 4 stopped.'}</div>
-    </div>
-  );
-}
 
 function Legend({ c, l, hatch }: { c?: string; l: string; hatch?: boolean }) {
   return <span className="inline-flex items-center gap-1.5"><span className={cx('h-2.5 w-2.5 rounded-sm', hatch && 'hatch-panel')} style={c ? { background: c } : undefined} />{l}</span>;
@@ -380,5 +361,64 @@ function Head({ x, y, color }: { x: number; y: number; color: string }) {
       <span className="absolute -left-[4px] -top-[4px] h-2 w-2 rounded-full" style={{ background: color }} />
       <span className="absolute -left-[4px] -top-[4px] h-2 w-2 rounded-full animate-ping" style={{ background: color, opacity: 0.6 }} />
     </span>
+  );
+}
+
+/** One sentence of context so a first-time viewer knows what to watch. */
+function Story({ m, warned }: { m: number; warned: boolean }) {
+  const steps = [
+    { at: FAN_STOP, text: 'Fan 4 stops on Compute2' },
+    { at: EARLY_WARN, text: 'Damo pages the owner' },
+    { at: THERMAL_CRIT, text: 'CPU overheats' },
+    { at: OLD_PAGE, text: 'Old Nagios check finally pages nobody' },
+  ];
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13.5px]">
+      <span className="text-muted">{warned ? 'What just happened:' : 'Watch this night unfold:'}</span>
+      {steps.map((st, i) => (
+        <span key={st.text} className={cx('inline-flex items-center gap-1.5 t', m >= st.at ? 'text-text font-medium' : 'text-faint')}>
+          <span className={cx('h-5 w-5 rounded-full grid place-items-center text-[11px] mono t', m >= st.at ? (i === 1 ? 'bg-ok text-white' : i === 3 ? 'bg-legacy text-white' : 'bg-text text-bg') : 'border border-border-strong')}>{i + 1}</span>
+          {st.text}<span className="mono text-[12px] text-faint">{clock(st.at)}</span>
+          {i < steps.length - 1 && <ArrowRight size={13} className="text-faint" />}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** The core claim, full width: who tells a person first, the agent or the legacy Nagios check. */
+function RaceHero({ m }: { m: number }) {
+  const W = 16, x = (v: number) => `${(Math.min(v, W) / W) * 100}%`;
+  const silent = m >= EARLY_WARN && m < OLD_PAGE;
+  const lanes = [
+    { key: 'damo', name: 'Damo', sub: 'new rules + fan early warning', at: EARLY_WARN, who: 'paged HPC Ops (fallback delivered)', bar: 'bg-ok', dot: 'bg-ok', text: 'text-ok' },
+    { key: 'nagios', name: 'Legacy Nagios check', sub: 'check_temperature.sh, unchanged', at: OLD_PAGE, who: 'paged nagios@localhost: nobody', bar: 'bg-legacy', dot: 'bg-legacy', text: 'text-legacy' },
+  ];
+  return (
+    <section className="card px-5 py-4 mb-5 overflow-hidden" aria-label="Damo versus the legacy Nagios check">
+      <div className="flex flex-wrap items-center gap-3 mb-3">
+        <span className="text-[15px] font-semibold">Same fault, two monitors: who tells a person first?</span>
+        {m >= OLD_PAGE ? <span key="lead" className="pop-in h-8 px-3.5 rounded-full bg-ok text-white text-[14px] font-bold inline-flex items-center">Damo: 6 minutes earlier, to the right person</span>
+          : silent ? <span key="silent" className="pop-in h-8 px-3.5 rounded-full bg-text text-bg text-[13.5px] font-semibold inline-flex items-center gap-1.5">Nagios still silent <span className="mono">+{Math.floor(m - EARLY_WARN)}:{String(Math.round(((m - EARLY_WARN) % 1) * 60)).padStart(2, '0')}</span></span>
+            : <span className="text-[13px] text-faint">both watching the same Redfish readings</span>}
+      </div>
+      <div className="grid gap-2.5">
+        {lanes.map((l) => (
+          <div key={l.key} className="grid grid-cols-[150px_1fr] sm:grid-cols-[190px_1fr_300px] items-center gap-x-4 gap-y-1">
+            <div><div className={cx('text-[14.5px] font-semibold leading-tight', l.text)}>{l.name}</div><div className="text-[11.5px] text-faint truncate">{l.sub}</div></div>
+            <div className="relative h-3 rounded-full bg-surface-2">
+              <div className={cx('absolute inset-y-0 left-0 rounded-full t', l.bar, m >= l.at ? 'opacity-90' : 'opacity-30')} style={{ width: x(Math.min(m, l.at)) }} />
+              <span className="absolute -top-1.5 h-6 w-[2px] bg-critical/70" style={{ left: x(FAN_STOP) }} title="fan stopped 02:06" />
+              {m >= l.at && <span className={cx('absolute -top-[6px] h-6 w-6 -ml-3 rounded-full border-[3px] border-[var(--surface)] pop-in shadow', l.dot)} style={{ left: x(l.at) }} />}
+            </div>
+            <div className="col-span-2 sm:col-span-1 flex items-baseline gap-2.5 min-w-0">
+              <span className={cx('mono text-[24px] font-bold leading-none num shrink-0', m >= l.at ? l.text : 'text-faint')}>{m >= l.at ? clock(l.at) : '--:--'}</span>
+              <span className="text-[12px] text-muted truncate">{m >= l.at ? l.who : 'waiting…'}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="text-[12px] text-faint mt-2.5 flex items-center gap-1.5"><span className="h-3 w-[2px] bg-critical/70 inline-block" /> 02:06, fan 4 stops. Both monitors read the same BMC; only Damo was taught to watch the fan.</div>
+    </section>
   );
 }
