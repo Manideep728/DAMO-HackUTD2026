@@ -106,13 +106,24 @@ Rule: every animation shows something real happening (a reading changing, an eva
 **Job:** "I'm about to take X offline. What breaks, what becomes a single point of failure, and when is the safest time?"
 
 - **Layout:** compact header (title, one-line model disclaimer, zone filter, reset) → [dark map panel | 400 px rail]. On mobile the rail comes first (scenarios and verdict), and the map follows at 70vh.
-- **Map (`preflight/FacilityMap.tsx`, React Flow):** power and cooling flow **left to right**, one column per layer (Utility, Transfer, Switchgear, UPS · MCC, PDU · plant, CHW loop, CRAH, Racks, Workloads). Each layer is spread over the height of the tallest one, so links fan out instead of crossing. Nodes are 106×38 with a type icon, a mono ID, a critical-service dot and a headroom bar.
+- **Racks are grouped by row** ("Row R1 · 8 racks", "3 of 8 down") until a row is expanded from the trace panel. This removes the fan of rack links (about 60 lines become about 8).
+- **Map (`preflight/FacilityMap.tsx`, React Flow):** power and cooling flow **left to right**, one column per layer (Utility, Transfer, Switchgear, UPS · MCC, PDU · plant, CHW loop, CRAH, Racks, Workloads). Each layer is spread over the height of the tallest one, so links fan out instead of crossing. Nodes are 132×56 with a type icon, a 13 px mono ID, the **state written in words** (OK, Degraded, Maintenance, Down), spare kW, a critical-service dot and a headroom bar.
 - **Node states:** OK (neutral, green bar) · degraded (amber tint) · maintenance (amber hatch) · down or lost (red tint, red bar) · selected (white outline) · picked from a panel (purple ring) · out of the focused chain (22% opacity).
 - **Links:** power is `--panel-muted`, cooling `--panel-accent`, links suspected from records are purple dashed with a "suspected · 97%" label, and lost supply is red dashed. Links are faint (20%) by default. **Hover or select a node** to light up its whole upstream and downstream chain at 95% with animated flow; everything else fades.
 - **Cascade:** when the scenario changes, each node's state transition is delayed by 120 ms per hop downstream of the changed equipment, so a failure visibly ripples outward.
-- **Interaction:** click selects, and the rail shows Maintenance / Fail / In service plus state, spare kW, and feeds and needs. Hover is debounced at 140 ms (never re-render mid-click). Map labels are presentation-only, not buttons.
+- **Interaction (touch first):** tap or click selects and opens the **trace panel on the map** (right side on iPad and desktop, bottom sheet on phones): Maintenance / Fail / In service (44 px), then **Needs (upstream)** and **Feeds (downstream)** layer by layer, each row in large type with a state word and spare kW, tappable to jump. Hover is a desktop bonus, debounced at 140 ms. Map labels are presentation-only, not buttons.
+- **Scenario focus:** with a change active and nothing selected, unaffected equipment fades to 20% and only broken supply links stay strong. A **verdict strip** inside the map repeats the verdict, so the answer is where the technician is looking.
+- **iPad layout (primary device):** up to 1400 px the map leads, at full width, sized to the screen with no page scroll. A row of 44 px scenario buttons sits above it, and the verdict and tabs sit below. From 1400 px (laptops, desktops) the 400 px side rail returns. Phones put the rail first.
+- **Targets:** at least 44 pt for every control. Nodes are 101×43 (Air landscape) and 118×50 (Pro landscape) at the default zoom. Portrait opens as a whole-site overview; pinch to zoom.
 - **Rail order:** one-click scenarios (safe, at risk, and the two outage cases) → selected equipment → **verdict** → tabs (Impact, Weak points, Findings, Plan, Ask; all original functionality kept).
 - **Verdict:** Outage (red) when services are lost, showing load lost · "Safe, but exposed" (amber) when nothing is lost but services drop to N or headroom is under 10% · Safe (green). New single points of failure appear as purple chips that highlight on the map, plus "show all".
+
+## 11. Attention rules (v8)
+
+- **Alarms are solid, not tinted.** An active incident gets a solid red (critical) or amber (warning) header bar with white text and a pulsing dot, a 2 px border in the same color, and a slow glow (`.alarm-card`, `.alarm-card-warn`). The ribbon state is a solid pill. Nothing else on the page uses solid status fills, so alarms always win.
+- **Lead with the claim.** The console opens with a one-line story (4 numbered beats with times), then a full-width **race hero**: Damo vs the legacy Nagios check, lanes with fixed-width time columns, 24 px timestamps, a live "Nagios still silent +m:ss" counter, then "Damo: 6 minutes earlier, to the right person".
+- **Keys are captions.** Explain the hall under the grid ("Each tile is a rack; the number is its inlet temperature…"), never squeezed into a header.
+- **Explain every scenario.** Preflight opens a **Why panel** with each scenario: a verdict-colored solid header, the root-cause chain as numbered steps (change → each hop's equipment and state, with the simulator's "needs X or Y, and all of them are out"), a redundancy callout, and Nemotron's automatic check (tool calls + cited answer + "Every claim traces to a tool result"). From 1400 px it is docked in the rail; below that it overlays the map's left side, and the map shifts and re-fits beside it, so nothing is hidden.
 
 ## 9. Iteration log
 
@@ -131,5 +142,9 @@ Rule: every animation shows something real happening (a reading changing, an eva
 | P0 | Preflight 4 | Baseline (PR #8): top-down map of 43 boxes about 40 px wide, 110 crossing lines, click-to-cycle, insight buried in a table | Starting point |
 | P1 | Preflight 8 | Left-to-right layered map, supply-chain highlight on hover, cascade ripple, one-click scenarios, verdict card, explicit state buttons; all 11 functional checks pass | Readable, interactive, answers the planner's question |
 | P2 | Preflight 9.5 | Map below the scenario bar; outage verdict shows load lost (not "Tightest 90%"); IDs fit; rail first on mobile; label nodes not buttons; debounced hover fixes the swallowed first click | Fixes from screenshots and the functional test (see docs/preflight-test-log.md) |
+
+| P3 | Preflight 9.5 (iPad) | Rows grouped; 132×56 nodes with state words; trace panel with upstream/downstream lists; scenario focus; in-map verdict strip; tablet layout up to 1400 px with scenarios above the map; sqlite thread-safety fix | A technician's view on an iPad: readable, tappable, answers "what feeds this, and what breaks" in one tap |
+
+| v8 | Console 10 · Preflight 10 | Console: story line, full-width race hero, solid alarm header with glow, hall key as caption. Preflight: Why panel (root-cause chain + automatic Nemotron check), docked on desktop, beside a re-fitted map on iPad | The comparison was buried, alarms blended in, the root cause and agent steps were hidden in tabs |
 
 **To reach a true 10:** the same flows driven live (install the tools and the NVIDIA key, so the matrix and agent panels show "live"), and a recorded backup run.
