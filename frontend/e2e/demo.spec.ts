@@ -36,7 +36,8 @@ test('Pump A and ATS-1 demo, as scripted in docs/DEMO.md', async ({ page }) => {
 
   await beat('1. the claim: map loads with the demo hall', async () => {
     await expect(page.getByText('Preflight · Demo hall H1')).toBeVisible();
-    await expect(page.locator('[data-testid^="node-"]')).toHaveCount(43);
+    // 27 pieces of equipment plus 2 rack rows (R1, R2); racks are grouped by row until a row is expanded.
+    await expect(page.locator('[data-testid^="node-"]')).toHaveCount(29);
     await expect(page.getByText('8 of 9 critical services are fully redundant (2N).')).toBeVisible();
   });
 
@@ -44,7 +45,7 @@ test('Pump A and ATS-1 demo, as scripted in docs/DEMO.md', async ({ page }) => {
     await setState(page, 'PUMP-A', 'maintenance');
     await expect(lostStat(page)).toContainText('0 · 0 kW');
     await tab(page, 'Weak points').click();
-    await expect(page.getByText('Single points of failure:')).toContainText('ATS-2, MCC-B, PUMP-B');
+    await expect(page.getByTestId('single-points')).toContainText('ATS-2, MCC-B, PUMP-B');
   });
 
   const finding = page.locator('article', { hasText: 'MCC-B is fed from ATS-1, not ATS-2 as documented' });
@@ -66,7 +67,7 @@ test('Pump A and ATS-1 demo, as scripted in docs/DEMO.md', async ({ page }) => {
     await resetScenario(page);
     await expect(page.getByText('0 of 9 critical services are fully redundant (2N).')).toBeVisible(); // baseline follows
     await tab(page, 'Weak points').click();
-    await expect(page.getByText('Single points of failure:')).toContainText('ATS-1');
+    await expect(page.getByTestId('single-points')).toContainText('ATS-1');
   });
 
   await beat('5. what that costs: ATS-1 fails', async () => {

@@ -34,7 +34,7 @@
 | 3 | Column-label nodes exposed `role="button"`, so "PDU · plant" counted as a "Plan" button for screen readers and tests | Medium (accessibility) | **Fixed:** labels are `focusable: false`, `ariaRole: presentation` |
 | 4 | The outage verdict showed "Tightest 90%" about surviving equipment, which reads as reassurance during an outage | Medium (misleading) | **Fixed:** an outage shows "Load lost" instead |
 | 5 | "kW" rendered as "KW" (capitalize style) | Low | **Fixed** |
-| 6 | One `500 Internal Server Error` seen during one UI run; not reproduced in 3 later full runs | Unknown | **Open:** watch backend logs; likely a race between overlapping simulate calls |
+| 6 | Intermittent `500` on `/findings` and `/facility`: one sqlite connection shared by FastAPI worker threads with no lock; the page loads both at once, queries interleave, rows come back corrupt (`IndexError` in `store.decisions`) | High (data layer) | **Fixed:** `Store` serializes access with a re-entrant lock; regression test `test_store_threads.py`; 200/200 concurrent requests OK |
 | 7 | Agent answer "Losing ATS-1 takes down nothing" omits that 9 services drop from 2N to N | Medium (content) | **Open:** see plan |
 | 8 | Original map unreadable (~40 px boxes, 110 crossing lines); the key insight (2N → N) buried in a table | High (UX) | **Fixed by the redesign** |
 
@@ -49,6 +49,17 @@
 ## Fix plan (remaining)
 
 1. **Agent wording (#7):** when nothing is lost but redundancy drops, the answer should lead with "Nothing goes down, but N services drop to a single path", using the redundancy tool already available to it.
-2. **Intermittent 500 (#6):** log request bodies on 500 in `app/preflight/api.py`, and cancel stale simulate calls in the UI (the effect already ignores stale responses; also abort them).
-3. **Mobile map:** pan and zoom work, but the full 9-column graph is small on phones; consider a "focus on selection" zoom on small screens.
-4. **Findings decisions in the browser test:** run them against a throwaway database (`PREFLIGHT_DB` env var) so the click-through covers Confirm/Reject too.
+2. **Portrait iPad and phones:** pan and zoom work, but the full 9-column graph is small on phones; consider a "focus on selection" zoom on small screens.
+3. **Findings decisions in the browser test:** run them against a throwaway database (`PREFLIGHT_DB` env var) so the click-through covers Confirm/Reject too.
+
+## iPad pass (grouped racks, trace view, tablet layout)
+
+| Device (touch) | Node size at default zoom | Map and verdict on one screen | Horizontal overflow |
+|---|---|---|---|
+| iPad Air landscape 1180×820 | 101×43 | Yes | None |
+| iPad Air portrait 820×1180 | 71×30 (overview; pinch to zoom) | Yes | None |
+| iPad Pro 13" landscape 1366×1024 | 118×50 | Yes | None |
+| iPad Pro 13" portrait 1024×1366 | 87×37 | Yes | None |
+| Desktop 1440×900 (side rail) | 87×37 | Yes | None |
+
+Functional click-through after the change: 11/11 pass, no browser errors. pytest preflight: 90 passed (89 + the thread-safety regression).

@@ -105,7 +105,7 @@ export function CutSetPanel({ cuts, maintenance, picked, onPick }: { cuts: CutSe
         {maintenance.length > 0 && <> while <span className="mono">{maintenance.join(', ')}</span> is in maintenance</>}. Click one to see it on the map.
       </p>
       {cuts.single_points.length > 0
-        ? <div className="rounded-lg border border-critical/40 bg-critical/8 px-3 py-2 text-[12.5px]"><CircleAlert size={13} className="inline text-critical mr-1" />Single points of failure: <span className="mono font-semibold">{cuts.single_points.join(', ')}</span></div>
+        ? <div data-testid="single-points" className="rounded-lg border border-critical/40 bg-critical/8 px-3 py-2 text-[12.5px]"><CircleAlert size={13} className="inline text-critical mr-1" />Single points of failure: <span className="mono font-semibold">{cuts.single_points.join(', ')}</span></div>
         : <div className="rounded-lg border border-ok/40 px-3 py-2 text-[12.5px] text-ok">No single point of failure.</div>}
       <ul className="grid gap-1">
         {cuts.cut_sets.slice(0, 40).map((c) => {
