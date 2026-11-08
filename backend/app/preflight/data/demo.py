@@ -185,3 +185,18 @@ def demo_facility() -> Facility:
         ),
     ]
     return Facility(name="Demo hall H1", nodes=n)
+
+
+def demo_profiles() -> dict[str, list[float]]:
+    """Hourly multipliers (hour 0 = midnight). Inference follows the day; batch training runs hard overnight."""
+    day = [0.85] * 7 + [1.0] * 11 + [1.1] * 6
+    batch = [1.6] * 6 + [1.0] * 14 + [1.4] * 4
+    profiles = {f"R1-{r:02d}": day for r in range(1, 9)}
+    profiles.update({f"R2-{r:02d}": batch for r in range(1, 9)})
+    return profiles
+
+
+def demo_windows() -> list:
+    from engine.timestep import Window
+
+    return [Window(["GEN-2"], 32, 38, "GEN-2 annual service")]
