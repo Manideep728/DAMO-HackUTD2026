@@ -1,30 +1,35 @@
 @import "tailwindcss";
 
 /* Design tokens: see Meria/DESIGN.md. Every colour in the app comes from here. */
-:root, [data-theme="dark"] {
-  --bg: #09090B; --surface: #111114; --surface-2: #18181C; --surface-3: #222228;
-  --border: #25252B; --border-strong: #36363F;
-  --text: #F4F4F5; --text-muted: #A1A1AA; --text-faint: #6B6B74;
-  --inverse: #F4F4F5; --inverse-ink: #09090B;
-  --accent: #4DA3FF; --accent-2: #75B8FF; --accent-ink: #04172B; --accent-soft: rgb(77 163 255 / .12);
-  --legacy: #7D8794;
-  --ok: #3FB68B; --watch: #C9B458; --warning: #E0A33A; --critical: #E5534B; --untrusted: #B392F0;
+/* Damo brand: cream paper and ink, sampled from the logo (paper #F0EDE1, ink #161616). Light is the default. */
+:root, [data-theme="light"] {
+  --bg: #F0EDE1; --surface: #FAF8F1; --surface-2: #E8E4D6; --surface-3: #DDD8C7;
+  --border: #D9D3C1; --border-strong: #C2BBA6;
+  --text: #161616; --text-muted: #55514A; --text-faint: #8A8577;
+  --inverse: #161616; --inverse-ink: #F0EDE1;
+  --accent: #1F5FAE; --accent-2: #2F72C4; --accent-ink: #FFFFFF; --accent-soft: rgb(31 95 174 / .10);
+  --legacy: #7D7A70;
+  --ok: #1E7A55; --watch: #8A741A; --warning: #A86200; --critical: #B8322A; --untrusted: #6A43B5;
+  --shadow: 0 16px 40px rgb(22 22 22 / .12), 0 2px 8px rgb(22 22 22 / .06);
+  --shadow-card: 0 1px 2px rgb(22 22 22 / .05);
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg: #131312; --surface: #1B1B19; --surface-2: #232320; --surface-3: #2D2C28;
+  --border: #2F2E2A; --border-strong: #42403A;
+  --text: #F0EDE1; --text-muted: #ABA697; --text-faint: #767264;
+  --inverse: #F0EDE1; --inverse-ink: #131312;
+  --accent: #7FAEF0; --accent-2: #9BC0F4; --accent-ink: #0B1A2E; --accent-soft: rgb(127 174 240 / .12);
+  --legacy: #8C887C;
+  --ok: #4DBB8F; --watch: #CDB85C; --warning: #E3A640; --critical: #E8625A; --untrusted: #B79CF2;
   --shadow: 0 16px 40px rgb(0 0 0 / .5), 0 2px 8px rgb(0 0 0 / .3);
   --shadow-card: none;
   color-scheme: dark;
 }
-[data-theme="light"] {
-  --bg: #FAFAFA; --surface: #FFFFFF; --surface-2: #F4F4F5; --surface-3: #E9E9EC;
-  --border: #E4E4E7; --border-strong: #D0D0D6;
-  --text: #09090B; --text-muted: #5B5B66; --text-faint: #8E8E99;
-  --inverse: #09090B; --inverse-ink: #FAFAFA;
-  --accent: #0B6BDE; --accent-2: #2B82EC; --accent-ink: #FFFFFF; --accent-soft: rgb(11 107 222 / .08);
-  --legacy: #7D8794;
-  --ok: #1E8A63; --watch: #8C7A1E; --warning: #B26B00; --critical: #C62828; --untrusted: #6F42C1;
-  --shadow: 0 16px 40px rgb(9 9 11 / .12), 0 2px 8px rgb(9 9 11 / .06);
-  --shadow-card: 0 1px 2px rgb(9 9 11 / .04);
-  color-scheme: light;
-}
+/* Show the ink logo on paper and the cream logo on ink. */
+.brand-dark { display: none; }
+[data-theme="dark"] .brand-light { display: none; }
+[data-theme="dark"] .brand-dark { display: block; }
 @theme inline {
   --color-bg: var(--bg); --color-surface: var(--surface); --color-surface-2: var(--surface-2); --color-surface-3: var(--surface-3);
   --color-border: var(--border); --color-border-strong: var(--border-strong);

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, X, Lock, FileSearch, Brain, FileCode2, FlaskConical, Rocket, Radio, BellRing, NotebookPen, Search, ClipboardCheck, WifiOff, UserCheck, ShieldCheck, Scale, Gauge } from 'lucide-react';
+import { ArrowRight, Check, X, Lock, FileSearch, Brain, FileCode2, FlaskConical, Rocket, Radio, BellRing, NotebookPen, Search, ClipboardCheck, WifiOff, UserCheck, ShieldCheck, Scale } from 'lucide-react';
 import { REPO_URL } from '../modern/data';
 
 const modernize = [
@@ -36,7 +36,7 @@ export default function Landing() {
     <div className="min-h-full bg-bg text-text">
       <header className="sticky top-0 z-20 border-b hairline bg-bg/90 backdrop-blur-sm">
         <div className="mx-auto max-w-[1200px] px-5 h-16 flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2.5"><Mark /><span className="font-semibold tracking-[-0.02em]">The Gauntlet</span></Link>
+          <Link to="/" className="flex items-center" aria-label="Damo, home"><img src="/brand/damo-logo.png" alt="Damo" className="brand-light h-[34px] w-auto" /><img src="/brand/damo-logo-light.png" alt="Damo" className="brand-dark h-[34px] w-auto" /></Link>
           <nav className="hidden md:flex items-center gap-6 text-[13.5px] text-muted">
             <a href="#modernize" className="hover:text-text t">Modernize</a><a href="#operate" className="hover:text-text t">Operate</a><a href="#trust" className="hover:text-text t">Trust</a><a href="#who" className="hover:text-text t">Who it's for</a>
           </nav>
@@ -47,7 +47,7 @@ export default function Landing() {
       <section className="mx-auto max-w-[1200px] px-5 pt-20 pb-16 md:pt-28">
         <p className="text-[13.5px] text-muted mb-5">For data center monitoring and operations teams</p>
         <h1 className="text-[44px] md:text-[64px] font-semibold tracking-[-0.045em] leading-[1.02] max-w-[900px]">Retire the monitoring you inherited, without missing a page.</h1>
-        <p className="text-[17px] md:text-[19px] text-muted mt-6 max-w-[680px] leading-relaxed">The Gauntlet reads your old Nagios checks, recovers what they really do, writes the replacement and proves it on the whole alert path. Then it runs the alerts, the investigation and the shift handoff.</p>
+        <p className="text-[17px] md:text-[19px] text-muted mt-6 max-w-[680px] leading-relaxed">Damo reads your old Nagios checks, recovers what they really do, writes the replacement and proves it on the whole alert path. Then it runs the alerts, the investigation and the shift handoff.</p>
         <div className="flex flex-wrap gap-3 mt-9">
           <Link to="/modernize/import" className="btn btn-primary h-11 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium">See modernization <ArrowRight size={16} /></Link>
           <Link to="/operate" className="btn h-11 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium border hairline bg-surface hover:bg-surface-2">See operations</Link>
@@ -93,7 +93,7 @@ export default function Landing() {
       </section>
 
       <section className="mx-auto max-w-[1200px] px-5 py-24 text-center">
-        <Gauge size={22} className="mx-auto text-muted mb-5" aria-hidden />
+        <img src="/brand/damo-mark.png" alt="" className="brand-light mx-auto h-12 w-auto mb-6" /><img src="/brand/damo-mark-light.png" alt="" className="brand-dark mx-auto h-12 w-auto mb-6" />
         <h2 className="text-[34px] md:text-[44px] font-semibold tracking-[-0.04em] leading-tight">Bring one real check.<br /><span className="text-muted">Leave with a tested replacement.</span></h2>
         <div className="flex flex-wrap justify-center gap-3 mt-9">
           <Link to="/modernize/import" className="btn btn-primary h-11 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium">Start the demo <ArrowRight size={16} /></Link>
@@ -102,7 +102,7 @@ export default function Landing() {
 
       <footer className="border-t hairline">
         <div className="mx-auto max-w-[1200px] px-5 py-8 flex flex-wrap gap-x-8 gap-y-2 text-[12.5px] text-faint">
-          <span>The Gauntlet · HackUTD 2026</span>
+          <span>Damo · HackUTD 2026</span>
           <span>Demo baseline: <a className="underline-offset-2 hover:underline hover:text-muted" href={REPO_URL} target="_blank" rel="noreferrer">TTU Nagios–Redfish integration</a> (BSD-3-Clause). Asset map, owners and scenario data are illustrative.</span>
         </div>
       </footer>
@@ -158,10 +158,3 @@ function Preview() {
   );
 }
 
-function Mark() {
-  return (
-    <span className="h-7 w-7 grid place-items-center rounded-lg bg-inverse text-inverse-ink">
-      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5l8 3.2v6.1c0 4.8-3.3 8.6-8 10.2-4.7-1.6-8-5.4-8-10.2V5.7z" /><path d="M8.5 12l2.5 2.5 4.5-5" /></svg>
-    </span>
-  );
-}
