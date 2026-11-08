@@ -10,6 +10,16 @@ DAMO reads the records an operating hall runs on, finds where they disagree, and
 
 ---
 
+## For each track
+
+| Track | Where to look |
+|---|---|
+| **NMC²** | The retrofit walkthrough (CDU placement, BMS mapping, witnessed wet test) and the Console incident. Both pivot on records that disagree with the field. |
+| **NVIDIA Nemotron** | Five live uses, each paired with a check the model can't influence. See *Where Nemotron runs* below. |
+| **8090** | Modernize takes a real legacy Nagios–Redfish check to Prometheus rules, proven against the original plugin with held-out cases, a mutant and a decoy. |
+| **Tiger Data** | 115,584 meter readings in a hypertable with an hourly continuous aggregate. They set Preflight's load profile and independently confirm the ATS-1 finding. |
+| **Vultr** | Production deployment with the verification toolchain built into the image, so the harness runs real checks instead of scripted results. |
+
 ## Inspiration
 
 Data-center power demand is set to roughly double by 2030 (IEA, *Energy and AI*). New buildings take years, so operators are retrofitting the halls they already have: liquid-cooled GPU racks, a cooling distribution unit (CDU), new leak sensors, all wired into a building management system that was set up a decade ago.
@@ -18,7 +28,7 @@ The engineers doing that work don't lack tools. They lack one version of the tru
 
 Two examples drove the whole project:
 
-- **A backup that isn't independent.** The one-line diagram shows Pump A and Pump B on separate power paths. A 2023 work order and a 2024 IR scan show both pump panels running through the same transfer switch, ATS-1. On paper the cooling is 2N. In the field it's N.
+- **A backup that isn't independent.** The one-line diagram shows Pump A and Pump B on separate power paths. A 2023 work order and a 2024 maintenance log show both pump panels running through the same transfer switch, ATS-1. On paper the cooling is 2N. In the field it's N.
 - **An alarm that goes to the wrong rack.** A revised drawing moves leak sensor LD-2 to rack R3-01. The BMS mapping still says R3-02. The alarm fires, and the technician runs to the wrong rack with water on the floor.
 
 Neither one shows up on a dashboard. Both show up when you read every record side by side, and that's work a model can speed up, as long as something other than the model checks the answer.
@@ -49,22 +59,28 @@ The night shift on the retrofitted hall. GPU-07 passes every health check (61 °
 
 ## How we built it
 
+### Where Nemotron runs
+
 > **Nemotron proposes. Something it can't influence decides.**
 
 | Nemotron does | Checked by |
 |---|---|
-| Proposes "X is fed from Y" from work orders and logs | A quote validator. The quote must appear in the record word for word, read as a feed in that direction, and name two real inventory nodes. |
-| Answers Preflight questions through eight engine tools | A citation validator. Any node or number not present in the tool results the answer cites is rejected. |
-| Recovers legacy behaviour, then writes and repairs rules | A harness that runs the original plugin, promtool and amtool. Held-out cases, a wrong-recipient mutant and an alert-everything decoy make sure the suite can fail. |
-| Investigates incidents | Kept out of the alert path. Rules, paging and work orders run with the model switched off. |
+| **Discovery** (Preflight, "Read with Nemotron"): proposes "X is fed from Y" from work orders and logs | A quote validator. The quote must appear in the record word for word, read as a feed in that direction, and name two real inventory nodes. |
+| **Preflight agent** (Nemotron 3.5 Super): answers questions through eight engine tools | A citation validator. Any node or number not present in the tool results the answer cites is rejected. |
+| **Modernize recover and repair** (Nemotron 3.5 Super): reads and runs the legacy plugin, 20 tool calls in our recorded run, then repairs the failing rules | A harness that runs the original plugin, promtool and amtool. Held-out cases, a wrong-recipient mutant and an alert-everything decoy make sure the suite can fail. |
+| **Console investigation** (Nemotron Nano): queries telemetry, the asset map, the logbook and the runbook, and returns cited hypotheses | Kept out of the alert path. Rules, paging and work orders run with the model switched off. |
 
-The Preflight agent's tools: simulate, find cut sets, evaluate plan, search plans, search docs, get node, get neighbors, and propose dependency.
+Every live response is cached and labelled live, cached or scripted on screen. The Preflight agent's tools: simulate, find cut sets, evaluate plan, search plans, search docs, get node, get neighbors, and propose dependency.
 
 ### Engine
 (`backend/engine/`, pure Python, no model). Requirement groups (`all`, `any`, `k_of_n`, `capacity`) over a power and cooling graph. Support is computed as a least fixpoint, so dependency cycles are safe. Overloaded suppliers shed the lowest-criticality load first, and every failed node gets a causal trace. Minimal cut sets come from MOCUS expansion up to order 3, cross-checked against brute-force enumeration in the tests.
 
 ### Tiger Data
 Meter readings live in a TimescaleDB hypertable with an hourly continuous aggregate. The load profile Preflight plans against is the worst hourly average at each hour of the week over four weeks. Reconciliation correlates each meter's unexplained load with candidate consumers to catch equipment wired to a different supplier than documented.
+
+That is how the meters back up the records. Next to the work order and the maintenance log, the ATS-1 finding cites: *"ATS-1 carries 16.7 kW more than its documented loads and ATS-2 is short by about as much; both gaps track MCC-B's meter (r = 0.96 and −0.97 over 14 days)."* The paperwork and the physics agree, and the one-line diagram is the outlier.
+
+> *Image:* `docs/screenshots/9-tiger/4-meter-evidence-crop.png`
 
 ### Vultr
 DAMO runs on a Vultr server with Docker Compose: an API container and a web container behind the server's Caddy, which terminates HTTPS. The API image downloads promtool 3.2.1, amtool 0.28.1 and jq 1.7.1 from their release pages and verifies each against its published SHA-256 before installing it. That matters for the demo: on a laptop without those tools the Verify harness falls back to scripted results and says so, while the Vultr image has everything it needs to run the real checks. Secrets live in an env file on the server, never in the repository, and SQLite state, the meter snapshot and recorded model replies sit on named volumes so they survive redeploys.
@@ -97,7 +113,7 @@ The useful job for an LLM in a data center isn't deciding anything. It's reading
 
 ## Honest scope
 
-The facility, records and load profiles are synthetic. Power and cooling are kW budgets on a graph: no CFD, hydraulics or electrical load flow. Passing the harness is evidence on the stated scenarios, not proof of equivalence, and nothing here replaces physical commissioning.
+The facility and its records are synthetic, and the retrofit walkthrough replays a recorded engine run. Power and cooling are modelled as kW budgets, and passing the harness is evidence on the stated scenarios, not a replacement for physical commissioning.
 
 ## Built with
 
