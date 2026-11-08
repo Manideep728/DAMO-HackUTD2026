@@ -1,151 +1,203 @@
 # DAMO
- 
-**Change your data center without guessing.** DAMO retires legacy monitoring checks by proof, and lets you rehearse equipment work before anyone touches a panel.
- 
-HackUTD 2026 · Tracks: **NMC²** · **NVIDIA Nemotron** · **8090** · MLH: **Best Use of Tiger Data**
- 
+
+**Make existing data centers AI-ready.**
+
+DAMO helps engineers plan liquid-cooled GPU retrofits, modernize inherited monitoring, and carry the resulting equipment context into daily operations.
+
+HackUTD 2026 · **NMC²** · **NVIDIA Nemotron** · **8090** · MLH: **Best Use of Tiger Data**
+
 <img width="1268" height="662" alt="image" src="https://github.com/user-attachments/assets/021b2d8f-aeb9-4a67-95a2-db836d65c110" />
 
-## The problem
- 
-About half of the world's data centers are more than ten years old. They still page their night shift through static checks: Nagios plugins, BMS limits and DCIM alarms that nobody dares retune. Their records disagree with the wiring in the field. Two things break as a result:
- 
-- **Monitoring can't be modernized safely.** Moving off the old checks is done by hand over months, because nobody can prove the replacement catches everything the old one did.
-- **Maintenance is a gamble.** "Pump B can carry the load" is true on paper, until a 2023 work order reveals that both pumps run through the same transfer switch.
-DAMO turns both into something you can check before you act.
- 
-## What DAMO does
- 
-| Screen | Route | What it does |
-|---|---|---|
-| **Modernize** | `/modernize/*` | Takes a real legacy check (the Texas Tech HPCC Redfish plugin) through five steps. **M1** imports it and lists the gaps. **M2**: Nemotron recovers its behaviour and asks the operator where the code is ambiguous. **M3** generates the new rules. **M4** tests them. **M5** repairs, reviews, runs in shadow, rolls back or releases. |
-| **Verify a change** | `/verify` | Proves the alarm path still works. Candidate rules v1 and v2 run through the harness: the real plugin, `promtool` and `amtool`. Held-out cases, a wrong-recipient mutant and an alert-everything decoy make sure the tests can actually fail. |
-| **Console** | `/` | The night shift on hall H1. Fan 4 on Compute2 (rack R1-03) stops, and the released rules warn before the old Nagios check would page. The alarm comes first, with steps to acknowledge, investigate, dispatch, verify recovery and hand off. Alerting never depends on the model. |
-| **Preflight** | `/preflight` | A what-if simulator for equipment work. Before you take a pump offline or add a row of GPUs, see what depends on it, what could fail, and the safest window and plan. |
- 
-`/about` is the landing page. Rack and feed chips on the Console open the same equipment in Preflight.
- 
-### The finding Preflight is built to show
- 
-*Enough capacity is not the same as independent backup.* In the demo hall, Pump A and Pump B can each carry the full cooling load, and the one-line diagram puts them on separate power paths. A 2023 work order and a 2024 IR scan show both pump panels running through **ATS-1**. When an engineer confirms that finding, every critical service drops from **2N to N**, and ATS-1 shows up as the shared single point of failure.
- 
-## Why this isn't "just pasting the script into an LLM"
- 
-An LLM gives you a translation. DAMO gives you a translation plus evidence that it's right.
- 
-- **The real legacy code is the reference.** The harness runs the original plugin, not the model's reading of it.
-- **The tests can fail.** Held-out cases, a mutant and a decoy check that the test suite catches a wrong rule rather than passing everything.
-- **Every model claim is checked.** The agent's validator rejects any answer that names a node or number not in the tool results it cites. Discovery rejects quotes that are not verbatim.
-- **People decide.** An engineer confirms or rejects every discovered dependency, and every rule goes through review, shadow mode and rollback before release, with an audit log throughout.
-Nemotron writes sentences, rules and plans. Execution decides whether they're right.
- 
-## Where Nemotron fits
- 
-| Job | How |
+## Why we built it
+
+Adding GPU racks and liquid cooling to an operating data center requires more than installing pipes.
+
+An engineer has to determine where a cooling distribution unit (CDU) fits, whether existing cooling and electrical infrastructure can support it, and how to install it without interrupting the customers already running there. Then the building management system (BMS) needs to understand the new equipment.
+
+The answers are scattered across floor plans, cooling schematics, equipment manuals, BMS point lists and maintenance records. Those sources can disagree.
+
+A revised drawing might show that a leak sensor moved to Rack A, while the BMS still assigns its alarm to Rack B. A cooling plan might show two independent pumps, while a maintenance record reveals that both depend on the same transfer switch.
+
+DAMO brings those records into a workflow where engineers can inspect the evidence, review proposed changes and test the intended behavior before handover.
+
+## Modernize: from scattered records to a reviewed handover
+
+The retrofit walkthrough follows an existing hall adding two liquid-cooled GPU racks.
+
+1. **Connect the inputs.** Review equipment records, drawings, point lists and maintenance history. Keep missing information visible.
+2. **Map the site.** Connect racks, cooling equipment, sensors and power dependencies. Surface conflicting records for an engineer to resolve.
+3. **Compare cooling options.** Review capacity, water conditions, power, space, access and interface requirements.
+4. **Plan the work.** Identify affected equipment, shared dependencies, installation constraints and maintenance risks.
+5. **Review the integration.** Inspect the proposed BMS mappings and configuration changes, with supporting evidence.
+6. **Test and hand over.** Compare expected and observed behavior, correct discrepancies, and retain the accepted configuration and test results.
+
+The sample story includes a leak sensor assigned to the wrong rack. The complete chain stays visible: source record → discrepancy → engineer decision → configuration change → retest.
+
+The current walkthrough uses prepared sample records and replayed results. It does not parse arbitrary uploaded PDFs or perform physical commissioning.
+
+### Executable legacy-monitoring verification
+
+DAMO also includes a separate modernization workflow built around the real Texas Tech HPCC Nagios–Redfish integration.
+
+It imports the legacy check, recovers its behavior, generates a candidate replacement, and evaluates the alert path: missing or extra alerts, severity, timing, recipient and recovery.
+
+The harness uses the original plugin, `promtool` and `amtool`. Held-out cases, a wrong-recipient mutant and an alert-everything decoy help establish that the tests can reject incorrect behavior.
+
+Passing those cases is evidence about the tested scenarios, not proof that every possible failure is covered.
+
+## Operate: catch a wrong answer behind a green dashboard
+
+A GPU can return an incorrect result without crashing or raising an obvious error. Normal temperatures and utilization do not establish computational correctness.
+
+The current operations demo follows a **simulated silent-GPU-error incident**:
+
+1. GPU-07 fails a scheduled known-answer test while conventional health indicators remain green.
+2. A repeated check reproduces the mismatch; peer GPU-06 passes.
+3. The operator reviews evidence and possible causes, then dispatches a work order to the GPU platform team.
+4. Technician notes preserve what was done and any corrections to the record.
+5. The incident remains open until repeated checks and a peer comparison support recovery.
+6. The incoming shift receives the work history, remaining uncertainty, owner and next action.
+
+These are prepared scenario results, not tests executed on a connected GPU. A live implementation would need approved workload access, trusted references, appropriate numerical tolerances and validated test coverage. A mismatch alone does not prove defective hardware, and a passing test does not establish correctness for every workload.
+
+The console connects incidents to equipment, dependencies, records and prior work. Accepted alert rules can run without requiring an LLM response; model-assisted investigation is separate from deterministic alerting.
+
+## Preflight: check dependencies before maintenance
+
+Preflight models power and cooling dependencies and evaluates proposed equipment work.
+
+In the sample hall, two pumps can each carry the cooling load. The drawings suggest separate power paths, but maintenance records identify a shared transfer switch. Once an engineer confirms that relationship, the simulator exposes the common failure point.
+
+The engine calculates capacity, dependency failures, redundancy and minimal cut sets. It can compare maintenance windows and candidate plans.
+
+These are simplified infrastructure calculations, not CFD, hydraulic simulation, electrical load flow or engineering certification.
+
+## Where NVIDIA Nemotron fits
+
+Nemotron supports behavior recovery, rule generation and repair, document-backed investigation, and tool-based planning.
+
+The Preflight agent can call tools including:
+
+`simulate` · `find_cut_sets` · `evaluate_plan` · `search_plans` · `search_docs` · `get_node` · `get_neighbors` · `propose_dependency`
+
+Models are accessed through [build.nvidia.com](https://build.nvidia.com) using the OpenAI-compatible API. The application supports live, cached and mock paths. The Preflight fallback identifies itself as a scripted planner when no model is used. Prepared walkthrough narration is separate from live model execution.
+
+Engineers approve changes. Model output does not substitute for test execution or physical inspection.
+
+## Explore the demo
+
+| Route | Experience |
 |---|---|
-| Recover legacy behaviour (Modernize M2) | Reads the plugin and its Nagios objects, explains what they do, asks the operator where the code is ambiguous |
-| Generate and repair rules (M3–M5) | Drafts rules; harness failures are fed back until they pass |
-| Preflight agent | Tool calling over `simulate`, `find_cut_sets`, `evaluate_plan`, `search_plans`, `search_docs`, `get_node`, `get_neighbors`, `propose_dependency` |
-| Console investigation | Optional; the offline path is labelled and alerting works without it |
- 
-Models come from [build.nvidia.com](https://build.nvidia.com) through the OpenAI-compatible API. Without a key, the agent runs a scripted planner over the same tools and labels itself **"scripted planner (no model)"**.
- 
-## Quick start
- 
+| `/#/about` | Landing page |
+| `/#/setup` | Liquid-cooling retrofit walkthrough |
+| `/#/modernize/import` | Legacy monitoring modernization, M1–M5 |
+| `/#/verify` | Alert-path verification |
+| `/#/preflight` | Dependency and maintenance planning |
+| `/#/` | Operations console after the setup handover |
+
+Demo guides: [Preflight](docs/DEMO.md) · [Modernize and Console](docs/modernize-demo.md)
+
+Keyboard: `?` for help · `Ctrl+Shift+D` for the Director panel.
+
+## Run locally
+
 ```bash
-make setup        # backend venv + pip, frontend npm ci
-make dev          # backend :8000, frontend :5173
-make test         # engine, discovery, API and agent eval
+make setup
+make dev
 ```
- 
-Open **http://localhost:5173/#/** for the Console, or **/#/preflight** for the simulator.
- 
-To run the Verify harness on your own machine, install the real plugin and fetch `promtool`:
- 
+
+The backend runs on port `8000`; the frontend runs on port `5173`.
+
+Open [the landing page](http://localhost:5173/#/about) or [the retrofit walkthrough](http://localhost:5173/#/setup).
+
+```bash
+make test       # backend tests
+make eval       # scripted-planner evaluation
+make rehearse   # browser rehearsal
+```
+
+The Verify harness also requires the monitoring plugin and Prometheus tools:
+
 ```bash
 sudo apt install monitoring-plugins-basic
 make promtool
 ```
- 
-**Deploy the frontend on Vercel:** import the repo and deploy; the root `vercel.json` installs and builds `frontend/` and serves `frontend/dist` (leave Root Directory empty in the Vercel dashboard). Routes use the hash (`/#/preflight`), so no rewrites are needed. The Python backend does not run on Vercel: the Console, the retrofit setup, Modernize and Verify fall back to their committed demo data, and Preflight shows "backend unreachable" until a backend is hosted elsewhere.
 
-## Configuration
- 
-All settings live in `backend/.env` (start from `.env.example`).
- 
+### Configuration
+
+Start from the repository's `.env.example` and put backend settings in `backend/.env`.
+
 | Variable | Purpose |
 |---|---|
-| `NVIDIA_API_KEY` | Nemotron access, from build.nvidia.com |
+| `NVIDIA_API_KEY` | NVIDIA model access |
 | `NVIDIA_BASE_URL` | Defaults to `https://integrate.api.nvidia.com/v1` |
-| `NEMOTRON_MODEL` | The current tool-calling model ID from build.nvidia.com; falls back to `NEMOTRON_SUPER` |
-| `NEMOTRON_SUPER`, `NEMOTRON_NANO` | Model IDs for the larger and faster roles |
-| `GAUNTLET_MODE` | `live` calls Nemotron and caches every response · `cached` replays the cache (demo offline) · `mock` serves fixtures. The badge in the top bar always shows which |
-| `LEGACY_PLUGIN` | Path to the real plugin, e.g. `/usr/lib/nagios/plugins/check_snmp` |
-| `METERS_DATABASE_URL` | A Tiger (TimescaleDB) service for meter data |
-| `GAUNTLET_GITHUB_REPO` | `owner/repo`; with `gh auth login`, accepted findings open real GitHub issues |
- 
-**Tiger meters:** set `METERS_DATABASE_URL`, then run `make meters-check meters-seed`. Every sync is also written to `backend/.work/telemetry.json`, and the app starts from that snapshot when Tiger is unreachable. Venue Wi-Fi often blocks Tiger's port; a phone hotspot works. `make db-up test-db` runs the meter SQL tests against a local TimescaleDB container, never against Tiger.
- 
-**Agent eval:** `make eval` runs the 24-question eval against the scripted planner. Run it with `EVAL_MODE=live` and a key set to test Nemotron. See `docs/devpost.md` for the latest live results.
- 
-## Demos
- 
-- **Preflight (2–3 min):** [`docs/DEMO.md`](docs/DEMO.md). `make rehearse` clicks through it and checks every number.
-- **Modernize + Console (3 min):** [`docs/modernize-demo.md`](docs/modernize-demo.md).
-- **Keyboard:** `?` help · `Ctrl+Shift+D` Director panel (replay, jump to end, planned failures, speed).
-## How it's built
- 
-**Preflight engine** (`backend/engine/`, pure Python, no model):
- 
-| Part | What it does | File |
-|---|---|---|
-| Simulator | Requirement groups (`all`, `any`, `k_of_n`, `capacity`) over a power and cooling graph. Support is a least fixpoint, so cycles are safe. Overloaded suppliers shed the lowest-criticality load first. Every failed node gets a causal trace. | `engine/propagate.py` |
-| Weak points | Minimal cut sets up to order 3 by exact MOCUS expansion, checked by the simulator and cross-checked against brute-force enumeration in tests. A maintenance view shows which sets shrink during a work window. | `engine/cutsets.py` |
-| Independence | For each redundant group, how many failures it takes to lose every supplier, and the shared nodes when that number is 1. | `engine/redundancy.py` |
-| Planner | Scores hourly windows on critical loss, shed load, cut-set order and headroom. Tries shedding flexible GPU load, postponing overlapping work, temporary cooling, and moving equipment back to its documented feed. Returns ranked plans, plus rejected ones with reasons. | `engine/planner.py` |
- 
-**Application** (`backend/app/`):
- 
-| Part | What it does | File |
-|---|---|---|
-| Discovery | Reads work orders, logs, tickets and the one-line diagram text. Resolves names like "transfer sw 1" or "ATS1" to node IDs. Extracts feeds with exact quotes, rejects quotes that aren't verbatim, and rejects claims that were temporary or never built. Shows the impact if a claim is true; an engineer confirms or rejects it. | `app/preflight/discovery.py` |
-| Meters | Power readings in Tiger: a hypertable plus an hourly continuous aggregate. The load profile is the worst hourly average at each hour of the week over 4 weeks. Reconciliation correlates each meter's unexplained load with candidate consumers to catch equipment wired to a different supplier than documented. | `app/preflight/meters.py`, `telemetry.py` |
-| Agent | Nemotron tool calling with a citation validator | `app/preflight/agent.py` |
-| Modernize | Inputs, agent, harness and release operations for the TTU Redfish check | `app/ttu/` |
-| Verify | Real plugin + `promtool` + `amtool` harness | `app/verify/` |
- 
-**Repo layout**
- 
+| `NEMOTRON_MODEL` | Tool-calling model ID; falls back to `NEMOTRON_SUPER` |
+| `NEMOTRON_SUPER`, `NEMOTRON_NANO` | Model IDs for larger and faster roles |
+| `GAUNTLET_MODE` | `live`, `cached` or `mock` |
+| `LEGACY_PLUGIN` | Path to the monitoring plugin |
+| `METERS_DATABASE_URL` | Tiger/TimescaleDB connection for meter data |
+| `GAUNTLET_GITHUB_REPO` | Optional issue integration, with authenticated `gh` access |
+
+To create and seed the configured meter database with sample readings:
+
+```bash
+make meters-check meters-seed
 ```
-frontend/   React + Vite + Tailwind
-            src/console (Console, Verify) · src/preflight (Preflight, FacilityMap, Panels)
-            src/modern (Modernize M1–M5) · src/components (shell, ui) · src/screens (Landing, older screens)
-backend/    FastAPI · engine/ (simulator, cut sets, planner) · app/preflight · app/ttu · app/verify · app/prompts
-legacy/     pinned TTU Redfish plugins and Nagios objects (legacy/ttu); the earlier check_rack_inlet config
-docs/       DEMO.md · modernize-demo.md · devpost.md · DESIGN.md · ux-audit.md · v4-gaps.md
+
+Meter synchronization also saves a local telemetry snapshot for offline use. For database tests against a local TimescaleDB container:
+
+```bash
+make db-up test-db
 ```
- 
-## What's real and what's simulated
- 
-**Real:** the legacy plugins (pinned, unmodified), `promtool`, `amtool`, the simulator and cut-set math, the discovery validator, the Tiger SQL, and Nemotron tool calling (smoke-tested with a key).
- 
-**Simulated or simplified:**
- 
-- The facility, records and load profiles are synthetic. Meter data is generated from the as-built wiring (28 days, 15-minute steps, 0.2% meter error); the queries are what would run on real meters.
-- Power and cooling are kW budgets on a dependency graph. There is no CFD, no electrical load flow and no protection coordination, and the UI says so on every screen.
-- Demand splits across live suppliers in proportion to capacity (first-available for transfer switches). Real busbars and chilled-water hydraulics don't split that neatly.
-- Transients are steady-state snapshots with default timings: generator start 15 s, UPS 5–8 min, chiller restart 6 min, rack ride-through 4 min.
-- Cut sets treat whole nodes as failing. Every candidate is re-checked with the full simulator, but above order 1 a set that matters only through load moving far from the failure can be missed.
-- Meters can only check suppliers whose consumers each have one feed. Dual (2N) rack feeds and transfer-switch sources can't be separated from meters alone.
-- Discovery scores 1.0 precision and recall on the hand-written demo corpus. On 10 seeded sets of noisy records it keeps 1.0 precision with 0.867–0.983 recall; most misses are digit-swap typos that spell another real tag.
-## What's next
- 
-Make existing data centers ready for AI hardware. The next step is helping controls engineers integrate a liquid-cooled GPU retrofit (CDU, leak sensors, rack mapping) into the existing BMS with tested, reviewable changes, then using that verified equipment map for incident response. The checklist is in [`docs/v4-gaps.md`](docs/v4-gaps.md).
- 
+
+For live model evaluation, configure a key and run:
+
+```bash
+EVAL_MODE=live make eval
+```
+
+### Frontend deployment
+
+The root `vercel.json` builds `frontend/` and serves `frontend/dist`. Leave Vercel's Root Directory empty. The app uses hash routes, with a deployment fallback for direct paths.
+
+The Python backend must be hosted separately. Frontend-only deployment uses committed demo data where supported; Preflight requires a reachable backend.
+
+## Implementation and boundaries
+
+- **Frontend:** React, Vite and Tailwind.
+- **Backend:** FastAPI and a deterministic Python dependency engine.
+- **Monitoring verification:** pinned legacy plugins, Prometheus and Alertmanager tooling.
+- **Telemetry:** Tiger/TimescaleDB with local snapshot fallback.
+- **AI:** NVIDIA Nemotron tool calling and evidence-backed investigation.
+
+The repository includes executable harnesses, backend logic and tests alongside prepared demo flows. The facility, work records, load profiles and retrofit scenario are sample data. Replayed agent activity and sample commissioning records are not live hardware actions.
+
+The system assists engineering review. It does not certify structural suitability, authorize maintenance, control production infrastructure or replace qualified physical commissioning.
+
+## Repository
+
+```text
+frontend/   Application, operations console, retrofit walkthrough and modernization UI
+backend/    FastAPI, dependency engine, monitoring harnesses and integrations
+legacy/     Pinned legacy monitoring checks and configuration
+docs/       Demo guides, design notes and implementation scope
+```
+
+See [the implementation gaps](docs/v4-gaps.md), [retrofit direction](docs/direction-ai-retrofit.md) and [Devpost notes](docs/devpost.md).
+
+## Credits
+
+The legacy-monitoring demonstration uses the [Texas Tech Nagios–Redfish API Integration](https://github.com/nsfcac/Nagios-Redfish-API-Integration), licensed under BSD-3-Clause. Preserve its notices when reusing the pinned source.
+
+Built for HackUTD 2026.
+
 ## Team workflow
- 
-1. Accept the collaborator invite: https://github.com/Manideep728/DAMO-HackUTD2026/invitations
-2. `gh auth login`
-3. `gh repo clone Manideep728/DAMO-HackUTD2026` and open the folder in Claude Code.
-Each teammate's Claude agent coordinates through this repo's Issues, following the protocol in `CLAUDE.md`. Your inbox is the open issues assigned to you; it prints at the start of every Claude Code session, or run `scripts/inbox.sh`.
- 
+
+Clone the repository and follow `CLAUDE.md` for teammate and agent coordination.
+
+```bash
+gh auth login
+gh repo clone Manideep728/DAMO-HackUTD2026
+```
+
+Assigned work is tracked through repository Issues. Run `scripts/inbox.sh` to view your inbox.
