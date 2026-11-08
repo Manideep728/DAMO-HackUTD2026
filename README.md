@@ -35,9 +35,10 @@ Meters: set `METERS_DATABASE_URL` (a Tiger service) in `backend/.env`, then `mak
 - Demand is shared across live suppliers in proportion to capacity (or first-available for transfer switches). Real busbars and chilled-water hydraulics do not split that neatly.
 - Transients are a sequence of steady-state snapshots with default timings (generator start 15 s, UPS 5–8 min, chiller restart 6 min, rack ride-through 4 min).
 - Cut sets treat whole nodes as failing and use baseline loads to build candidates. Every candidate is re-checked with the full simulator, but above order 1 a set that only matters through load moving somewhere far from the failure can be missed.
+- Meter data is synthetic: the simulator generates it from the as-built wiring (28 days, 15-minute steps, 0.2% meter error). The reconciliation and profile queries are what would run on real meters. Meters can only check suppliers whose consumers each have one feed; 2N rack feeds and transfer-switch sources can't be split from meters alone.
 - Under load shedding, failing a load frees capacity, so "more failures never improve any margin" holds for supply and remaining capacity, not for every individual margin. The property tests assert those monotone versions.
 - The facility, records and load profiles are synthetic. Discovery scores 1.0 precision and recall on the hand-written demo corpus. On 10 seeded sets of noisy records it keeps 1.0 precision with 0.867–0.983 recall; most misses are digit-swap typos that spell another real tag.
-- Live Nemotron tool calling has not been run in this repo yet: no API key was available while building it.
+- Live Nemotron tool calling works with the key in `backend/.env` (smoke-tested); the 24-question live eval results go in `docs/devpost.md` once the run finishes.
 
 ## Modernize and Operate (earlier Damo work)
 
@@ -89,6 +90,7 @@ Keyboard: `1–5` screens · `A` accept · `D` dismiss · `S` sign off · `U` un
 ```
 frontend/   React + Vite + Tailwind. src/screens (Checks, Read, Find, Prove, Handoff), src/data (DataSource, Mock, Api), src/fixtures
 backend/    FastAPI. app/main.py (SSE endpoints), app/llm.py (Nemotron via build.nvidia.com, cache), app/verify (sweep.py, traces.py), app/prompts
+            engine/ (pure simulator, cut sets, planner) · app/preflight (API, discovery, agent, meters.py + telemetry.py for Tiger)
 legacy/     the real Nagios config for check_rack_inlet, inventory.csv, oncall_roster.csv, plugin stand-in, README with declared drift
 .cursor/    build rules used to design this (domain, UX, design system, engine, verification UI, Nemotron API, QA)
 docs/       DEMO.md (preflight demo), modernize-demo.md, devpost.md, DESIGN.md, PROMPT.md (the build prompt)

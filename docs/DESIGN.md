@@ -116,6 +116,7 @@ Rule: every animation shows something real happening (a reading changing, an eva
 - **iPad layout (primary device):** up to 1400 px the map leads, at full width, sized to the screen with no page scroll. A row of 44 px scenario buttons sits above it, and the verdict and tabs sit below. From 1400 px (laptops, desktops) the 400 px side rail returns. Phones put the rail first.
 - **Targets:** at least 44 pt for every control. Nodes are 101×43 (Air landscape) and 118×50 (Pro landscape) at the default zoom. Portrait opens as a whole-site overview; pinch to zoom.
 - **Rail order:** one-click scenarios (safe, at risk, and the two outage cases) → selected equipment → **verdict** → tabs (Impact, Weak points, Findings, Plan, Ask; all original functionality kept).
+- **Meter evidence:** in a finding's evidence list, a meters row uses a gauge icon (accent) instead of the document icon, reads "Meters · Tiger · synthetic · <date>", and shows its statement without quote marks: it is a measurement, not a quote. The Plan tab shows one muted line under the button saying which load was simulated: measured (with sync time, or "offline, last synced") or the hand-written profile.
 - **Verdict:** Outage (red) when services are lost, showing load lost · "Safe, but exposed" (amber) when nothing is lost but services drop to N or headroom is under 10% · Safe (green). New single points of failure appear as purple chips that highlight on the map, plus "show all".
 
 ## 11. Attention rules (v8)

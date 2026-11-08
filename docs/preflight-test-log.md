@@ -63,3 +63,20 @@
 | Desktop 1440×900 (side rail) | 87×37 | Yes | None |
 
 Functional click-through after the change: 11/11 pass, no browser errors. pytest preflight: 90 passed (89 + the thread-safety regression).
+
+## Meters pass (Tiger Data, PR #13)
+
+8 Nov 2026 · branch `5`. Live service: Tiger, Postgres 18.6, TimescaleDB 2.31. Tests: local `timescale/timescaledb:2.17.2-pg16` on :5434.
+
+| Check | Result |
+|---|---|
+| `make meters-seed` (28 days, as-built wiring) | 115,584 rows in 4.4 s |
+| `make meters-sync` | 3.6 s; one difference: MCC-B on ATS-1, 16.7 kW gap, r = 0.96 / −0.97 |
+| MCC-B finding with meters | 0.97 → 0.99, Meters row shown in the UI |
+| Meters from the documented wiring (3 seeds) | no difference found |
+| Tiger unreachable at startup | app starts from the snapshot, `offline: true`; sync returns 503 "(Connection refused)" |
+| Planner, measured load, after confirming | Pump A hour 6–12 every day; UTIL-A hour 0–6 with restore Mon–Fri, hour 6–12 Sat–Sun (CRAH-3 headroom 17% overnight) |
+| pytest | 127 passed + 4 skipped without a DB; 131 passed with `TEST_DATABASE_URL` |
+| `make rehearse` (meters off) | 4/4 |
+| Mutations (two-sided rule, SQL subtraction, discovery merge) | 5, 1 and 4 tests fail; restored |
+

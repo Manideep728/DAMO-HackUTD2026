@@ -27,6 +27,8 @@ We build the Gauntlet's verification spine: real plugins in, `promtool`-verified
 
 **Cut from both plans:** the Python SDK rewrite, drill mode (pitched as the next step), free-text disasters, the UPS fault card, Tiger Data, a hosted copy, 3D, real hardware and auto-acting without approval.
 
+**Update (8 Nov):** Tiger Data is back, for Preflight only and entered under the MLH Best Use of Tiger Data prize (MLH prizes don't count toward the 3-track cap). It holds the meter readings that the planner's measured load profile and discovery's meter reconciliation read. Stage risk is handled by a local snapshot: the app starts from the last sync when Tiger is unreachable. See README → Preflight → Meters.
+
 ## Pitch and tracks
 
 Data center paging still leans on static threshold checks: Nagios plugins, BMS limits and DCIM alarms nobody dares retune. The Gauntlet retires them by proof, not by trust.
