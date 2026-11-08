@@ -38,13 +38,14 @@ test('Pump A and ATS-1 demo, as scripted in docs/DEMO.md', async ({ page }) => {
     await expect(page.getByText('Preflight · Demo hall H1')).toBeVisible();
     // 27 pieces of equipment plus 2 rack rows (R1, R2); racks are grouped by row until a row is expanded.
     await expect(page.locator('[data-testid^="node-"]')).toHaveCount(29);
+    await expect(page.getByText('8 of 9 critical services are fully redundant (2N).')).toBeVisible();
   });
 
   await beat('2. rehearse: Pump A in maintenance', async () => {
     await setState(page, 'PUMP-A', 'maintenance');
     await expect(lostStat(page)).toContainText('0 · 0 kW');
     await tab(page, 'Weak points').click();
-    await expect(page.getByText('Single points of failure:')).toContainText('ATS-2, MCC-B, PUMP-B');
+    await expect(page.getByTestId('single-points')).toContainText('ATS-2, MCC-B, PUMP-B');
   });
 
   const finding = page.locator('article', { hasText: 'MCC-B is fed from ATS-1, not ATS-2 as documented' });
@@ -64,8 +65,9 @@ test('Pump A and ATS-1 demo, as scripted in docs/DEMO.md', async ({ page }) => {
     await finding.getByRole('button', { name: 'Confirm' }).click();
     await expect(finding).toContainText('confirmed');
     await resetScenario(page);
+    await expect(page.getByText('0 of 9 critical services are fully redundant (2N).')).toBeVisible(); // baseline follows
     await tab(page, 'Weak points').click();
-    await expect(page.getByText('Single points of failure:')).toContainText('ATS-1');
+    await expect(page.getByTestId('single-points')).toContainText('ATS-1');
   });
 
   await beat('5. what that costs: ATS-1 fails', async () => {
@@ -91,14 +93,24 @@ test('Pump A and ATS-1 demo, as scripted in docs/DEMO.md', async ({ page }) => {
     await page.locator('#pf-plan-from').fill('0');
     await page.locator('#pf-plan-to').fill('48');
     await page.getByRole('button', { name: 'Find the safest window' }).click();
-    await expect(page.getByText('52 windows and mitigations simulated.', { exact: false })).toBeVisible();
+    await expect(page.getByText('61 windows and mitigations simulated.', { exact: false })).toBeVisible();
     const rows = page.locator('label').filter({ hasText: /hour \d+–\d+/ });
     await expect(rows.first()).toContainText('hour 6–12');
     await expect(rows.first()).toContainText('recommended', { ignoreCase: true });
     await expect(rows.first()).toContainText('single points ATS-1, MCC-B, PUMP-B');
     const unmitigated = rows.filter({ hasNotText: 'with ' });
     for (const text of await unmitigated.allInnerTexts()) expect(text).toContain('ATS-1');
-    await expect(rows.filter({ hasText: 'hour 0–6' })).toContainText('lower headroom (18%) than the recommended plan (33%)');
+    await expect(rows.filter({ hasText: 'hour 0–6' }).first()).toContainText('lower headroom (18%) than the recommended plan (33%)');
+
+    // The utility test: the planner turns the confirmed finding into the first step of the work.
+    await page.locator('#pf-plan-nodes').fill('UTIL-A');
+    await page.getByRole('button', { name: 'Find the safest window' }).click();
+    await expect(rows.first()).toContainText('hour 0–6');
+    await expect(rows.first()).toContainText('with MCC-B switched back to its documented feed');
+    await expect(rows.first()).toContainText('assumes MCC-B is switched back to its documented feed ATS-2 first');
+    const plain = rows.filter({ hasText: 'hour 0–6' }).filter({ hasNotText: 'with ' });
+    await expect(plain).toContainText('cut-set order 1 vs 2 for the recommended plan');
+    await expect(plain).toContainText('single points ATS-1, GEN-1');
   });
 
   await beat('7. ask', async () => {

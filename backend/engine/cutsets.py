@@ -47,11 +47,19 @@ class CutSetReport:
 
 
 def _minimize(family: Iterable[Cut], max_order: int) -> set[Cut]:
-    kept: list[Cut] = []
-    for c in sorted(set(family), key=lambda s: (len(s), sorted(s))):
-        if len(c) <= max_order and not any(k <= c for k in kept):
-            kept.append(c)
-    return set(kept)
+    """Drop every set that contains a smaller one. Smallest first, so a set only needs checking against kept
+    ones; two different sets of the same size never contain each other, so ties need no ordering. Kept sets are
+    indexed by one of their members: any kept subset of c is indexed under a member of c."""
+    kept: set[Cut] = set()
+    index: dict[str, list[Cut]] = {}
+    for c in sorted({c for c in family if len(c) <= max_order}, key=len):
+        if not c:
+            return {c}  # the empty cut (already failed) contains in every other set
+        if any(k <= c for e in c for k in index.get(e, ())):
+            continue
+        kept.add(c)
+        index.setdefault(next(iter(c)), []).append(c)
+    return kept
 
 
 def _or(families: Iterable[set[Cut]], k: int) -> set[Cut]:
@@ -105,6 +113,7 @@ class FaultTree:
         for (_, s), kw in self.base.shares.items():
             self.served[s] = self.served.get(s, 0.0) + kw
         self.memo: dict[str, set[Cut]] = {}
+        self.group_memo: dict[tuple[str, str], set[Cut]] = {}
         self.stack: set[str] = set()
 
     def node(self, nid: str) -> set[Cut]:
@@ -122,6 +131,16 @@ class FaultTree:
         return self.memo[nid]
 
     def group(self, consumer: Node, g: RequirementGroup) -> set[Cut]:
+        # Callers outside the recursion (redundancy asks for the same shared groups once per service) reuse the
+        # result. Inside it a cycle can make a result partial, so only top-level results are kept.
+        if self.stack:
+            return self._group(consumer, g)
+        key = (consumer.id, g.name)
+        if key not in self.group_memo:
+            self.group_memo[key] = self._group(consumer, g)
+        return self.group_memo[key]
+
+    def _group(self, consumer: Node, g: RequirementGroup) -> set[Cut]:
         sup = g.live_suppliers()
         if g.mode == Mode.all:
             return _or((self.node(s) for s in sup), self.k)

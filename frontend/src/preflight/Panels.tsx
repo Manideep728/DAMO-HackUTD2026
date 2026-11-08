@@ -105,7 +105,7 @@ export function CutSetPanel({ cuts, maintenance, picked, onPick }: { cuts: CutSe
         {maintenance.length > 0 && <> while <span className="mono">{maintenance.join(', ')}</span> is in maintenance</>}. Click one to see it on the map.
       </p>
       {cuts.single_points.length > 0
-        ? <div className="rounded-lg border border-critical/40 bg-critical/8 px-3 py-2 text-[12.5px]"><CircleAlert size={13} className="inline text-critical mr-1" />Single points of failure: <span className="mono font-semibold">{cuts.single_points.join(', ')}</span></div>
+        ? <div data-testid="single-points" className="rounded-lg border border-critical/40 bg-critical/8 px-3 py-2 text-[12.5px]"><CircleAlert size={13} className="inline text-critical mr-1" />Single points of failure: <span className="mono font-semibold">{cuts.single_points.join(', ')}</span></div>
         : <div className="rounded-lg border border-ok/40 px-3 py-2 text-[12.5px] text-ok">No single point of failure.</div>}
       <ul className="grid gap-1">
         {cuts.cut_sets.slice(0, 40).map((c) => {
@@ -225,6 +225,13 @@ function Quotes({ title, items }: { title: string; items: Evidence[] }) {
   );
 }
 
+/** Planner mitigation ids in words: shed_flexible_load, temporary_cooling, postpone:<window>, restore:<node>. */
+function mitigationText(m: string): string {
+  if (m.startsWith('postpone:')) return `${m.slice('postpone:'.length)} postponed`;
+  if (m.startsWith('restore:')) return `${m.slice('restore:'.length)} switched back to its documented feed`;
+  return m.replaceAll('_', ' ');
+}
+
 export function PlanResults({ res, compare, onToggleCompare }: { res: PlanSearch; compare: number[]; onToggleCompare: (i: number) => void }) {
   const all = [...res.top.map((p) => ({ p, top: true })), ...res.rejected.slice(0, 8).map((p) => ({ p, top: false }))];
   return (
@@ -236,7 +243,7 @@ export function PlanResults({ res, compare, onToggleCompare }: { res: PlanSearch
             <input type="checkbox" checked={compare.includes(i)} onChange={() => onToggleCompare(i)} />
             {top ? (i === 0 ? <StatusPill kind="ok" word="Recommended" size="sm" /> : <Badge>Alternative</Badge>) : <Badge tone="warning">Rejected</Badge>}
             <span className="mono font-semibold">hour {p.start}–{p.end}</span>
-            {p.mitigations.length > 0 && <span className="text-muted">with {p.mitigations.join(', ').replaceAll('_', ' ')}</span>}
+            {p.mitigations.length > 0 && <span className="text-muted">with {p.mitigations.map(mitigationText).join(', ')}</span>}
           </span>
           <span className="text-muted">cut-set order {p.min_cut_order}{p.single_points.length > 0 && <> · single points <span className="mono">{p.single_points.join(', ')}</span></>} · lowest headroom {pct(p.min_margin)}{p.tightest && <> on <span className="mono">{p.tightest}</span></>}</span>
           {p.reasons.length > 0 && <span className={top ? 'text-muted' : 'text-warning'}>{p.reasons.join('; ')}</span>}
