@@ -1,0 +1,31 @@
+# Caddy inside the web container: plain HTTP on :8080. The server's own Caddy terminates HTTPS in
+# front of it (deploy/README.md), so this one never manages certificates.
+{
+	admin off
+	auto_https off
+	persist_config off
+}
+
+:8080 {
+	handle /api/* {
+		# Read, Find, Prove and the agents stream Server-Sent Events: pass each event on immediately.
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /srv
+		# As vercel.json: a plain path (/preflight) serves index.html, whose script turns it into /#/preflight.
+		# Missing files under /assets and /brand stay 404s.
+		@page {
+			not path /assets/* /brand/*
+			not file
+		}
+		rewrite @page /index.html
+		encode gzip
+		# Vite puts a content hash in every asset name, so a cached asset is never stale.
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+}

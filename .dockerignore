@@ -1,0 +1,15 @@
+# Allowlist: the build context is the repo root, and only what the images copy is sent to Docker.
+# Anything new (an .env, a key, a dump) stays out of every image unless it is added here on purpose.
+*
+!backend/app
+!backend/engine
+!backend/requirements.txt
+!legacy
+!frontend
+!deploy/Caddyfile
+frontend/node_modules
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+**/__pycache__
+**/.env*

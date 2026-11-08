@@ -1,0 +1,36 @@
+# DAMO on one server; deploy/deploy.sh runs it as project "damo". Secrets come from ENV_FILE on the
+# server (default /etc/damo.env), never from the repository.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+      labels: { project: damo }
+    image: damo-api:latest
+    env_file: ${ENV_FILE:-/etc/damo.env}
+    volumes:
+      # SQLite (Preflight, retrofit), the Tiger meter snapshot and recorded model replies outlive deploys.
+      - work:/app/backend/.work
+      - cache:/app/backend/cache
+    restart: unless-stopped
+    logging: &logging
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+      labels: { project: damo }
+    image: damo-web:latest
+    ports:
+      # Localhost only: the server's Caddy is the one client. Docker's published ports bypass ufw.
+      - "127.0.0.1:${WEB_PORT:-8100}:8080"
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  work:
+  cache:
