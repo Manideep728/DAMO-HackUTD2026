@@ -4,8 +4,8 @@
  
 HackUTD 2026 · Tracks: **NMC²** · **NVIDIA Nemotron** · **8090** · MLH: **Best Use of Tiger Data**
  
----
- 
+<img width="1268" height="662" alt="image" src="https://github.com/user-attachments/assets/021b2d8f-aeb9-4a67-95a2-db836d65c110" />
+
 ## The problem
  
 About half of the world's data centers are more than ten years old. They still page their night shift through static checks: Nagios plugins, BMS limits and DCIM alarms that nobody dares retune. Their records disagree with the wiring in the field. Two things break as a result:
