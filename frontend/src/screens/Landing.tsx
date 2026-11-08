@@ -1,160 +1,53 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, X, Lock, FileSearch, Brain, FileCode2, FlaskConical, Rocket, Radio, BellRing, NotebookPen, Search, ClipboardCheck, WifiOff, UserCheck, ShieldCheck, Scale } from 'lucide-react';
+import { Activity, ArrowRight, Check, Droplets, Network, Radio, ShieldCheck } from 'lucide-react';
 import { REPO_URL } from '../modern/data';
 
-const modernize = [
-  { k: 'M1', t: 'Import real inputs', d: 'Pin the old check, inherited config, asset and owner map, and procedures. Missing and unsupported inputs are listed, not guessed.', I: FileSearch },
-  { k: 'M2', t: 'Recover behavior and intent', d: 'States, missing-data rules, retries, recovery and recipients, each with a source. An operator confirms every deliberate change.', I: Brain },
-  { k: 'M3', t: 'Generate a reviewable change', d: 'Nemotron writes the collector, rules and routing, and lists what is preserved versus intentionally changed.', I: FileCode2 },
-  { k: 'M4', t: 'Test the whole alert path', d: 'Old and new run on identical scenarios: missed and extra alerts, severity, timing, recipient, recovery. Held-out cases stay sealed.', I: FlaskConical },
-  { k: 'M5', t: 'Repair, review, release', d: 'Nemotron fixes failures; an engineer reviews; shadow operation and rollback are tested before a versioned release.', I: Rocket },
-];
-const operate = [
-  { k: 'R1', t: 'Collect and evaluate', d: 'Stable asset IDs, units and freshness. Missing telemetry is never healthy. Rules and delivery run with the model offline.', I: Radio },
-  { k: 'R2', t: 'Deliver and assign', d: 'Route by the owner and shift map. Delivery, failure, fallback and acknowledgement are recorded separately; unacknowledged incidents escalate.', I: BellRing },
-  { k: 'R3', t: 'Preserve evidence', d: 'Original technician notes, occurrence and entry times, work-order state and correction history, never overwritten.', I: NotebookPen },
-  { k: 'R4', t: 'Investigate and recommend', d: 'Cited hypotheses, stated uncertainty and a next task for the right role. It cannot invent owners, approve itself or touch infrastructure.', I: Search },
-  { k: 'R5', t: 'Verify and hand off', d: 'Recovery needs fresh measurements. Handoffs carry risks, work done, owner and next action, and the incoming shift accepts them.', I: ClipboardCheck },
-];
-const principles = [
-  { t: 'The model writes. Execution decides.', d: 'Every claim about the old check is confirmed by running it. Every new rule is judged by replayed scenarios, not by the model that wrote it.', I: Scale },
-  { t: 'A person approves every change.', d: 'Operators confirm intent, engineers review diffs, the operations lead releases. Nemotron never approves its own work.', I: UserCheck },
-  { t: 'Alerts survive a model outage.', d: 'Accepted rules and notification delivery are deterministic. Take Nemotron offline and pages still go out.', I: WifiOff },
-  { t: 'Bounded evidence, stated plainly.', d: 'Passing cases proves behavior on those cases. The evidence pack says what was tested and what was not.', I: ShieldCheck },
-];
-const roles = [
-  ['Monitoring / platform engineer', 'Runs the modernization and reviews the diff'],
-  ['Operations lead', 'Confirms intent and approves the release'],
-  ['Duty operator', 'Acknowledges and dispatches'],
-  ['Technician', 'Records work against the work order'],
-  ['Incoming shift', 'Accepts the handoff, explicitly'],
-  ['Workload owner', 'Authorizes job actions separately'],
-];
+const jobs = [
+  { n: '01', icon: Activity, title: 'Modernize the integration', body: 'Import inherited controls, recover intent, generate a reviewable change and prove it against fixed expectations.', to: '/modernize', action: 'Choose a project' },
+  { n: '02', icon: Network, title: 'Rehearse the facility change', body: 'Use the accepted equipment graph to expose shared dependencies, service impact and safer plans before work begins.', to: '/preflight', action: 'Open Preflight' },
+  { n: '03', icon: Radio, title: 'Operate with accepted context', body: 'Detect with deterministic rules, scope the incident through the reviewed map and preserve owner actions through handoff.', to: '/', action: 'Open Operate' },
+] as const;
+
+const cooling = [
+  ['Equipment model', 'One graph connects facility water, CDU-1, rack coolant, valves, leak zones and GPU racks.'],
+  ['Mapping correction', 'A syntactically valid wrong-rack mapping fails an independent behavior test.'],
+  ['Change control', 'Firmware 2.4.0 invalidates only affected decisions and reruns only affected tests.'],
+  ['Readiness', 'Software evidence stays separate from witnessed field checks and unresolved ownership.'],
+] as const;
 
 export default function Landing() {
   return (
     <div className="min-h-full bg-bg text-text">
-      <header className="sticky top-0 z-20 border-b hairline bg-bg/90 backdrop-blur-sm">
-        <div className="mx-auto max-w-[1200px] px-5 h-16 flex items-center gap-8">
-          <Link to="/" className="h-12 flex items-center" aria-label="Damo, home"><img src="/brand/damo-logo.png" alt="Damo" className="brand-light h-[34px] w-auto" /><img src="/brand/damo-logo-light.png" alt="Damo" className="brand-dark h-[34px] w-auto" /></Link>
-          <nav className="hidden md:flex items-center gap-6 text-[14px] text-muted">
-            <a href="#modernize" className="hover:text-text t inline-flex items-center h-12 px-2">Modernize</a><a href="#operate" className="hover:text-text t inline-flex items-center h-12 px-2">Operate</a><a href="#trust" className="hover:text-text t inline-flex items-center h-12 px-2">Trust</a><a href="#who" className="inline-flex items-center h-12 px-1 hover:text-text t">Who it's for</a>
-          </nav>
-          <Link to="/modernize/import" className="ml-auto btn btn-primary h-12 px-4 rounded-lg inline-flex items-center gap-2 text-[14px] font-medium">Open the demo <ArrowRight size={15} /></Link>
+      <header className="border-b hairline bg-bg">
+        <div className="mx-auto max-w-[1200px] px-4 sm:px-6 h-16 flex items-center gap-6">
+          <Link to="/" className="h-12 flex items-center" aria-label="Damo, home"><Logo /></Link>
+          <nav aria-label="Product" className="hidden sm:flex items-center gap-1 text-body text-muted"><a href="#product" className="h-10 px-3 inline-flex items-center hover:text-text t">Product</a><a href="#cooling" className="h-10 px-3 inline-flex items-center hover:text-text t">Liquid cooling</a><a href="#evidence" className="h-10 px-3 inline-flex items-center hover:text-text t">Evidence</a></nav>
+          <Link to="/modernize" className="ml-auto btn btn-primary h-11 px-4 rounded-control inline-flex items-center gap-2 text-body font-medium">Open workspace <ArrowRight size={15} /></Link>
         </div>
       </header>
 
-      <section className="mx-auto max-w-[1200px] px-5 pt-20 pb-16 md:pt-28">
-        <p className="text-[14px] text-muted mb-5">For data center monitoring and operations teams</p>
-        <h1 className="text-[44px] md:text-[64px] font-semibold tracking-[-0.045em] leading-[1.02] max-w-[900px]">Retire the monitoring you inherited, without missing a page.</h1>
-        <p className="text-[17px] md:text-[19px] text-muted mt-6 max-w-[680px] leading-relaxed">Damo reads your old Nagios checks, recovers what they really do, writes the replacement and proves it on the whole alert path. Then it runs the alerts, the investigation and the shift handoff.</p>
-        <div className="flex flex-wrap gap-3 mt-9">
-          <Link to="/modernize/import" className="btn btn-primary h-12 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium">See modernization <ArrowRight size={16} /></Link>
-          <Link to="/" className="btn h-12 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium border hairline bg-surface hover:bg-surface-2">See operations</Link>
-        </div>
-        <Preview />
-      </section>
+      <main>
+        <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-28">
+          <p className="kicker mb-4">Controls modernization for existing data centers</p>
+          <h1 className="max-w-[960px] text-[44px] md:text-[64px] font-semibold tracking-[-0.04em] leading-[1.02]">Change the integration.<br/><span className="text-muted">Rehearse the facility. Operate the result.</span></h1>
+          <p className="text-section text-muted mt-6 max-w-[720px] leading-relaxed">Damo turns inherited monitoring and new liquid-cooling equipment into tested, reviewable packages. The same accepted model then supports facility simulation and incident response.</p>
+          <div className="flex flex-wrap gap-3 mt-8"><Link to="/modernize/retrofit" className="btn btn-primary h-12 px-5 rounded-control inline-flex items-center gap-2 text-body font-medium">See the cooling workflow <ArrowRight size={16}/></Link><Link to="/modernize" className="h-12 px-5 rounded-control border hairline bg-surface inline-flex items-center text-body font-medium hover:bg-surface-2 t">Browse projects</Link></div>
+          <div className="mt-14 rounded-surface border hairline bg-surface overflow-hidden"><div className="grid md:grid-cols-[1fr_auto_1fr_auto_1fr] items-stretch"><Signal title="Accepted package" body="Versioned mapping, rules, tests and rollback"/><ArrowRight className="hidden md:block self-center text-faint" size={18}/><Signal title="Shared equipment graph" body="The same facility context in Modernize and Preflight"/><ArrowRight className="hidden md:block self-center text-faint" size={18}/><Signal title="Bounded operations" body="Deterministic detection with reviewed incident context"/></div></div>
+        </section>
 
-      <section className="border-y hairline bg-surface">
-        <div className="mx-auto max-w-[1200px] px-5 py-6 flex flex-wrap items-center gap-x-10 gap-y-3 text-[14px] text-muted">
-          <span className="text-faint">Works with what you run</span>
-          {['Nagios Core plugins', 'Redfish / BMC', 'Prometheus', 'Alertmanager', 'NVIDIA Nemotron'].map((x) => <span key={x} className="font-medium text-text/80">{x}</span>)}
-        </div>
-      </section>
+        <section id="product" className="border-y hairline bg-surface"><div className="mx-auto max-w-[1200px] px-4 sm:px-6 py-20"><div className="max-w-[720px] mb-10"><p className="kicker mb-3">One product, three jobs</p><h2 className="text-title font-semibold tracking-[-0.025em]">Every page answers a different operational question.</h2></div><div className="divide-y divide-[var(--border)] border-y hairline">{jobs.map(({ n, icon: Icon, title, body, to, action }) => <article key={n} className="grid md:grid-cols-[64px_240px_1fr_auto] gap-4 md:gap-6 items-center py-6"><span className="mono text-label text-faint">{n}</span><h3 className="text-section font-semibold flex items-center gap-3"><Icon size={18} className="text-muted"/>{title}</h3><p className="text-body text-muted max-w-prose">{body}</p><Link to={to} className="h-10 inline-flex items-center gap-2 font-medium text-body hover:text-accent t">{action}<ArrowRight size={15}/></Link></article>)}</div></div></section>
 
-      <section className="mx-auto max-w-[1200px] px-5 py-24">
-        <div className="max-w-[720px] mb-12"><h2 className="text-[32px] md:text-[40px] font-semibold tracking-[-0.035em] leading-tight">Nobody here wrote the checks that page you at 3 AM.</h2><p className="text-[16px] text-muted mt-4 leading-relaxed">Static checks outlive the people who tuned them. Their limits encode upstream constraints nobody wrote down, their recipients point at mailboxes nobody reads, and the context lives in engineers' heads.</p></div>
-        <div className="grid md:grid-cols-3 gap-px rounded-2xl overflow-hidden border hairline bg-border">
-          {[
-            ['Intent is undocumented', 'Limits often reflect upstream constraints, like cabinet and power budgets, that live in someone\'s memory, not the config.'],
-            ['Pages go nowhere', 'Inherited templates ship with placeholder contacts. In the public TTU Redfish check, every alert goes to nagios@localhost.'],
-            ['Handoffs drop context', 'Shift handoffs need explicit risks, owners and next actions, or the incoming team starts from zero.'],
-          ].map(([t, d]) => <div key={t} className="bg-surface p-7"><div className="font-semibold text-[16px] mb-2">{t}</div><p className="text-[14px] text-muted leading-relaxed">{d}</p></div>)}
-        </div>
-      </section>
+        <section id="cooling" className="mx-auto max-w-[1200px] px-4 sm:px-6 py-20 md:py-24"><div className="grid lg:grid-cols-[0.8fr_1.2fr] gap-10 lg:gap-16"><div><p className="kicker mb-3">Liquid-cooling retrofit</p><h2 className="text-title font-semibold tracking-[-0.025em]">Start with the equipment, then earn the accepted package.</h2><p className="text-body text-muted mt-4 max-w-prose">The headline workflow follows CDU-1 and row R3 from topology through mapping, change control and witnessed readiness.</p><Link to="/modernize/retrofit" className="mt-6 h-11 inline-flex items-center gap-2 font-semibold text-body hover:text-accent t">Walk through the project <ArrowRight size={16}/></Link></div><ol className="border-t hairline">{cooling.map(([title, body], index) => <li key={title} className="grid grid-cols-[36px_1fr] gap-4 border-b hairline py-5"><span className="mono text-label text-faint">{String(index + 1).padStart(2, '0')}</span><div><h3 className="text-body font-semibold">{title}</h3><p className="text-body text-muted mt-1">{body}</p></div></li>)}</ol></div></section>
 
-      <Flow id="modernize" kicker="Workflow 1 · Modernize" title="From inherited check to tested, reversible release." sub="For the monitoring or platform engineer, approved by the operations lead. Output: a versioned monitoring update with test evidence and rollback." items={modernize} cta={{ to: '/modernize/import', label: 'Walk through M1–M5' }} />
-      <Flow id="operate" kicker="Workflow 2 · Operate" title="Run the alerts, the investigation and the handoff." sub="For the duty operator, technician and incoming shift. Platform and workload owners authorize job actions separately." items={operate} cta={{ to: '/operate', label: 'Play the night shift' }} />
+        <section id="evidence" className="border-y hairline bg-surface"><div className="mx-auto max-w-[1200px] px-4 sm:px-6 py-20 grid lg:grid-cols-[1fr_1.2fr] gap-10"><div><p className="kicker mb-3">What is real</p><h2 className="text-title font-semibold tracking-[-0.025em]">Models propose. Execution and people decide.</h2></div><ul className="grid gap-4 text-body">{['Behavior tests run through the adapter and are judged by expectations outside the generated config.','Preflight computes impact and redundancy from a shared graph; it does not certify hydraulics or electrical protection.','Operators and engineers confirm intent, approve packages and witness physical checks.','Synthetic sites, estimates and unexecuted comparison arms are labeled explicitly.'].map((item) => <li key={item} className="flex items-start gap-3"><Check size={17} className="text-ok mt-1 shrink-0"/><span>{item}</span></li>)}</ul></div></section>
 
-      <section id="trust" className="border-t hairline">
-        <div className="mx-auto max-w-[1200px] px-5 py-24">
-          <h2 className="text-[32px] md:text-[40px] font-semibold tracking-[-0.035em] leading-tight max-w-[720px] mb-12">Built for the people who get blamed when a page is missed.</h2>
-          <div className="grid md:grid-cols-2 gap-4">{principles.map(({ t, d, I }) => (
-            <div key={t} className="card p-7"><I size={20} className="text-muted mb-4" aria-hidden /><div className="font-semibold text-[17px] tracking-[-0.01em] mb-2">{t}</div><p className="text-[14px] text-muted leading-relaxed">{d}</p></div>))}
-          </div>
-        </div>
-      </section>
+        <section className="mx-auto max-w-[1200px] px-4 sm:px-6 py-20 flex flex-wrap items-end gap-8"><div className="max-w-[720px]"><Droplets size={24} className="text-accent mb-5"/><h2 className="text-title font-semibold tracking-[-0.025em]">Inspect the cooling model, then follow the evidence.</h2><p className="text-body text-muted mt-3">The backend and frontend run locally; the recorded replay remains available when external services are offline.</p></div><Link to="/modernize/retrofit" className="lg:ml-auto btn btn-primary h-12 px-5 rounded-control inline-flex items-center gap-2 text-body font-medium">Start with CDU-1 <ArrowRight size={16}/></Link></section>
+      </main>
 
-      <section id="who" className="border-t hairline bg-surface">
-        <div className="mx-auto max-w-[1200px] px-5 py-24 grid lg:grid-cols-[1fr_1.4fr] gap-12">
-          <div><h2 className="text-[32px] font-semibold tracking-[-0.035em] leading-tight">Every role keeps its own decision.</h2><p className="text-[15px] text-muted mt-4 leading-relaxed">Ownership comes from your owner and shift map, never from the model.</p></div>
-          <div className="grid sm:grid-cols-2 gap-px rounded-2xl overflow-hidden border hairline bg-border">{roles.map(([r, d]) => <div key={r} className="bg-bg p-5"><div className="font-medium text-[14.5px]">{r}</div><div className="text-[14px] text-muted mt-1">{d}</div></div>)}</div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-[1200px] px-5 py-24 text-center">
-        <img src="/brand/damo-mark.png" alt="" className="brand-light mx-auto h-12 w-auto mb-6" /><img src="/brand/damo-mark-light.png" alt="" className="brand-dark mx-auto h-12 w-auto mb-6" />
-        <h2 className="text-[34px] md:text-[44px] font-semibold tracking-[-0.04em] leading-tight">Bring one real check.<br /><span className="text-muted">Leave with a tested replacement.</span></h2>
-        <div className="flex flex-wrap justify-center gap-3 mt-9">
-          <Link to="/modernize/import" className="btn btn-primary h-12 px-5 rounded-lg inline-flex items-center gap-2 text-[14.5px] font-medium">Start the demo <ArrowRight size={16} /></Link>
-        </div>
-      </section>
-
-      <footer className="border-t hairline">
-        <div className="mx-auto max-w-[1200px] px-5 py-8 flex flex-wrap gap-x-8 gap-y-2 text-[12.5px] text-faint">
-          <span>Damo · HackUTD 2026</span>
-          <span>Demo baseline: <a className="underline-offset-2 hover:underline hover:text-muted" href={REPO_URL} target="_blank" rel="noreferrer">TTU Nagios–Redfish integration</a> (BSD-3-Clause). Asset map, owners and scenario data are illustrative.</span>
-        </div>
-      </footer>
+      <footer className="border-t hairline"><div className="mx-auto max-w-[1200px] px-4 sm:px-6 py-8 flex flex-wrap gap-x-8 gap-y-2 text-label text-faint"><span>Damo · HackUTD 2026</span><span>TTU baseline: <a className="underline hover:text-muted" href={REPO_URL} target="_blank" rel="noreferrer">Nagios–Redfish integration</a>. Facility and scenario data are synthetic.</span><Link to="/evidence/retrofit" className="hover:text-muted">Review evaluation evidence</Link></div></footer>
     </div>
   );
 }
 
-function Flow({ id, kicker, title, sub, items, cta }: { id: string; kicker: string; title: string; sub: string; items: { k: string; t: string; d: string; I: typeof Radio }[]; cta: { to: string; label: string } }) {
-  return (
-    <section id={id} className="border-t hairline">
-      <div className="mx-auto max-w-[1200px] px-5 py-24">
-        <div className="flex flex-wrap items-end gap-6 mb-12">
-          <div className="max-w-[720px]"><p className="text-[14px] text-muted mb-3">{kicker}</p><h2 className="text-[32px] md:text-[40px] font-semibold tracking-[-0.035em] leading-tight">{title}</h2><p className="text-[15.5px] text-muted mt-4 leading-relaxed">{sub}</p></div>
-          <Link to={cta.to} className="md:ml-auto btn h-12 px-4 rounded-lg inline-flex items-center gap-2 text-[14px] font-medium border hairline bg-surface hover:bg-surface-2">{cta.label} <ArrowRight size={15} /></Link>
-        </div>
-        <ol className="grid md:grid-cols-5 gap-px rounded-2xl overflow-hidden border hairline bg-border">
-          {items.map(({ k, t, d, I }) => (
-            <li key={k} className="bg-surface p-6">
-              <div className="flex items-center justify-between mb-6"><I size={18} className="text-muted" aria-hidden /><span className="mono text-[12px] text-faint">{k}</span></div>
-              <div className="font-semibold text-[15px] tracking-[-0.01em] mb-2">{t}</div>
-              <p className="text-[14px] text-muted leading-relaxed">{d}</p>
-            </li>))}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-function Preview() {
-  const rows: [string, string, boolean[]][] = [
-    ['Normal', 'No alert', [true, true, true, true, true]],
-    ['Sustained Critical', 'Critical at +3 min', [true, true, true, true, true]],
-    ['Brief spike', 'No alert', [true, true, true, true, true]],
-    ['Missing temperature feed', 'Unknown at +3 min', [true, true, true, true, true]],
-    ['Recovery', 'Resolved notice', [true, true, true, true, true]],
-    ['Correct alert, wrong recipient', 'Mutant must fail', [true, true, true, true, true]],
-  ];
-  return (
-    <div className="mt-16 card overflow-hidden shadow-[var(--shadow)]">
-      <div className="flex items-center gap-3 px-5 h-12 border-b hairline text-[14px]">
-        <span className="font-semibold">M4 · Test the whole alert path</span>
-        <span className="text-muted">ttu-redfish-temperature · candidate v2</span>
-        <span className="ml-auto inline-flex items-center gap-1.5 text-ok"><Check size={14} /> 6/6 cases · 3/3 held-out</span>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-[14px] min-w-[720px]">
-          <thead className="text-left border-b hairline"><tr><th className="th pl-5 h-10">Case</th><th className="th">Expected</th>{['Missed / extra', 'Severity', 'Timing', 'Recipient', 'Recovery'].map((h) => <th key={h} className="th text-center">{h}</th>)}</tr></thead>
-          <tbody>{rows.map(([c, e, v]) => <tr key={c} className="border-b hairline last:border-0"><td className="pl-5 py-3 font-medium">{c}</td><td className="text-muted">{e}</td>{v.map((x, i) => <td key={i} className="text-center">{x ? <Check size={15} className="inline text-ok" strokeWidth={2.5} /> : <X size={15} className="inline text-critical" />}</td>)}</tr>)}</tbody>
-        </table>
-      </div>
-      <div className="px-5 py-3 border-t hairline text-[12.5px] text-muted flex items-center gap-2"><Lock size={13} /> Expectations and held-out cases are fixed before generation and stay outside the agent's control.</div>
-    </div>
-  );
-}
-
+function Signal({ title, body }: { title: string; body: string }) { return <div className="p-5"><div className="flex items-center gap-2 text-body font-semibold"><ShieldCheck size={17} className="text-ok"/>{title}</div><p className="text-label text-muted mt-2">{body}</p></div>; }
+function Logo() { return <><img src="/brand/damo-logo.png" alt="Damo" className="brand-light h-[30px] w-auto"/><img src="/brand/damo-logo-light.png" alt="Damo" className="brand-dark h-[30px] w-auto"/></>; }

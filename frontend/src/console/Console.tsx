@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Bell, BellRing, Check, X, Wrench, ShieldCheck, ArrowRight, RotateCcw, Radio, WifiOff, Thermometer, Fan, Copy, ClipboardCheck, Sparkles, Loader2, HeartPulse, Pause, Play, CircleDot, Zap, Snowflake, ChevronRight, FastForward } from 'lucide-react';
+import { Bell, BellRing, Check, X, Wrench, ShieldCheck, ArrowRight, RotateCcw, Radio, WifiOff, Thermometer, Fan, Copy, ClipboardCheck, Sparkles, Loader2, HeartPulse, Pause, Play, CircleDot, Zap, Snowflake, ChevronRight, FastForward, Settings2 } from 'lucide-react';
 import { cx } from '../components/ui';
 import { useModern } from '../modern/store';
 import { AgentRun } from '../modern/Live';
@@ -143,12 +143,8 @@ function FanStallNight() {
           <div className="text-[12px] text-faint">Night shift · scripted night, illustrative readings</div>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Link to="/modernize/test" className="h-12 px-3.5 rounded-xl border border-border hover:bg-surface-2 text-[14px] inline-flex items-center gap-2 t" title="Every alarm path was tested against the old check"><ShieldCheck size={16} className="text-ok" /> Alarm paths tested 6/6</Link>
-          <button onClick={() => setOffline((v) => !v)} aria-pressed={!offline} className={cx('h-12 px-3.5 rounded-xl border text-[14px] font-medium inline-flex items-center gap-2 t', offline ? 'border-warning/60 text-warning bg-warning/10' : 'border-border hover:bg-surface-2')} title="Alerting never depends on the model">
-            <span className={cx('switch', offline ? 'bg-warning/70' : 'bg-ok')} data-on={!offline} aria-hidden /> Nemotron {offline ? 'offline' : 'online'}
-          </button>
-          {(stage === 'watching' || (stage === 'warned' && running)) && <button onClick={() => setRunning((v) => !v)} className="h-12 w-12 grid place-items-center rounded-xl border border-border hover:bg-surface-2 t" aria-label={running ? 'Pause' : 'Play'}>{running ? <Pause size={17} /> : <Play size={17} />}</button>}
-          <button onClick={replay} className="h-12 w-12 grid place-items-center rounded-xl border border-border hover:bg-surface-2 t" aria-label="Replay the night" title="Replay the night"><RotateCcw size={17} /></button>
+          <Link to="/modernize/test" className="h-10 px-3 rounded-control text-label text-muted hover:text-text inline-flex items-center gap-2 t" title="Every alarm path was tested against the old check"><ShieldCheck size={15} className="text-ok" /> Release evidence 6/6</Link>
+          <details className="relative"><summary className="list-none h-11 px-3 rounded-control border hairline bg-surface hover:bg-surface-2 text-body font-medium inline-flex items-center gap-2 cursor-pointer"><Settings2 size={16}/>Demo controls</summary><div className="absolute right-0 top-[calc(100%+6px)] z-40 w-[280px] card shadow-[var(--shadow)] p-3 grid gap-2"><button onClick={() => setOffline((v) => !v)} aria-pressed={!offline} className={cx('h-11 px-3 rounded-control border text-body font-medium inline-flex items-center gap-2 t', offline ? 'border-warning/60 text-warning bg-warning/10' : 'border-border hover:bg-surface-2')}><span className={cx('switch', offline ? 'bg-warning/70' : 'bg-ok')} data-on={!offline} aria-hidden /> Investigation assistant {offline ? 'offline' : 'online'}</button><div className="grid grid-cols-2 gap-2">{(stage === 'watching' || (stage === 'warned' && running)) && <button onClick={() => setRunning((v) => !v)} className="h-11 px-3 rounded-control border border-border hover:bg-surface-2 t inline-flex items-center justify-center gap-2">{running ? <Pause size={17} /> : <Play size={17} />}{running ? 'Pause' : 'Play'}</button>}<button onClick={replay} className="h-11 px-3 rounded-control border border-border hover:bg-surface-2 t inline-flex items-center justify-center gap-2"><RotateCcw size={17} />Replay</button></div></div></details>
         </div>
       </div>
 

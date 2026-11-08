@@ -7,10 +7,10 @@ import type { Screen, DirectorFlag } from '../data/types';
 
 const nav: { to: string; match: string; label: string; tag: string; exact?: boolean }[] = [
   { to: '/', match: '/', label: 'Operate', tag: '', exact: true },
-  { to: '/preflight', match: '/preflight', label: 'Preflight', tag: 'what-if' },
-  { to: '/modernize/import', match: '/modernize', label: 'Modernize', tag: 'projects' },
+  { to: '/preflight', match: '/preflight', label: 'Preflight', tag: '' },
+  { to: '/modernize', match: '/modernize', label: 'Modernize', tag: '' },
 ];
-const keyRoutes: Record<string, string> = { '1': '/', '2': '/preflight', '3': '/modernize/import' };
+const keyRoutes: Record<string, string> = { '1': '/', '2': '/preflight', '3': '/modernize' };
 
 export function Shell({ children }: { children: ReactNode }) {
   const { state } = useStore();
@@ -20,6 +20,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const [help, setHelp] = useState(false);
   const [director, setDirector] = useState(false);
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('theme', theme); } catch { /* storage unavailable */ } }, [theme]);
+  useEffect(() => { document.querySelector('main')?.scrollTo({ top: 0, left: 0 }); }, [loc.pathname]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
@@ -43,7 +44,7 @@ export function Shell({ children }: { children: ReactNode }) {
           {nav.map(({ to, match, label, tag, exact }) => {
             const active = exact ? loc.pathname === match : loc.pathname.startsWith(match);
             return (
-              <NavLink key={to} to={to} className={cx('tab h-12 px-2 sm:px-3.5 inline-flex items-center gap-2 rounded-lg text-[13px] sm:text-[14px] font-medium whitespace-nowrap t', active ? 'active text-text' : 'text-muted hover:text-text hover:bg-surface-2')}>
+              <NavLink key={to} to={to} aria-current={active ? 'page' : undefined} className={cx('tab h-12 px-2 sm:px-3.5 inline-flex items-center gap-2 rounded-control text-label sm:text-body font-medium whitespace-nowrap t', active ? 'active text-text' : 'text-muted hover:text-text hover:bg-surface-2')}>
                 {label}{tag && <span className="mono text-[12px] text-faint hidden xl:inline">{tag}</span>}
               </NavLink>
             );

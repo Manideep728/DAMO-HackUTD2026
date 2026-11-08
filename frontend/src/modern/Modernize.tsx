@@ -20,9 +20,9 @@ function Stepper() {
   const s = useModern();
   const done = modDone(s.mod, s);
   return (
-    <nav aria-label="Modernization steps" className="mb-10 grid grid-cols-5 gap-2">
+    <nav aria-label="Modernization steps" className="mb-10 flex gap-2 overflow-x-auto pb-1">
       {steps.map((st) => (
-        <NavLink key={st.key} to={`/modernize/${st.path}`} className={({ isActive }) => cx('group rounded-xl border px-3 py-2.5 t', isActive ? 'border-text bg-surface' : 'border-border hover:border-border-strong hover:bg-surface')}>
+        <NavLink key={st.key} to={`/modernize/${st.path}`} className={({ isActive }) => cx('group min-w-[170px] flex-1 rounded-control border px-3 py-2.5 t', isActive ? 'border-text bg-surface' : 'border-border hover:border-border-strong hover:bg-surface')}>
           {({ isActive }) => (
             <div className="flex items-center gap-2.5 min-w-0">
               {done[st.key] ? <span className="h-5 w-5 shrink-0 grid place-items-center rounded-full bg-ok/15 text-ok"><Check size={12} strokeWidth={3} /></span>
@@ -69,9 +69,9 @@ export function M1Import() {
   const start = () => s.run('m1', [`git clone ${REPO} · pinned master`, 'redfishplugins/check_temperature.sh · check_bmc.sh', 'objects/commands.cfg · templates.cfg · hosts.cfg · contacts.cfg', 'assets.csv (3 assets) · runbooks/high-cpu-temperature.md', 'cross-reference commands ↔ scripts ↔ templates', '4 inputs missing or unsupported · 1 security flag'], () => s.setMod({ imported: true }), 450);
   return (
     <Page>
-      <PageHeader kicker="Modernize · M1" title="Import the real inputs"
+      <PageHeader kicker="Modernize · Monitoring check · M1" title="Import the real inputs"
         subtitle="Pin the old check, the inherited Nagios configuration, the asset and owner map, and the procedures. Anything referenced but not supplied is shown, not guessed."
-        actions={s.mod.imported ? next('/modernize/recover', 'Recover behavior', nav) : <Button variant="primary" disabled={!!s.busy} onClick={start}><Download size={15} /> Import TTU Redfish check</Button>} />
+        actions={s.mod.imported ? next('/modernize/recover', 'Recover behavior', nav) : undefined} />
       <RunLog k="m1" title="Importing" />
       {!s.mod.imported && !s.busy && <Empty icon={Download} title="Nothing imported yet" body={`Baseline: the public TTU Nagios–Redfish temperature check (${REPO}). It maps BMC health and returns Unknown when the temperature feed is lost. It does not set a Celsius threshold.`} action={<Button variant="primary" onClick={start}><Download size={15} /> Import TTU Redfish check</Button>} />}
       {s.mod.imported && <>
@@ -121,10 +121,10 @@ export function M2Recover() {
   const blocked = s.criticalOpen > 0;
   return (
     <Page>
-      <PageHeader kicker="Modernize · M2" title="Recover behavior and intent"
+      <PageHeader kicker="Modernize · Monitoring check · M2" title="Recover behavior and intent"
         subtitle="Every state, missing-data rule, retry, recovery and recipient is recorded with its source. An operator confirms each deliberate change; an unresolved critical policy blocks acceptance."
         meta={s.mod.recovered ? <><ModelBadge model="Nemotron Super" /><Badge tone={s.decisionsOpen ? 'warning' : 'ok'}>{decisions.length - s.decisionsOpen}/{decisions.length} decisions confirmed</Badge>{blocked && <Badge tone="critical"><Lock size={11} /> Acceptance blocked</Badge>}</> : undefined}
-        actions={!s.mod.imported ? next('/modernize/import', 'Import first', nav) : s.mod.recovered ? next('/modernize/generate', 'Generate change', nav, s.decisionsOpen > 0 || blocked, blocked ? 'Resolve the critical policy first' : 'Confirm every decision first') : <Button variant="primary" disabled={!!s.busy} onClick={start}><Sparkles size={15} /> Recover with Nemotron</Button>} />
+        actions={!s.mod.imported ? next('/modernize/import', 'Import first', nav) : s.mod.recovered ? next('/modernize/generate', 'Generate change', nav, s.decisionsOpen > 0 || blocked, blocked ? 'Resolve the critical policy first' : 'Confirm every decision first') : undefined} />
       <LiveStrip need={['key', 'plugin']} />
       <RunLog k="m2" title="Recovering behavior" />
       {agentOn && <AgentRun job="recover" title="Nemotron recovering behavior" onDone={(e) => {
@@ -175,10 +175,10 @@ export function M3Generate() {
   const v = s.mod.repaired ? 2 : 1;
   return (
     <Page>
-      <PageHeader kicker="Modernize · M3" title="Generate a reviewable change"
+      <PageHeader kicker="Modernize · Monitoring check · M3" title="Generate a reviewable change"
         subtitle="Nemotron writes the collector, rules and routing, and lists exactly what is preserved and what is intentionally changed."
         meta={s.mod.generated ? <><ModelBadge model="Nemotron Super" /><Badge>candidate v{v}</Badge></> : undefined}
-        actions={s.mod.generated ? next('/modernize/test', 'Test the alert path', nav) : <Button variant="primary" disabled={!ready || !!s.busy} title={ready ? undefined : 'Finish M2 first'} onClick={start}><Sparkles size={15} /> Generate candidate</Button>} />
+        actions={s.mod.generated ? next('/modernize/test', 'Test the alert path', nav) : undefined} />
       <RunLog k="m3" title="Generating" />
       {!s.mod.generated && !s.busy && <Empty icon={FileCode2} title={ready ? 'No candidate yet' : 'Confirm M2 decisions first'} body="The candidate is built only from recorded behavior and confirmed decisions, so every line can be traced back." action={ready ? <Button variant="primary" onClick={start}><Sparkles size={15} /> Generate candidate</Button> : <Button onClick={() => nav('/modernize/recover')}>Go to M2</Button>} />}
       {s.mod.generated && <>
@@ -222,15 +222,15 @@ export function M4Test() {
   const hFails = run ? heldOut.filter((h) => (run === 2 ? h.v2 : h.v1) === 'fail').length : 0;
   return (
     <Page>
-      <PageHeader kicker="Modernize · M4" title="Test the whole alert path"
+      <PageHeader kicker="Modernize · Monitoring check · M4" title="Test the whole alert path"
         subtitle="Old and new run on identical scenarios. The fixed expectations and the held-out cases sit outside the agent's control."
         meta={run ? <><Badge>candidate v{run}</Badge><Badge tone={fails ? 'critical' : 'ok'}>{6 - fails}/6 acceptance cases</Badge><Badge tone={hFails ? 'critical' : 'ok'}>{3 - hFails}/3 held-out</Badge></> : undefined}
-        actions={!s.mod.generated ? next('/modernize/generate', 'Generate first', nav) : run === ver ? next('/modernize/release', run === 2 ? 'Review and release' : 'Repair failures', nav) : <Button variant="primary" disabled={!!s.busy || testing} onClick={start}>{testing ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />} Run tests on v{ver}</Button>} />
-      <LiveStrip need={['tools', 'plugin']} />
+        actions={run === ver ? next('/modernize/release', run === 2 ? 'Review and release' : 'Repair failures', nav) : undefined} />
+      {s.mod.generated && <LiveStrip need={['tools', 'plugin']} />}
       {testing && <Card className="mb-6" header={<><Loader2 size={14} className="animate-spin text-accent" /><span className="font-semibold text-[14px]">Running the real harness</span></>}><p className="text-[14px] text-muted">Old: TTU plugin against the Redfish mock + Nagios scheduling. New: promtool test rules + amtool routing. Then the wrong-recipient mutant, the decoy, and the sealed held-out cases.</p></Card>}
       {liveErr && <div className="card px-5 py-3 mb-6 text-[14px] border-warning/50 flex gap-2"><AlertTriangle size={15} className="text-warning shrink-0 mt-0.5" />Live run failed, showing the scripted result instead: {liveErr}</div>}
       <RunLog k="m4" title="Testing" />
-      {!run && !s.busy && <Empty icon={FlaskConical} title={s.mod.generated ? 'No test run yet' : 'Generate a candidate first'} body="Acceptance cases: normal, sustained Critical, brief spike, missing temperature feed, recovery, and a correct alert sent to the wrong recipient." action={s.mod.generated ? <Button variant="primary" onClick={start}><Play size={15} /> Run tests on v{ver}</Button> : undefined} />}
+      {!run && !s.busy && <Empty icon={FlaskConical} title={s.mod.generated ? 'No test run yet' : 'Generate a candidate first'} body="Acceptance cases: normal, sustained Critical, brief spike, missing temperature feed, recovery, and a correct alert sent to the wrong recipient." action={s.mod.generated ? <Button variant="primary" onClick={start}><Play size={15} /> Run tests on v{ver}</Button> : <Button onClick={() => nav('/modernize/generate')}>Go to Generate</Button>} />}
       {liveReport && <LiveReportView r={liveReport} />}
       {run > 0 && !liveReport && <>
         <div className="text-[12.5px] text-muted mb-3">Scripted result (the live harness needs promtool and amtool).</div>
@@ -275,11 +275,11 @@ export function M5Release() {
   const shadow = () => s.run('m5s', ['Run v2 in shadow beside Nagios on 7 days of recorded Redfish data', 'Old: 3 notifications · New: 3 alerts · 0 unexplained diffs', '1 expected diff: recipient (decision d1)'], () => s.setMod({ shadow: true }));
   const rollback = () => s.run('m5b', ['Disable v2 rules · re-enable Nagios service "check temperature"', 'Inject Critical on Compute2 → Nagios notifies at +3 min ✓', 'Re-enable v2 · old check left running until cutover'], () => s.setMod({ rollback: true }));
   const release = () => s.run('m5x', ['Tag ttu-redfish-temperature v1.0.0', 'Bundle: rules, routes, collector, test evidence, rollback plan', 'Approved by Maya R. (operations lead)'], () => s.setMod({ released: true }), 500);
-  if (m.testRun === 0) return <Page><PageHeader kicker="Modernize · M5" title="Repair, review, release" /><Empty icon={Rocket} title="Run the tests first" body="Repair works from test failures, and release needs passing results, engineer review, a shadow run and a tested rollback." action={<Button onClick={() => nav('/modernize/test')}>Go to M4</Button>} /></Page>;
+  if (m.testRun === 0) return <Page><PageHeader kicker="Modernize · Monitoring check · M5" title="Repair, review, release" /><Empty icon={Rocket} title="Run the tests first" body="Repair works from test failures, and release needs passing results, engineer review, a shadow run and a tested rollback." action={<Button onClick={() => nav('/modernize/test')}>Go to Test</Button>} /></Page>;
   const passing = m.testRun === 2;
   return (
     <Page>
-      <PageHeader kicker="Modernize · M5" title="Repair, review, release"
+      <PageHeader kicker="Modernize · Monitoring check · M5" title="Repair, review, release"
         subtitle="Nemotron inspects failures and revises the candidate. An engineer reviews the diff and results, then shadow operation and rollback are tested before release."
         meta={m.released ? <Badge tone="ok"><Check size={11} /> v1.0.0 released</Badge> : undefined} />
       <LiveStrip need={['key', 'tools']} />

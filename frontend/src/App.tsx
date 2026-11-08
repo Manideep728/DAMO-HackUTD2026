@@ -6,6 +6,7 @@ import Landing from './screens/Landing';
 import Console from './console/Console';
 import Preflight from './preflight/Preflight';
 import { M1Import, M2Recover, M3Generate, M4Test, M5Release } from './modern/Modernize';
+import { ModernizeHome } from './modern/WorkspaceNav';
 import { RetrofitPage } from './retrofit/Retrofit';
 import { RetrofitOverviewPage } from './retrofit/Overview';
 import { FirmwarePage, HandoverPage, EvalPage } from './retrofit/Views';
@@ -22,7 +23,7 @@ export default function App() {
               <Route path="/" element={<Console />} />
               <Route path="/verify" element={<Navigate to="/modernize/test" replace />} />
               <Route path="/preflight" element={<Preflight />} />
-              <Route path="/modernize" element={<Navigate to="/modernize/import" replace />} />
+              <Route path="/modernize" element={<ModernizeHome />} />
               <Route path="/modernize/import" element={<M1Import />} />
               <Route path="/modernize/recover" element={<M2Recover />} />
               <Route path="/modernize/generate" element={<M3Generate />} />

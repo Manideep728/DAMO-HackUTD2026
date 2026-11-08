@@ -14,7 +14,7 @@ test('liquid cooling starts with the shared equipment model inside Modernize', a
   await page.goto('/#/modernize/retrofit');
 
   const workflows = page.getByRole('navigation', { name: 'Workflows' });
-  await expect(workflows.getByRole('link')).toHaveText(['Operate', 'Preflightwhat-if', 'Modernizeprojects']);
+  await expect(workflows.getByRole('link')).toHaveText(['Operate', 'Preflight', 'Modernize']);
   await expect(page.getByRole('navigation', { name: 'Modernization projects' }).getByRole('link')).toHaveCount(2);
   await expect(page.getByRole('heading', { name: 'Start with the equipment model' })).toBeVisible();
   await expect(page.getByTestId('retrofit-model')).toBeVisible();
@@ -34,7 +34,7 @@ test('retired peer workflows redirect into their Modernize steps', async ({ page
 
 test('wrong-rack leak sensor: fail, confirm, diff, pass, regression, second site', async ({ page }) => {
   await page.goto('/#/modernize/retrofit/mapping');
-  await expect(page.getByText('Constructed demo fault, not an Equinix incident')).toBeVisible();
+  await expect(page.getByText('Constructed fault · not an Equinix incident')).toBeVisible();
   await expect(page.getByText('Backend live')).toBeVisible();
 
   await step(page, /Run behavior tests/);
@@ -81,7 +81,7 @@ test('firmware change waits for approval, then readiness keeps field checks open
   await expect(page.getByTestId('fw-approved')).toContainText(`now v${Number(before.slice(1)) + 1}`);
 
   await page.goto('/#/modernize/retrofit/handover');
-  await expect(page.getByTestId('readiness')).toContainText('Software tests passed');
+  await expect(page.getByTestId('readiness')).toContainText('Software9/9 passed');
   await expect(page.getByTestId('field-open')).toHaveText('7');
   await page.getByLabel('Engineer name').fill('Jordan Test');
   await page.getByRole('button', { name: 'Record witnessed pass' }).click();

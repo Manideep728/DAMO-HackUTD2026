@@ -106,33 +106,41 @@ export function RetrofitPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1360px]">
-      <PageHeader kicker="Retrofit · liquid-cooled row R3 · hall H1" title="A leak sensor mapped to the wrong rack"
-        subtitle="The schema check passes. A behavior test fails. The engineer confirms from the drawing, the fix is tested, and the correction becomes a regression test that catches the same fault on the next site." />
+      <PageHeader kicker="Modernize · Liquid cooling · H1" title="Correct the rack mapping"
+        meta={<><Badge tone="ok">Schema passes</Badge><Badge tone={report?.pass === false ? 'critical' : 'neutral'}>{report ? 'Behavior fails' : 'Behavior not tested'}</Badge></>}
+        subtitle="The mapping is syntactically valid but may associate leak zone 2 with the wrong rack. Test the behavior, confirm the physical evidence and preserve the correction as a regression." />
       <Tabs />
       <SourceStrip status={live} />
 
-      <div className="card p-4 mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" aria-live="polite">
+      <ol className="mb-6 flex gap-1 overflow-x-auto" aria-label="Mapping correction progress">
+        {['Test', 'Trace', 'Confirm', 'Change', 'Retest', 'Save', 'Second site'].map((label, index) => {
+          const current = Math.min(ORDER.indexOf(step), 6);
+          return <li key={label} className={cx('min-w-[112px] border-t-2 pt-2 text-label', index < current ? 'border-ok text-text' : index === current ? 'border-text font-semibold' : 'border-border text-faint')}>{index + 1}. {label}</li>;
+        })}
+      </ol>
+
+      <div className="card p-5 mb-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" aria-live="polite">
         {next ? (
           <>
             <div className="grid gap-2 min-w-0">
-              <div className="text-[14px] text-muted">{next.hint}</div>
+              <div className="text-body text-muted max-w-prose">{next.hint}</div>
               {next.needsName && (
-                <label className="flex flex-wrap items-center gap-2 text-[14px]">
-                  <span className="text-muted">Engineer</span>
+                <label className="grid max-w-[360px] gap-1 text-label">
+                  <span className="font-medium">Engineer name</span>
                   <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Your name" aria-label="Engineer name"
-                    className="h-12 px-3 rounded-xl border border-border bg-surface text-[15px] min-w-[220px]" />
-                  {!who && <span className="text-warning text-[13px]">A decision needs a name.</span>}
+                    className="h-11 px-3 rounded-control border border-border bg-surface text-body min-w-[220px]" />
+                  {!who && <span className="text-warning">Required for the decision record.</span>}
                 </label>
               )}
             </div>
             <button data-testid="retrofit-next" onClick={() => run(next.go)} disabled={busy || (next.needsName && !who)}
-              className="btn btn-primary h-14 px-6 rounded-xl text-[16px] font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50">
+              className="btn btn-primary h-12 px-5 rounded-control text-body font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50">
               {busy ? <Loader2 size={19} className="animate-spin" /> : next.icon}{next.label}<ArrowRight size={17} />
             </button>
           </>
         ) : (
           <>
-            <div className="text-[15px]"><b>Done.</b> Both sites pass. Next: <a className="text-accent underline" href="#/modernize/retrofit/firmware">a CDU firmware change</a> revalidates the accepted package.</div>
+            <div className="text-body"><b>Mapping accepted across both sites.</b> Continue to <a className="text-accent underline" href="#/modernize/retrofit/firmware">firmware revalidation</a>.</div>
             <button onClick={() => { setStep('idle'); setReport(null); setFlags([]); setDecision(null); setProposal(null); setPassed(null); setRegression(null); setSite2(null); }}
               className="h-12 px-4 rounded-xl border border-border hover:bg-surface-2 text-[15px] inline-flex items-center gap-2 t"><RotateCcw size={16} /> Start over</button>
           </>
@@ -140,7 +148,7 @@ export function RetrofitPage() {
         {error && <div role="alert" className="sm:col-span-2 text-[14px] text-critical">{error}</div>}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid gap-4">
         <Artifact n={1} title="Original config" done={at('tested')} testid="artifact-config">
           <CodeLines title="sites/h1/config/original/mapping.yaml (integrator draft)" text={original} mark={markLines} />
         </Artifact>

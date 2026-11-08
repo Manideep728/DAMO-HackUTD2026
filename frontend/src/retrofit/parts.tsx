@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Check, X, Minus, FileCode2, FlaskConical, Radio, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { Check, X, Minus, FileCode2, FlaskConical, Radio, ShieldCheck } from 'lucide-react';
 import { Badge, cx } from '../components/ui';
 import { DIMS, probe, type Report, type Status } from './api';
 import { ModernizeProjects } from '../modern/WorkspaceNav';
@@ -16,13 +16,12 @@ export function useLive() {
 
 export function SourceStrip({ status }: { status: Status | null | undefined }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-[13px] mb-5">
-      <span className="inline-flex items-center gap-1.5 rounded-lg border border-warning/50 bg-warning/10 text-warning px-2.5 py-1 font-medium">
-        <TriangleAlert size={14} /> Constructed demo fault, not an Equinix incident · synthetic sites and target contract
-      </span>
-      {status === undefined ? null : status
-        ? <Badge tone="ok"><Radio size={11} /> Backend live · every result computed now</Badge>
-        : <Badge tone="warning"><Radio size={11} /> Backend not reachable · replaying the recorded backend run</Badge>}
+    <div className="mb-6 flex min-h-10 flex-wrap items-center gap-x-3 gap-y-2 rounded-control border hairline bg-surface px-3 py-2 text-label" aria-label="Project data provenance">
+      <span className="font-medium">Synthetic H1 site</span><span className="text-faint">Target contract v0.1</span>
+      {status === undefined ? <span className="text-muted">Checking backend…</span> : status
+        ? <Badge><Radio size={11} /> Live backend</Badge>
+        : <Badge tone="warning"><Radio size={11} /> Recorded replay</Badge>}
+      <span className="ml-auto text-muted">Constructed fault · not an Equinix incident</span>
     </div>
   );
 }
@@ -38,9 +37,9 @@ export function Tabs() {
   return (
     <>
       <ModernizeProjects path={location.pathname} />
-      <nav aria-label="Liquid-cooling modernization steps" className="flex flex-wrap gap-2 mb-5">
+      <nav aria-label="Liquid-cooling modernization steps" className="workflow-steps flex gap-2 overflow-x-auto mb-6 pb-1">
         {tabs.map(([to, label]) => (
-          <NavLink key={to} to={to} end className={({ isActive }) => cx('h-12 px-4 rounded-xl border text-[15px] font-medium inline-flex items-center t', isActive ? 'border-text bg-surface' : 'border-border text-muted hover:text-text hover:bg-surface')}>{label}</NavLink>
+          <NavLink key={to} to={to} end className={({ isActive }) => cx('h-11 px-4 rounded-control border text-body font-medium inline-flex shrink-0 items-center t', isActive ? 'border-text bg-surface' : 'border-border text-muted hover:text-text hover:bg-surface')}>{label}</NavLink>
         ))}
       </nav>
     </>

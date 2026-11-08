@@ -14,7 +14,7 @@ function useWide(px = 1400) {
   useEffect(() => { const m = window.matchMedia(q); const f = () => setWide(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, [q]);
   return wide;
 }
-const TABS: [Tab, string][] = [['impact', 'Impact'], ['weak', 'Weak points'], ['findings', 'Findings'], ['plan', 'Plan'], ['agent', 'Ask']];
+const TABS: [Tab, string][] = [['impact', 'Impact'], ['weak', 'Resilience'], ['findings', 'Evidence'], ['plan', 'Plans'], ['agent', 'Assistant']];
 
 /** One-click rehearsals, each checked against the simulator: safe, at risk, and the outage maintenance can cause. */
 const PRESETS: { label: string; changes: Record<string, Toggle> }[] = [
@@ -180,23 +180,23 @@ export default function Preflight() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] -mt-6 grid gap-3">
+    <div className="mx-auto w-full max-w-[1440px] -mt-4 grid gap-4">
       <header className="relative z-30 flex flex-wrap items-center gap-x-5 gap-y-2">
         <div className="min-w-0 flex items-center gap-2 flex-wrap">
-          <h1 className="text-[22px] font-semibold tracking-[-0.025em]">Rehearse a change before you make it</h1>
-          <span className="text-[14px] text-muted">Preflight · {facility.name}</span>
+          <div><p className="kicker mb-1">Preflight · {facility.site === 'retrofit' ? 'Liquid-cooling model' : 'Facility model'}</p><h1 className="text-subtitle font-semibold tracking-[-0.02em]">Rehearse a change before you make it</h1></div>
+          <span className="text-label text-muted">{facility.name}</span>
           <Tip label="About this model" text={`Simplified model: power and cooling as kW budgets on a dependency graph. Not CFD, load flow or a protection study. ${facility.fidelity}`}><Info size={17} /></Tip>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <select id="pf-zone" aria-label="Zoom to zone" value={zone} onChange={(e) => setZone(e.target.value)} className="h-12 px-3 rounded-xl border hairline bg-surface text-[14px]">
+          <select id="pf-zone" aria-label="Zoom to zone" value={zone} onChange={(e) => setZone(e.target.value)} className="h-11 px-3 rounded-control border hairline bg-surface text-body">
             {zones.map((z) => <option key={z} value={z}>{z === 'all' ? 'Whole site' : `Zone ${z}`}</option>)}
           </select>
-          <Button className="!h-12 !rounded-xl !text-[14px]" onClick={reset} disabled={!active && !highlight.length && !selected}><RotateCcw size={15} /> Reset scenario</Button>
+          <Button className="!h-11" onClick={reset} disabled={!active && !highlight.length && !selected}><RotateCcw size={15} /> Reset</Button>
           <input ref={fileInput} type="file" accept=".csv,.json,text/csv,application/json" className="hidden" aria-label="Facility file"
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; setAdmin(false); if (f) swapFacility('Import', () => pf.importFacility(f)); }} />
           {/* Admin: facility data management, out of a technician's way */}
           <div className="relative">
-            <Button className="!h-12 !rounded-xl !text-[14px]" aria-expanded={admin} aria-haspopup="menu" onClick={() => setAdmin((v) => !v)}><Settings2 size={15} /> Admin <ChevronDown size={14} /></Button>
+            <Button className="!h-11" aria-expanded={admin} aria-haspopup="menu" onClick={() => setAdmin((v) => !v)}><Settings2 size={15} /> Facility data <ChevronDown size={14} /></Button>
             {admin && (
               <div role="menu" aria-label="Admin" className="absolute right-0 top-[calc(100%+6px)] z-50 w-[300px] card shadow-[var(--shadow)] p-1.5 grid pop-in">
                 <button role="menuitem" onClick={() => fileInput.current?.click()} className="h-12 px-3 rounded-lg text-left text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5"><Upload size={16} /> <span className="grid leading-tight">Import<span className="text-[12px] text-muted">CSV or JSON, replaces the demo hall</span></span></button>
@@ -213,15 +213,15 @@ export default function Preflight() {
       {notice && !error && <div className="text-muted text-[14px]" role="status">{notice}</div>}
       {zone !== 'all' && <div className="text-muted text-[14px]" data-testid="zone-hint">Showing zone {zone} and what feeds it ({visibleFacility.nodes.length} of {facility.nodes.length} nodes). Pick Whole site to see everything.</div>}
 
-      <div className="hidden md:flex min-[1400px]:hidden gap-2 overflow-x-auto -mb-1 pb-1" aria-label="Rehearse a common change">
+      <div className="hidden md:flex min-[1400px]:hidden gap-2 overflow-x-auto -mb-1 pb-1" aria-label="Scenario library">
         {PRESETS.map((p) => {
           const on = JSON.stringify(p.changes) === JSON.stringify(toggles);
-          return <button key={p.label} onClick={() => { setToggles(p.changes); setSelected(null); setHighlight([]); }} className={cx('shrink-0 h-12 px-4 rounded-xl border text-[14px] t whitespace-nowrap', on ? 'border-text bg-surface font-medium' : 'border-border bg-surface/60 hover:bg-surface')}>{p.label}</button>;
+          return <button key={p.label} onClick={() => { setToggles(p.changes); setSelected(null); setHighlight([]); }} className={cx('shrink-0 h-11 px-4 rounded-control border text-body t whitespace-nowrap', on ? 'border-text bg-surface font-medium' : 'border-border bg-surface/60 hover:bg-surface')}>{p.label}</button>;
         })}
       </div>
       <div className="grid gap-4 min-[1400px]:grid-cols-[minmax(0,1fr)_400px] items-start">
         {/* Map: the hero */}
-        <section className="panel rounded-[18px] overflow-hidden relative h-[70vh] min-h-[480px] md:h-[calc(100vh-222px)] md:portrait:h-[calc(100vh-284px)] md:min-h-[540px] min-[1400px]:h-[calc(100vh-170px)] order-2 md:order-1">
+        <section className="panel rounded-surface overflow-hidden relative h-[70vh] min-h-[480px] md:h-[calc(100vh-222px)] md:portrait:h-[calc(100vh-284px)] md:min-h-[540px] min-[1400px]:h-[calc(100vh-170px)] order-2 md:order-1">
           <div className="absolute inset-x-0 top-0 z-10 flex flex-wrap items-center gap-2 px-4 py-3 pointer-events-none">
             <span className="text-[14px] text-[var(--panel-muted)] pointer-events-auto">Scenario:</span>
             {!active && <span className="text-[14px] text-[var(--panel-text)] opacity-80">everything in service</span>}
@@ -335,10 +335,11 @@ function Fact({ label, value, tone }: { label: string; value: string; tone?: 'ok
 
 /** The answer a planner needs, in one card: is this safe, and what does it cost in redundancy? */
 function Verdict({ sim, red, baseRed, active, onPick, picked }: { sim: SimResult | null; red: ServiceRed[]; baseRed: ServiceRed[]; active: boolean; onPick: (n: string[]) => void; picked: Set<string> }) {
-  if (!active) return (
-    <div className="card p-4"><div className="flex items-center gap-2 font-semibold text-[15px]"><ShieldCheck size={17} className="text-ok" /> Everything in service</div>
-      <p className="text-[14px] text-muted mt-1">{baseRed.length ? `${baseRed.filter((s) => s.effective === '2N').length} of ${baseRed.length} critical services are fully redundant (2N).` : 'Loading redundancy…'} Pick a change to see what it costs.<Tip label="What do 2N, N+1 and N mean?" text={GLOSSARY}><HelpCircle size={16} /></Tip></p></div>
-  );
+  if (!active) {
+    const full = baseRed.filter((s) => s.effective === '2N').length;
+    const exposed = baseRed.length > 0 && full < baseRed.length;
+    return <div className={cx('card p-4', exposed && 'border-warning/50')}><div className={cx('flex items-center gap-2 font-semibold text-body', exposed ? 'text-warning' : 'text-ok')}>{exposed ? <TriangleAlert size={17}/> : <ShieldCheck size={17}/>} {exposed ? 'Operating normally · redundancy risk present' : 'Everything in service'}</div><p className="text-body text-muted mt-1">{baseRed.length ? `${full} of ${baseRed.length} critical services are fully redundant (2N).` : 'Loading redundancy…'} Pick a change to see what it costs.<Tip label="What do 2N, N+1 and N mean?" text={GLOSSARY}><HelpCircle size={16} /></Tip></p></div>;
+  }
   if (!sim) return <div className="card p-4 text-[14px] text-muted flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Simulating…</div>;
   const base = new Map(baseRed.map((s) => [s.service, s.effective]));
   const dropped = red.filter((s) => base.get(s.service) && base.get(s.service) !== s.effective && (s.effective === 'N' || s.effective === 'below N'));

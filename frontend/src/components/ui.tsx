@@ -6,7 +6,7 @@ export function cx(...a: (string | false | undefined | null)[]) { return a.filte
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export function Button({ variant = 'secondary', kbd, className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; kbd?: string }) {
-  const base = 'btn inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg text-[14px] font-medium disabled:opacity-45 disabled:cursor-not-allowed select-none whitespace-nowrap';
+  const base = 'btn inline-flex items-center justify-center gap-2 h-10 px-3.5 rounded-control text-body font-medium disabled:opacity-45 disabled:cursor-not-allowed select-none whitespace-nowrap';
   const v = {
     primary: 'btn-primary',
     secondary: 'border border-border bg-surface hover:bg-surface-2 hover:border-border-strong text-text',
@@ -41,7 +41,7 @@ export function StatusPill({ kind, word, size = 'md' }: { kind: keyof typeof sev
 
 export function Badge({ children, tone = 'neutral', title }: { children: ReactNode; tone?: 'neutral' | 'accent' | 'ok' | 'warning' | 'critical'; title?: string }) {
   const t = { neutral: 'border-border text-muted', accent: 'border-accent/40 text-accent', ok: 'border-ok/40 text-ok', warning: 'border-warning/40 text-warning', critical: 'border-critical/40 text-critical' }[tone];
-  return <span title={title} className={cx('inline-flex items-center gap-1 h-[22px] px-2 rounded-md border text-[12px] font-medium whitespace-nowrap', t)}>{children}</span>;
+  return <span title={title} className={cx('inline-flex items-center gap-1 min-h-6 px-2 rounded-control border text-label font-medium whitespace-nowrap', t)}>{children}</span>;
 }
 
 export function ModeBadge({ mode }: { mode: Mode }) {
@@ -84,10 +84,10 @@ export function Kbd({ k }: { k: string }) { return <span className="kbd">{k}</sp
 
 export function Empty({ title, body, action, icon: Icon }: { title: string; body?: string; action?: ReactNode; icon?: LucideIcon }) {
   return (
-    <div className="card flex flex-col items-center text-center gap-3 px-6 py-14">
-      {Icon && <span className="h-11 w-11 grid place-items-center rounded-xl bg-surface-2 border hairline text-muted mb-1"><Icon size={20} aria-hidden /></span>}
-      <div className="font-semibold text-[16px] tracking-[-0.01em]">{title}</div>
-      {body && <div className="text-muted text-[14px] max-w-[460px] leading-relaxed">{body}</div>}
+    <div className="card flex flex-col items-start gap-3 px-6 py-10">
+      {Icon && <span className="h-10 w-10 grid place-items-center rounded-control bg-surface-2 border hairline text-muted mb-1"><Icon size={19} aria-hidden /></span>}
+      <div className="font-semibold text-section">{title}</div>
+      {body && <div className="text-muted text-body max-w-prose leading-relaxed">{body}</div>}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );
@@ -101,7 +101,7 @@ export function PageHeader({ kicker, title, meta, subtitle, actions }: { kicker?
         {kicker && <div className="kicker mb-2 flex items-center gap-2">{kicker}</div>}
         <h1 className="page-title">{title}</h1>
         {meta && <div className="mt-2 flex flex-wrap items-center gap-2">{meta}</div>}
-        {subtitle && <p className="text-muted mt-2.5 max-w-[680px] text-[14.5px] leading-relaxed">{subtitle}</p>}
+        {subtitle && <p className="text-muted mt-2.5 max-w-prose text-body leading-relaxed">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </header>
@@ -111,7 +111,7 @@ export function PageHeader({ kicker, title, meta, subtitle, actions }: { kicker?
 export function SectionHeader({ title, subtitle, right }: { title: ReactNode; subtitle?: ReactNode; right?: ReactNode }) {
   return (
     <div className="flex items-end gap-4 mb-4">
-      <div className="min-w-0"><h2 className="section-title">{title}</h2>{subtitle && <p className="text-[14px] text-muted mt-1">{subtitle}</p>}</div>
+      <div className="min-w-0"><h2 className="section-title">{title}</h2>{subtitle && <p className="text-body text-muted mt-1">{subtitle}</p>}</div>
       {right && <div className="ml-auto">{right}</div>}
     </div>
   );
