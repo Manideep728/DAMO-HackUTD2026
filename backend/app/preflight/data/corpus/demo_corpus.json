@@ -1,0 +1,184 @@
+{
+  "note": "Synthetic records for the demo hall. Typos, abbreviations and inconsistent ids are deliberate.",
+  "documents": [
+    {
+      "id": "OLD-001",
+      "kind": "one_line",
+      "date": "2019-06-02",
+      "title": "Electrical one-line, rev C (text extract)",
+      "text": "Utility A and Generator 1 feed ATS-1. Utility B and Generator 2 feed ATS-2. Switchgear A is fed from ATS-1 and switchgear B is fed from ATS-2. UPS-A is fed from SWGR-A. UPS-B is fed from SWGR-B. Pump MCC A is fed from ATS-1. Pump MCC B is fed from ATS-2. Chiller 1 fed from SWGR-A, chiller 2 fed from SWGR-B."
+    },
+    {
+      "id": "INV-2024",
+      "kind": "inventory",
+      "date": "2024-01-15",
+      "title": "Asset inventory export (mechanical)",
+      "text": "PUMP-A  Primary CHW pump A  panel: MCC-A\nPUMP-B  Primary CHW pump B  panel: MCC-B\nCH-1  Chiller 1  400 ton\nCH-2  Chiller 2  400 ton\nPUMP-C  Spare pump (warehouse, not installed)"
+    },
+    {
+      "id": "CHG-2291",
+      "kind": "change_ticket",
+      "date": "2023-03-14",
+      "title": "ATS-2 replacement",
+      "text": "Scope: replace ATS-2 (end of life). To keep pump B running, MCC-B will be temporarily re-fed from ATS-1 via the tie breaker for the duration of the work. Restore MCC-B to ATS-2 after commissioning of the new switch."
+    },
+    {
+      "id": "CHG-2291-C",
+      "kind": "change_ticket",
+      "date": "2023-03-21",
+      "title": "ATS-2 replacement, closeout",
+      "text": "New ATS-2 commissioned and load tested. Closeout items: as-builts to follow. Restoration of MCC-B feed deferred, see WO-4471."
+    },
+    {
+      "id": "WO-4471",
+      "kind": "work_order",
+      "date": "2023-09-08",
+      "title": "Restore pump MCC B normal feed",
+      "text": "Tech notes: found pump mcc b still back-fed from transfer sw 1 after the ATS-2 job. Tie breaker closed, ATS2 side open. Left as is per shift lead, needs outage window to restore. Status: on hold."
+    },
+    {
+      "id": "MLOG-0212",
+      "kind": "maintenance_log",
+      "date": "2024-02-12",
+      "title": "Quarterly IR scan",
+      "text": "IR scan of electrical room. ATS1 carrying both pump MCCs, MCC-A and mcc B, load approx 32 kW. No hot spots. ATS-2 lightly loaded."
+    },
+    {
+      "id": "WO-3920",
+      "kind": "work_order",
+      "date": "2019-05-30",
+      "title": "Commissioning: pump rotation check",
+      "text": "During commissioning, MCC-B was briefly powered from ATS-1 on a temporary cable to check pump B rotation. Temporary cable removed the same day."
+    },
+    {
+      "id": "WO-5108",
+      "kind": "work_order",
+      "date": "2024-05-02",
+      "title": "Spare pump staging",
+      "text": "Staged PUMP-C on a skid. Proposed: PUMP-C would be fed from ATS-1 if it is ever installed. No work performed."
+    },
+    {
+      "id": "WO-5230",
+      "kind": "work_order",
+      "date": "2024-06-19",
+      "title": "CRAH 3 fan alarm",
+      "text": "CRAH-3 fan VFD fault, reset. Noted CRAH-3 is fed from swgr A per panel schedule. Belt tension ok."
+    },
+    {
+      "id": "MLOG-0418",
+      "kind": "maintenance_log",
+      "date": "2024-04-18",
+      "title": "UPS battery test",
+      "text": "UPS A batt test passed, 8 min runtime at current load. UPS-B passed. ups-a fed from SWGR-A confirmed at input breaker."
+    },
+    {
+      "id": "CHG-2510",
+      "kind": "change_ticket",
+      "date": "2024-08-03",
+      "title": "Chiller 2 controls upgrade",
+      "text": "Chiller 2 controls upgraded. CH-2 fed from SWGR-B unchanged. Planned: add CH-2 to the BMS trend list."
+    },
+    {
+      "id": "WO-5502",
+      "kind": "work_order",
+      "date": "2024-10-11",
+      "title": "PDU B1 breaker trip investigation",
+      "text": "PDU B1 tripped during load bank test, reset. PDU-B1 is fed from UPS-B. Rows 1 racks rode through on the A side."
+    }
+  ],
+  "labels": [
+    {
+      "consumer": "MCC-B",
+      "supplier": "ATS-1",
+      "truth": true,
+      "note": "re-fed during ATS-2 replacement, never restored"
+    },
+    {
+      "consumer": "MCC-A",
+      "supplier": "ATS-1",
+      "truth": true
+    },
+    {
+      "consumer": "MCC-B",
+      "supplier": "ATS-2",
+      "truth": false,
+      "note": "stale one-line"
+    },
+    {
+      "consumer": "SWGR-A",
+      "supplier": "ATS-1",
+      "truth": true
+    },
+    {
+      "consumer": "SWGR-B",
+      "supplier": "ATS-2",
+      "truth": true
+    },
+    {
+      "consumer": "UPS-A",
+      "supplier": "SWGR-A",
+      "truth": true
+    },
+    {
+      "consumer": "UPS-B",
+      "supplier": "SWGR-B",
+      "truth": true
+    },
+    {
+      "consumer": "CH-1",
+      "supplier": "SWGR-A",
+      "truth": true
+    },
+    {
+      "consumer": "CH-2",
+      "supplier": "SWGR-B",
+      "truth": true
+    },
+    {
+      "consumer": "CRAH-3",
+      "supplier": "SWGR-A",
+      "truth": true
+    },
+    {
+      "consumer": "PDU-B1",
+      "supplier": "UPS-B",
+      "truth": true
+    },
+    {
+      "consumer": "ATS-1",
+      "supplier": "UTIL-A",
+      "truth": true
+    },
+    {
+      "consumer": "ATS-1",
+      "supplier": "GEN-1",
+      "truth": true
+    },
+    {
+      "consumer": "ATS-2",
+      "supplier": "UTIL-B",
+      "truth": true
+    },
+    {
+      "consumer": "ATS-2",
+      "supplier": "GEN-2",
+      "truth": true
+    },
+    {
+      "consumer": "PUMP-A",
+      "supplier": "MCC-A",
+      "truth": true
+    },
+    {
+      "consumer": "PUMP-B",
+      "supplier": "MCC-B",
+      "truth": true
+    },
+    {
+      "consumer": "PUMP-C",
+      "supplier": "ATS-1",
+      "truth": false,
+      "note": "proposal for uninstalled spare"
+    }
+  ]
+}

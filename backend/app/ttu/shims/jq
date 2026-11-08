@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# jq compatibility shim for the vendored TTU plugin (legacy/ttu, kept byte-for-byte).
+# check_temperature.sh splits its jq filter with a backslash-newline inside single quotes, which bash
+# passes through literally; jq rejects it ("unexpected INVALID_CHARACTER"), so the unpatched check
+# reports UNKNOWN on every poll. This removes backslash-newline from the arguments and runs the real jq.
+# The defect itself is reported by the M1 gap analysis (app/ttu/inputs.py).
+self_dir=$(cd "$(dirname "$0")" && pwd)
+PATH=$(printf "%s" "$PATH" | tr ":" "\n" | grep -vxF "$self_dir" | paste -sd: -)
+continuation=$'\\\n'  # a backslash followed by a newline
+args=()
+for a in "$@"; do args+=("${a//"$continuation"/}"); done
+exec jq "${args[@]}"

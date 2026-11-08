@@ -8,9 +8,10 @@ import type { Screen, DirectorFlag } from '../data/types';
 const nav: { to: string; match: string; label: string; tag: string; exact?: boolean }[] = [
   { to: '/', match: '/', label: 'Console', tag: '', exact: true },
   { to: '/verify', match: '/verify', label: 'Verify a change', tag: '' },
+  { to: '/preflight', match: '/preflight', label: 'Preflight', tag: 'what-if' },
   { to: '/modernize/import', match: '/modernize', label: 'Modernize', tag: 'M1–M5' },
 ];
-const keyRoutes: Record<string, string> = { '1': '/', '2': '/verify', '3': '/modernize/import' };
+const keyRoutes: Record<string, string> = { '1': '/', '2': '/verify', '3': '/preflight', '4': '/modernize/import' };
 
 export function Shell({ children }: { children: ReactNode }) {
   const { state } = useStore();
@@ -50,7 +51,7 @@ export function Shell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-2 shrink-0">
-          {legacy ? <ModeBadge mode={state.mode} /> : <span className="hidden sm:inline-flex"><Badge title="Scripted demo on illustrative data. Legacy facts come from the public TTU repo.">Scripted demo</Badge></span>}
+          {loc.pathname.startsWith('/preflight') ? <span className="hidden sm:inline-flex"><Badge title="Results computed by the simulator on a synthetic facility">Simulated facility</Badge></span> : legacy ? <ModeBadge mode={state.mode} /> : <span className="hidden sm:inline-flex"><Badge title="Scripted demo on illustrative data. Legacy facts come from the public TTU repo.">Scripted demo</Badge></span>}
           <button className="h-9 w-9 grid place-items-center rounded-lg text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
           <button className="h-9 w-9 grid place-items-center rounded-lg text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setHelp(true)} aria-label="Keyboard shortcuts"><HelpCircle size={16} /></button>
           <span className="h-8 w-8 ml-1 hidden sm:grid place-items-center rounded-full bg-surface-3 text-[11.5px] font-semibold" title="Maya R. · night shift">MR</span>
@@ -62,7 +63,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="card p-6 w-[440px] shadow-[var(--shadow)]" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Keyboard shortcuts">
             <div className="flex items-center justify-between mb-4"><span className="font-semibold text-[15px]">Keyboard shortcuts</span><button className="text-muted hover:text-text" onClick={() => setHelp(false)} aria-label="Close"><X size={16} /></button></div>
             <table className="w-full text-[13px]"><tbody>
-              {[['Enter', 'Do the next action on the console'], ['1', 'Console'], ['2', 'Verify a change'], ['3', 'Modernize (M1–M5)'], ['?', 'This panel'], ['Esc', 'Close']].map(([k, v]) => <tr key={k}><td className="py-1.5 w-32"><Kbd k={k} /></td><td className="text-muted">{v}</td></tr>)}
+              {[['Enter', 'Do the next action on the console'], ['1', 'Console'], ['2', 'Verify a change'], ['3', 'Preflight'], ['4', 'Modernize (M1–M5)'], ['?', 'This panel'], ['Esc', 'Close']].map(([k, v]) => <tr key={k}><td className="py-1.5 w-32"><Kbd k={k} /></td><td className="text-muted">{v}</td></tr>)}
             </tbody></table>
           </div>
         </div>

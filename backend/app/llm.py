@@ -33,3 +33,27 @@ def json_block(text):
     m = re.search(r"\{.*\}", text or "", re.S)
     return json.loads(m.group(0)) if m else None
 def prompt(name): return (pathlib.Path(__file__).parent / "prompts" / f"{name}.md").read_text()
+
+
+BASE_URL = os.getenv("NVIDIA_BASE_URL") or "https://integrate.api.nvidia.com/v1"
+
+
+def chat_tools(messages, tools, *, model=SUPER, temperature=0.1, max_tokens=2048, tag="agent"):
+    """One tool-calling turn. Returns the assistant message as a dict (content, tool_calls).
+
+    Cached like chat(); in cached mode a missing recording raises so the caller can fall back."""
+    k = _key(model, [messages, tools]); p = CACHE / tag / f"{k}.json"
+    if MODE == "cached" or not has_key():
+        if p.exists():
+            return json.loads(p.read_text())["message"]
+        raise RuntimeError("no recorded response for this agent turn")
+    from openai import OpenAI
+    c = OpenAI(base_url=BASE_URL, api_key=os.environ["NVIDIA_API_KEY"])
+    r = c.chat.completions.create(model=model, messages=messages, tools=tools, tool_choice="auto",
+                                  temperature=temperature, max_tokens=max_tokens, timeout=60)
+    m = r.choices[0].message
+    msg = {"content": m.content or "", "tool_calls": [
+        {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+        for tc in (m.tool_calls or [])]}
+    p.parent.mkdir(parents=True, exist_ok=True); p.write_text(json.dumps({"model": model, "message": msg, "at": time.time()}))
+    return msg

@@ -11,6 +11,8 @@ app = FastAPI(title="The Gauntlet")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 from .ttu.api import router as ttu_router
 app.include_router(ttu_router)
+from .preflight.api import router as preflight_router
+app.include_router(preflight_router)
 STATE = {"findings": {}, "handoff": {"shift": "Night shift · Sat 7 Nov 23:00 → Sun 8 Nov 07:00", "writtenBy": "Gauntlet (Nemotron Nano)", "reviewedBy": "Maya R.", "accepted": [], "dismissed": [], "signedOff": [], "timeline": []}, "cert": None, "rules": None}
 def now(): return time.strftime("%H:%M")
 

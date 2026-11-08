@@ -7,3 +7,4 @@ hypothesis
 pyyaml
 python-dotenv
 httpx
+pytest
