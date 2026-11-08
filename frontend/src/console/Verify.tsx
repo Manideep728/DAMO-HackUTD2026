@@ -45,14 +45,14 @@ export default function Verify() {
   const runTests = async (v: 1 | 2) => {
     setPhase(v === 1 ? 'testing1' : 'testing2');
     if (toolsLive) {
-      try { const r = await api.test(v === 2 && s.liveData.agentCandidate ? 'agent' : `v${v}`, v === 2 ? s.liveData.agentCandidate ?? undefined : undefined); if (r.valid) setReports((x) => ({ ...x, [v]: r })); } catch { /* fall back to scripted results, labelled */ }
+      try { const r = await api.test(v === 2 && s.liveData.agentCandidate ? 'agent' : `v${v}`, v === 2 ? s.liveData.agentCandidate ?? undefined : undefined); if (r.valid) setReports((x) => ({ ...x, [v]: r })); } catch { /* fall back to the example results, labelled */ }
     }
     sweep(v === 1 ? 'failed' : 'passed');
   };
   const repair = () => {
     setPhase('repairing'); setLog([]);
-    repairLines.forEach((l, i) => later(() => setLog((v) => [...v, l]), 520 * (i + 1)));
-    later(() => runTests(2), 520 * (repairLines.length + 1));
+    repairLines.forEach((l, i) => later(() => setLog((v) => [...v, l]), 780 * (i + 1)));
+    later(() => runTests(2), 780 * (repairLines.length + 1));
   };
   const reset = () => { timers.current.forEach(clearTimeout); timers.current = []; setPhase('idle'); setFilled(0); setLog([]); setReports({}); };
 
@@ -122,7 +122,7 @@ export default function Verify() {
         <aside className="grid gap-4 min-w-0">
           {(phase === 'repairing' || log.length > 0) && (
             <div className="panel rounded-[16px] p-5">
-              <div className="flex items-center gap-2 mb-3 text-[14px]">{phase === 'repairing' ? <Loader2 size={14} className="animate-spin text-[var(--panel-accent)]" /> : <Check size={14} className="text-[var(--panel-ok)]" />}<span className="font-semibold">Nemotron repair loop</span><span className="text-[var(--panel-muted)] text-[12px]">· scripted run</span></div>
+              <div className="flex items-center gap-2 mb-3 text-[14px]">{phase === 'repairing' ? <Loader2 size={14} className="animate-spin text-[var(--panel-accent)]" /> : <Check size={14} className="text-[var(--panel-ok)]" />}<span className="font-semibold">Nemotron repair loop</span><span className="text-[var(--panel-muted)] text-[12px]">· example run</span></div>
               <ol className="grid gap-1.5 mono text-[12px]">{log.map((l) => <li key={l} className="flex gap-2 enter-row"><span className="text-[var(--panel-accent)]">›</span><span className="text-[var(--panel-text)]">{l}</span></li>)}</ol>
             </div>
           )}

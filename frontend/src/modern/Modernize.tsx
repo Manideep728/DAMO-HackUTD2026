@@ -111,7 +111,7 @@ function StatusTag({ s }: { s: string }) {
 export function M2Recover() {
   const s = useModern(); const nav = useNavigate();
   const [agentOn, setAgentOn] = useState(false);
-  const scripted = () => s.run('m2', ['Nemotron Super · read_file check_temperature.sh', 'run_plugin against Redfish mock: Health=OK → exit 0 ✓', 'run_plugin: Health=Critical → exit 2 ✓ · empty Thermal → exit 3 ✓', 'read_file templates.cfg · contacts.cfg', '7 behaviors recorded with sources · 6 questions for the operator'], () => s.setMod({ recovered: true }));
+  const scripted = () => s.run('m2', ['Nemotron Super · read_file check_temperature.sh', 'run_plugin against Redfish mock: Health=OK → exit 0 ✓', 'run_plugin: Health=Critical → exit 2 ✓ · empty Thermal → exit 3 ✓', 'read_file templates.cfg · contacts.cfg', '7 behaviors recorded with sources · 6 questions for the operator'], () => s.setMod({ recovered: true }), 975);
   const start = () => (s.live ? setAgentOn(true) : scripted());
   const liveBehaviors = s.liveData.behaviors;
   const blocked = s.criticalOpen > 0;
@@ -167,7 +167,7 @@ export function M2Recover() {
 export function M3Generate() {
   const s = useModern(); const nav = useNavigate();
   const ready = s.mod.recovered && s.decisionsOpen === 0 && s.criticalOpen === 0;
-  const start = () => s.run('m3', ['Nemotron Super · write collector config from assets.csv', 'write Prometheus rules from 7 behaviors + 5 decisions', 'write Alertmanager routes', 'promtool check rules ✓ · amtool check-config ✓', 'candidate v1 ready for testing'], () => s.setMod({ generated: true }));
+  const start = () => s.run('m3', ['Nemotron Super · write collector config from assets.csv', 'write Prometheus rules from 7 behaviors + 5 decisions', 'write Alertmanager routes', 'promtool check rules ✓ · amtool check-config ✓', 'candidate v1 ready for testing'], () => s.setMod({ generated: true }), 975);
   const v = s.mod.repaired ? 2 : 1;
   return (
     <Page>
@@ -266,7 +266,7 @@ export function M4Test() {
 export function M5Release() {
   const s = useModern(); const nav = useNavigate(); const m = s.mod;
   const [repairOn, setRepairOn] = useState(false);
-  const scriptedRepair = () => s.run('m5r', ['Nemotron Super · read failing cases (visible only)', 'diagnose: no for: clause vs 4 attempts × 1 min retry', 'diagnose: route ignores asset owner map (decision d1)', 'write candidate v2 · promtool ✓ · amtool ✓'], () => s.setMod({ repaired: true, testRun: 1 }));
+  const scriptedRepair = () => s.run('m5r', ['Nemotron Super · read failing cases (visible only)', 'diagnose: no for: clause vs 4 attempts × 1 min retry', 'diagnose: route ignores asset owner map (decision d1)', 'write candidate v2 · promtool ✓ · amtool ✓'], () => s.setMod({ repaired: true, testRun: 1 }), 975);
   const repair = () => (s.live ? setRepairOn(true) : scriptedRepair());
   const shadow = () => s.run('m5s', ['Run v2 in shadow beside Nagios on 7 days of recorded Redfish data', 'Old: 3 notifications · New: 3 alerts · 0 unexplained diffs', '1 expected diff: recipient (decision d1)'], () => s.setMod({ shadow: true }));
   const rollback = () => s.run('m5b', ['Disable v2 rules · re-enable Nagios service "check temperature"', 'Inject Critical on Compute2 → Nagios notifies at +3 min ✓', 'Re-enable v2 · old check left running until cutover'], () => s.setMod({ rollback: true }));

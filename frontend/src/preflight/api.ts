@@ -53,6 +53,8 @@ export interface PlanEval {
 }
 export interface PlanSearch { evaluated: number; top: PlanEval[]; rejected: PlanEval[]; rejected_total: number }
 export interface AgentEvent { type: string; [k: string]: unknown }
+/** Pause before each step of a paced (non-live) agent run, in ms: choosing a tool, reading its result, writing the answer. */
+const STEP_MS: Record<string, number> = { tool_call: 800, tool_result: 250, final: 1000 };
 
 async function j<T>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(`/api/preflight${path}`, body === undefined ? undefined : {
@@ -91,9 +93,20 @@ export const pf = {
   searchPlans: (task: { name: string; nodes: string[]; duration_h: number; earliest: number; latest: number }) =>
     j<PlanSearch>('/plans/search', { task }),
   compare: (a: object, b: object) => j<{ a: PlanEval; b: PlanEval; differences: Record<string, [unknown, unknown]> }>('/plans/compare', { a, b }),
-  /** Stream an agent run. Returns a stop function. */
+  /** Stream an agent run. Returns a stop function. Without a live model the backend sends the whole run at once,
+   *  so those runs are revealed one step at a time, at about the pace of a real Nemotron turn. */
   ask(question: string, onEvent: (e: AgentEvent) => void): () => void {
     const ctrl = new AbortController();
+    const timers: number[] = [];
+    let paced = false, due = 0;
+    const emit = (e: AgentEvent) => {
+      if (ctrl.signal.aborted) return;
+      if (e.type === 'start') paced = e.mode !== 'live';
+      if (e.type === 'fallback') paced = true;
+      if (!paced) { onEvent(e); return; }
+      due = Math.max(due, Date.now()) + (STEP_MS[e.type] ?? 0);
+      timers.push(window.setTimeout(() => onEvent(e), due - Date.now()));
+    };
     (async () => {
       try {
         const r = await fetch('/api/preflight/agent', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -111,13 +124,13 @@ export const pf = {
           for (const p of parts) {
             const line = p.split(/\r?\n/).find((l) => l.startsWith('data:'));
             if (!line) continue;
-            try { const ev = JSON.parse(line.slice(5).trim()); if (ev.type) onEvent(ev); } catch { /* partial event */ }
+            try { const ev = JSON.parse(line.slice(5).trim()); if (ev.type) emit(ev); } catch { /* partial event */ }
           }
         }
       } catch (e) {
-        if (!ctrl.signal.aborted) onEvent({ type: 'error', message: e instanceof Error ? e.message : String(e) });
+        if (!ctrl.signal.aborted) emit({ type: 'error', message: e instanceof Error ? e.message : String(e) });
       }
     })();
-    return () => ctrl.abort();
+    return () => { ctrl.abort(); timers.forEach(clearTimeout); };
   },
 };
