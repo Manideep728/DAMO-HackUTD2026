@@ -22,11 +22,11 @@ DAMO reads the records an operating hall runs on, finds where they disagree, and
 
 ## Inspiration
 
-Data-center power demand is set to roughly double by 2030 (IEA, *Energy and AI*). New buildings take years, so operators are retrofitting the halls they already have: liquid-cooled GPU racks, a cooling distribution unit (CDU), new leak sensors, all wired into a building management system that was set up a decade ago.
+Data-center electricity use is projected to roughly double from 485 TWh in 2025 to 950 TWh in 2030, with AI-focused data centers tripling theirs ([IEA](https://www.iea.org/reports/key-questions-on-energy-and-ai/executive-summary)). A liquid-cooling retrofit costs around $2 million per MW against upwards of $11 million per MW for new liquid-cooled capacity ([STL Partners](https://stlpartners.com/articles/data-centres/liquid-cooled-data-centre-retrofits-economics/)), so operators are upgrading halls they already run. A recent example: ByteBridge retrofitted a live Oakland colocation site with 1 MW, 32 racks and 3 CDUs in four months, including leak-detection integration with the facility's BMS, testing and commissioning ([ByteBridge](https://www.bytebt.com/project/retrofitting-colocation-facility-semiconductor-design-ai-infrastructure-company)).
 
 The engineers doing that work don't lack tools. They lack one version of the truth. The floor plan, the cooling schematic, the BMS point list, the vendor manual and the maintenance log each describe the building a little differently, and the differences are where outages come from.
 
-Two examples drove the whole project:
+Two examples, recreated in our synthetic sample hall, drove the project:
 
 - **A backup that isn't independent.** The one-line diagram shows Pump A and Pump B on separate power paths. A 2023 work order and a 2024 maintenance log show both pump panels running through the same transfer switch, ATS-1. On paper the cooling is 2N. In the field it's N.
 - **An alarm that goes to the wrong rack.** A revised drawing moves leak sensor LD-2 to rack R3-01. The BMS mapping still says R3-02. The alarm fires, and the technician runs to the wrong rack with water on the floor.
@@ -45,7 +45,7 @@ Six steps. Connect the project's documents, and DAMO maps the site: 21 component
 ### Modernize
 ![Modernize: Nemotron 3.5 Super recovering the legacy check through tool calls](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/devpost/nemotron-recover.png)
 
-Legacy monitoring is the other half of an old building. DAMO takes a real check, the Texas Tech HPCC Nagios–Redfish plugin, to Prometheus rules. A Nemotron 3.5 Super agent reads the plugin and its Nagios objects through tool calls (20 in our recorded run), records each behaviour with its source line, and raises six questions the code can't answer, such as "who should actually be paged?" when the inherited recipient is `nagios@localhost`. The operator's answers become test expectations. The first candidate passes 1 of 6 cases; Nemotron repairs it from the visible failures only, while held-out cases stay sealed.
+Legacy monitoring is the other half of an old building, and migrations break it: Equinix's Smart View FAQ notes that after a BMS upgrade renamed assets, customers' custom alerts stopped working and had to be recreated ([Equinix](https://docs.equinix.com/smart-view/sv-faq/)). DAMO takes a real check, the Texas Tech HPCC Nagios–Redfish plugin, to Prometheus rules. A Nemotron 3.5 Super agent reads the plugin and its Nagios objects through tool calls (20 in our recorded run), records each behaviour with its source line, and raises six questions the code can't answer, such as "who should actually be paged?" when the inherited recipient is `nagios@localhost`. The operator's answers become test expectations. The first candidate passes 1 of 6 cases; Nemotron repairs it from the visible failures only, while held-out cases stay sealed.
 
 ### Preflight
 ![Preflight agent answering through a cited simulate call](https://raw.githubusercontent.com/Manideep728/DAMO-HackUTD2026/main/docs/screenshots/devpost/preflight-agent.png)
@@ -99,11 +99,10 @@ FastAPI backend, React + Vite + Tailwind frontend, NVIDIA Nemotron through build
 
 - The ATS-1 finding falls out of the records automatically: discovery reads the work order, an engineer confirms it, and every critical service drops from 2N to N on screen.
 - Discovery holds 1.0 precision with 0.867–0.983 recall across 10 seeded sets of noisy records. Most misses are digit-swap typos that spell another real tag, which is the right way to fail.
-- Every agent claim on screen carries its evidence: the tool call, the source line, or the test that checked it.
 
 ## What we learned
 
-The useful job for an LLM in a data center isn't deciding anything. It's reading fifteen documents that disagree and producing proposals specific enough to check. Once every proposal carries a quote or a tool result, a few hundred lines of deterministic validation turn the model from a risk into the fastest reader on the team.
+The useful job for an LLM in a data center is reading documents that disagree and producing proposals specific enough to check. Deterministic validation does the deciding.
 
 ## What's next
 
