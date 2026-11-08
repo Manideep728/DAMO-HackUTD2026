@@ -7,6 +7,7 @@ import path from 'node:path';
 // running dev server, the meter database or the API.
 const python = process.env.PREFLIGHT_PYTHON ?? '.venv/bin/python';
 const db = path.join(os.tmpdir(), `preflight-rehearsal-${process.pid}.sqlite`);
+const retrofitDb = path.join(os.tmpdir(), `retrofit-rehearsal-${process.pid}.sqlite`);
 
 export default defineConfig({
   testDir: 'e2e',
@@ -19,7 +20,7 @@ export default defineConfig({
       command: `${python} -m uvicorn app.main:app --port 8012`,
       cwd: '../backend',
       url: 'http://localhost:8012/api/preflight/facility',
-      env: { PREFLIGHT_DB: db, GAUNTLET_MODE: 'mock', PREFLIGHT_METERS: 'off' },
+      env: { PREFLIGHT_DB: db, RETROFIT_DB: retrofitDb, GAUNTLET_MODE: 'mock', PREFLIGHT_METERS: 'off', NVIDIA_API_KEY: '', METERS_DATABASE_URL: '' },
       timeout: 60_000,
     },
     {

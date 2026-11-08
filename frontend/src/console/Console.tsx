@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Bell, BellRing, Check, X, Wrench, ShieldCheck, ArrowRight, RotateCcw, Radio, WifiOff, Thermometer, Fan, Copy, ClipboardCheck, Sparkles, Loader2, HeartPulse, Pause, Play, CircleDot, Zap, Snowflake, ChevronRight, FastForward } from 'lucide-react';
 import { cx } from '../components/ui';
 import { useModern } from '../modern/store';
 import { AgentRun } from '../modern/Live';
 import { pf } from '../preflight/api';
 import { Num, Clock } from './motion';
+import LowFlow from './LowFlow';
 import {
   racks, c2, inletTemp, clock, autoFeed, evidence, hypotheses, type FeedItem, type Stage, type Rack, type RackState,
   FAN_STOP, EARLY_WARN, THERMAL_CRIT, OLD_PAGE, STALE_FROM, AUTO_END, MS_PER_MIN, HALL, INCIDENT_RACK, STALE_RACK, FALLBACK_FEEDS,
@@ -36,7 +37,7 @@ function useFeeds(): Feeds {
 }
 const feedsOf = (feeds: Feeds, id: string) => feeds[id] ?? (id.startsWith('R1') ? FALLBACK_FEEDS : { power: ['PDU-A2', 'PDU-B2'], cooling: ['CRAH-3', 'CRAH-4'] });
 
-export default function Console() {
+function FanStallNight() {
   const s = useModern();
   const feeds = useFeeds();
   const [m, setM] = useState(0);
@@ -506,5 +507,23 @@ function RaceHero({ m }: { m: number }) {
       </div>
       <div className="text-[14px] text-muted mt-2.5 flex items-center gap-1.5"><span className="h-3 w-[2px] bg-critical/70 inline-block" /> 02:06, fan 4 stops. Both monitors read the same BMC; only Damo was taught to watch the fan.</div>
     </section>
+  );
+}
+
+/** Two scenarios on hall H1: the original fan-stall night on air-cooled R1-03, and low flow on the liquid row R3. */
+export default function Console() {
+  const [params, setParams] = useSearchParams();
+  const scenario = params.get('scenario') === 'lowflow' ? 'lowflow' : 'fan';
+  const pick = (v: string) => setParams(v === 'fan' ? {} : { scenario: v }, { replace: true });
+  return (
+    <>
+      <div className="mx-auto w-full max-w-[1360px] -mt-6 mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Scenario">
+        {[['fan', 'Fan stall · R1-03 (air)'], ['lowflow', 'Low flow · R3 (liquid)']].map(([v, label]) => (
+          <button key={v} role="tab" aria-selected={scenario === v} onClick={() => pick(v)} data-testid={`scenario-${v}`}
+            className={cx('h-12 px-4 rounded-xl border text-[15px] t', scenario === v ? 'border-text bg-surface font-semibold' : 'border-border text-muted hover:bg-surface-2')}>{label}</button>
+        ))}
+      </div>
+      {scenario === 'fan' ? <div className="mt-6"><FanStallNight /></div> : <div className="mx-auto w-full max-w-[1360px]"><LowFlow /></div>}
+    </>
   );
 }
