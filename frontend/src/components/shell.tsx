@@ -6,6 +6,7 @@ import { Button, Badge, Kbd, ModeBadge, cx } from './ui';
 import type { Screen, DirectorFlag } from '../data/types';
 
 const nav: { to: string; match: string; label: string; tag: string }[] = [
+  { to: '/preflight', match: '/preflight', label: 'Preflight', tag: 'what-if' },
   { to: '/modernize/import', match: '/modernize', label: 'Modernize', tag: 'M1–M5' },
   { to: '/operate', match: '/operate', label: 'Operate', tag: 'R1–R5' },
 ];
@@ -36,7 +37,7 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="h-full flex flex-col">
       <header className="shrink-0 h-[60px] flex items-center gap-6 px-5 lg:px-8 border-b hairline bg-surface z-10">
-        <NavLink to="/" className="flex items-center gap-2.5 shrink-0" aria-label="Damo, home">
+        <NavLink to="/welcome" className="flex items-center gap-2.5 shrink-0" aria-label="Damo, home">
           <Logo />
         </NavLink>
         <nav className="flex items-center gap-1 min-w-0 overflow-x-auto" aria-label="Workflows">
@@ -50,7 +51,7 @@ export function Shell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-2 shrink-0">
-          {legacy ? <ModeBadge mode={state.mode} /> : <Badge title="Scripted demo on illustrative data. Legacy facts come from the public TTU repo.">Scripted demo</Badge>}
+          {loc.pathname.startsWith('/preflight') ? <Badge title="Results computed by the simulator on a synthetic facility">Simulated facility</Badge> : legacy ? <ModeBadge mode={state.mode} /> : <Badge title="Scripted demo on illustrative data. Legacy facts come from the public TTU repo.">Scripted demo</Badge>}
           <button className="h-9 w-9 grid place-items-center rounded-lg text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
           <button className="h-9 w-9 grid place-items-center rounded-lg text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setHelp(true)} aria-label="Keyboard shortcuts"><HelpCircle size={16} /></button>
           <span className="h-8 w-8 ml-1 hidden sm:grid place-items-center rounded-full bg-surface-3 text-[11.5px] font-semibold" title="Maya R. · night shift">MR</span>
