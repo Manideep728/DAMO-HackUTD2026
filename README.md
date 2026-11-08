@@ -1,8 +1,44 @@
 # The Gauntlet
 
-Old monitoring scripts go in. Verified new ones come out. Along the way, the process finds real problems in the data hall that the old scripts were hiding.
+A preflight simulator for data center changes. Before you take a pump offline or add a row of GPUs, rehearse it: see what depends on that equipment, what could fail, and the safest way to do the work.
 
-**HackUTD 2026 · tracks: NMC² · 8090 · NVIDIA Nemotron**
+The point it proves: enough capacity is not the same as independent backup. In the demo hall, Pump A and Pump B can each carry the cooling load, and the one-line diagram puts them on separate power paths. A 2023 work order and a 2024 IR scan show both pump panels running through ATS-1. Confirm that finding and every critical service drops from 2N to N, with ATS-1 as the shared single point of failure.
+
+**HackUTD 2026 · tracks: NMC² · NVIDIA Nemotron · 8090**
+
+## Preflight
+
+| Part | What it does | Where |
+|---|---|---|
+| Simulator | Requirement groups (`all`, `any`, `k_of_n`, `capacity`) over a power and cooling graph. Support is a least fixpoint, so cycles are safe; overloaded suppliers shed the lowest-criticality end load first. Every failed node gets a causal trace. | `backend/engine/propagate.py` |
+| Weak points | Minimal cut sets up to order 3: exact MOCUS expansion checked by the simulator, cross-checked against brute-force enumeration in tests. A maintenance view shows which sets shrink during a window. | `backend/engine/cutsets.py` |
+| Independence | Per redundant group, the number of failures it takes to lose every supplier, and the shared nodes when that number is 1. | `backend/engine/redundancy.py` |
+| Planner | Hourly windows scored on critical loss, shed load, cut-set order and headroom; tries shedding flexible GPU load, postponing overlapping work and temporary cooling. Returns ranked plans and rejected ones with reasons. | `backend/engine/planner.py` |
+| Discovery | Reads work orders, logs, tickets and the one-line text; resolves "transfer sw 1" or "ATS1" to node ids; extracts feeds with exact quotes; rejects quotes that are not verbatim and claims that were temporary or never built; classifies against the documented graph and shows the impact if true. An engineer confirms or rejects, with an audit log. | `backend/app/preflight/discovery.py` |
+| Agent | Nemotron with tool calling (`simulate`, `find_cut_sets`, `evaluate_plan`, `search_plans`, `search_docs`, `get_node`, `get_neighbors`, `propose_dependency`). A validator rejects any answer that names a node or number not in the tool results it cites. | `backend/app/preflight/agent.py` |
+
+```bash
+make setup        # backend venv + pip, frontend npm ci
+make dev          # backend :8000, frontend :5173 → http://localhost:5173/#/preflight
+make test         # engine, discovery, API and agent eval
+make eval         # agent eval only; EVAL_MODE=live with NVIDIA_API_KEY set runs it against Nemotron
+```
+
+Nemotron settings in `backend/.env`: `NVIDIA_API_KEY`, `NVIDIA_BASE_URL` (default `https://integrate.api.nvidia.com/v1`) and `NEMOTRON_MODEL` (copy the current tool-calling model id from build.nvidia.com; falls back to `NEMOTRON_SUPER`). Without a key the agent runs a scripted planner over the same tools and labels itself "scripted planner (no model)".
+
+### What's simplified
+
+- Power and cooling are kW budgets on a dependency graph. There is no CFD, no electrical load flow and no protection coordination; the UI says so on every screen.
+- Demand is shared across live suppliers in proportion to capacity (or first-available for transfer switches). Real busbars and chilled-water hydraulics do not split that neatly.
+- Transients are a sequence of steady-state snapshots with default timings (generator start 15 s, UPS 5–8 min, chiller restart 6 min, rack ride-through 4 min).
+- Cut sets treat whole nodes as failing and use baseline loads to build candidates. Every candidate is re-checked with the full simulator, but above order 1 a set that only matters through load moving somewhere far from the failure can be missed.
+- Under load shedding, failing a load frees capacity, so "more failures never improve any margin" holds for supply and remaining capacity, not for every individual margin. The property tests assert those monotone versions.
+- The facility, records and load profiles are synthetic. Discovery scores 1.0 precision and recall on the hand-written demo corpus; on seeded noisy records it keeps 1.0 precision with 0.83–0.95 recall, mostly lost to typos.
+- Live Nemotron tool calling has not been run in this repo yet: no API key was available while building it.
+
+## Modernize and Operate (earlier Damo work)
+
+Old monitoring scripts go in. Verified new ones come out. Along the way, the process finds real problems in the data hall that the old scripts were hiding.
 
 | Step | What happens | Who decides |
 |---|---|---|
