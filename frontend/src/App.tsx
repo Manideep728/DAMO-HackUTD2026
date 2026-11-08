@@ -7,6 +7,8 @@ import Console from './console/Console';
 import Verify from './console/Verify';
 import Preflight from './preflight/Preflight';
 import { M1Import, M2Recover, M3Generate, M4Test, M5Release } from './modern/Modernize';
+import { RetrofitPage } from './retrofit/Retrofit';
+import { FirmwarePage, HandoverPage, EvalPage } from './retrofit/Views';
 
 export default function App() {
   return (
@@ -26,6 +28,10 @@ export default function App() {
               <Route path="/modernize/generate" element={<M3Generate />} />
               <Route path="/modernize/test" element={<M4Test />} />
               <Route path="/modernize/release" element={<M5Release />} />
+              <Route path="/retrofit" element={<RetrofitPage />} />
+              <Route path="/retrofit/firmware" element={<FirmwarePage />} />
+              <Route path="/retrofit/handover" element={<HandoverPage />} />
+              <Route path="/retrofit/eval" element={<EvalPage />} />
               {/* Retired screens (old R1–R5 operate flow, check_rack_inlet demo) contradicted the console; their links land on the live console */}
               {['/operate/*', '/checks', '/read/*', '/find/*', '/prove/*', '/handoff'].map((p) => <Route key={p} path={p} element={<Navigate to="/" replace />} />)}
             </Route>

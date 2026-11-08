@@ -10,8 +10,9 @@ const nav: { to: string; match: string; label: string; tag: string; exact?: bool
   { to: '/verify', match: '/verify', label: 'Verify a change', tag: '' },
   { to: '/preflight', match: '/preflight', label: 'Preflight', tag: 'what-if' },
   { to: '/modernize/import', match: '/modernize', label: 'Modernize', tag: 'M1–M5' },
+  { to: '/retrofit', match: '/retrofit', label: 'Retrofit', tag: 'V4' },
 ];
-const keyRoutes: Record<string, string> = { '1': '/', '2': '/verify', '3': '/preflight', '4': '/modernize/import' };
+const keyRoutes: Record<string, string> = { '1': '/', '2': '/verify', '3': '/preflight', '4': '/modernize/import', '5': '/retrofit' };
 
 export function Shell({ children }: { children: ReactNode }) {
   const { state } = useStore();
@@ -63,7 +64,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="card p-6 w-[440px] shadow-[var(--shadow)]" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Keyboard shortcuts">
             <div className="flex items-center justify-between mb-4"><span className="font-semibold text-[15px]">Keyboard shortcuts</span><button className="text-muted hover:text-text" onClick={() => setHelp(false)} aria-label="Close"><X size={16} /></button></div>
             <table className="w-full text-[14px]"><tbody>
-              {[['Enter', 'Do the next action on the console'], ['1', 'Console'], ['2', 'Verify a change'], ['3', 'Preflight'], ['4', 'Modernize (M1–M5)'], ['?', 'This panel'], ['Esc', 'Close']].map(([k, v]) => <tr key={k}><td className="py-1.5 w-32"><Kbd k={k} /></td><td className="text-muted">{v}</td></tr>)}
+              {[['Enter', 'Do the next action on the console'], ['1', 'Console'], ['2', 'Verify a change'], ['3', 'Preflight'], ['4', 'Modernize (M1–M5)'], ['5', 'Retrofit (V4)'], ['?', 'This panel'], ['Esc', 'Close']].map(([k, v]) => <tr key={k}><td className="py-1.5 w-32"><Kbd k={k} /></td><td className="text-muted">{v}</td></tr>)}
             </tbody></table>
           </div>
         </div>
