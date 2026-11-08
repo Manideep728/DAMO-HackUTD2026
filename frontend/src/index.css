@@ -185,3 +185,15 @@ pre, code { font-family: var(--font-mono); }
 .fm-dim { opacity: .22; }
 .fm .react-flow__controls { box-shadow: none; }
 .fm .react-flow__controls-button { background: var(--panel-2); border-color: var(--panel-border); fill: var(--panel-text); }
+.fm-node { cursor: pointer; }
+.fm-group { border-style: solid; border-width: 1.5px; }
+.fm-word-ok { color: var(--panel-ok); }
+.fm-word-degraded, .fm-word-maint { color: var(--warning); }
+.fm-word-down { color: #FF8A80; }
+.fm-dim { opacity: .2; }
+/* Alarm emphasis: an active incident must out-shout every other card */
+@keyframes alarmGlow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--critical) 0%, transparent); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--critical) 22%, transparent); } }
+@keyframes alarmGlowWarn { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warning) 0%, transparent); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--warning) 22%, transparent); } }
+.alarm-card { animation: popIn .32s cubic-bezier(.2,.8,.2,1.1) both, alarmGlow 2s ease-in-out .4s infinite; }
+.alarm-card-warn { animation: popIn .32s cubic-bezier(.2,.8,.2,1.1) both, alarmGlowWarn 2s ease-in-out .4s infinite; }
+@media (prefers-reduced-motion: reduce) { .alarm-card, .alarm-card-warn { animation: none; } }
