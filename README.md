@@ -67,6 +67,8 @@ sudo apt install monitoring-plugins-basic
 make promtool
 ```
  
+**Deploy the frontend on Vercel:** import the repo and deploy; the root `vercel.json` installs and builds `frontend/` and serves `frontend/dist` (leave Root Directory empty in the Vercel dashboard). Routes use the hash (`/#/preflight`), so no rewrites are needed. The Python backend does not run on Vercel: the Console, the retrofit setup, Modernize and Verify fall back to their committed demo data, and Preflight shows "backend unreachable" until a backend is hosted elsewhere.
+
 ## Configuration
  
 All settings live in `backend/.env` (start from `.env.example`).
