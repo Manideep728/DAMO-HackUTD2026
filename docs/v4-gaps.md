@@ -86,7 +86,7 @@ What `main` is missing against the V4 workflow ("Making existing data centers AI
 ## 8. Continuity from modernization to operations
 
 - [ ] Console incident context comes from the accepted retrofit package (equipment map, owners, rules), not hard-coded data
-- [ ] Ops asset map still uses old rack IDs (`backend/app/ttu/ops.py:16-18`: `R12-U14`, `R12-U16`, `R13-U02`); align with H1 (`R1-03`, `R1-04`)
+- [ ] Ops asset map still uses old rack IDs (`backend/app/ttu/ops.py:16-18`: `R12-U14`, `R12-U16`, `R13-U02`); align with H1 (`R1-03`, `R1-04`). The live investigate agent reads this map, so a live run on the console can cite R12-U16 while the console shows R1-03
 - [ ] Reviewed incident lesson → proposed regression test → modernization review
 
 ## 9. Evaluation (V4 §6 "How we prove it is better", §7)

@@ -1,5 +1,7 @@
 # Build the Gauntlet front-end mock-up
 
+> **Historical.** The original front-end build prompt. Its Checks / Read / Find / Prove / Handoff screens are retired and redirect to the console; see the README for current screens.
+
 > **For Cursor.** Open this folder in Cursor, open the Agent panel (Cmd/Ctrl+I), choose a strong model, and paste this file as the first message, followed by: "Follow this prompt. Start with Phase 0 and stop for my review at the end of each phase." The rules in `.cursor/rules/` load automatically by file path; `@`-mention one when you want it in context explicitly (for example `@nemotron-api.mdc`).
 
 ---

@@ -1,5 +1,7 @@
 # The Gauntlet — Merged Build Plan (HackUTD 2026)
 
+> **Historical.** The original HackUTD build plan (7 Nov). The app has moved on: see the README for current screens and [v4-gaps.md](v4-gaps.md) for the current direction.
+
 Nov 7, 2026 · @Odey
 
 ## Decisions

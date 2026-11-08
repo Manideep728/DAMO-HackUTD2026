@@ -2,6 +2,8 @@
 
 Proposed direction • 8 November 2026 • 8090 + NMC² + NVIDIA
 
+> **Status:** proposed, mostly not built. The later V4 review keeps these two workflows but changes the headline demo: a leak sensor **mapped to the wrong rack** (schema passes, behavior test fails, engineer confirms from the drawing, fix kept as a regression test, rerun on a second site) instead of a missing leak alarm, and adds a low-flow monitoring incident where the job slows while the CDU reports running. What main has and lacks against V4 is in [v4-gaps.md](v4-gaps.md).
+
 Help existing data centers add liquid-cooled AI/HPC equipment by updating and verifying the monitoring their operators already use. Two connected workflows: modernize the integration during the retrofit, then use the verified configuration and procedures for ongoing monitoring.
 
 **Initial users:** controls/BMS integrators, commissioning engineers, and facility operations teams. BMS means building management system; DCIM means data center infrastructure management; CDU means coolant distribution unit. A point list identifies the sensor readings and equipment alarms a monitoring system should receive.

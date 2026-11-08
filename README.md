@@ -40,17 +40,24 @@ Meters: set `METERS_DATABASE_URL` (a Tiger service) in `backend/.env`, then `mak
 - The facility, records and load profiles are synthetic. Discovery scores 1.0 precision and recall on the hand-written demo corpus. On 10 seeded sets of noisy records it keeps 1.0 precision with 0.867–0.983 recall; most misses are digit-swap typos that spell another real tag.
 - Live Nemotron tool calling works with the key in `backend/.env` (smoke-tested); the 24-question live eval results go in `docs/devpost.md` once the run finishes.
 
-## Modernize and Operate (earlier Damo work)
+## The app
 
-Old monitoring scripts go in. Verified new ones come out. Along the way, the process finds real problems in the data hall that the old scripts were hiding.
+Four screens in the top bar. Everything uses the same facility: hall H1, racks R1-01 to R2-08.
 
-| Step | What happens | Who decides |
+| Screen | Route | What it does |
 |---|---|---|
-| **Read** | Nemotron Super reads a real Nagios check (plugin + config) and writes a plain-English rule card. The real plugin binary is then run to confirm every threshold statement. | Execution |
-| **Find** | The old check is replayed over 21 days of recorded readings. Deterministic detectors find what it hid (a lying sensor, a clogged filter, a dead mailbox, a retired rack). Nemotron Nano writes each as two sentences and an action. | A person accepts (→ work order) or dismisses |
-| **Prove** | Nemotron Super writes Prometheus rules. The verifier runs the real plugin on every value the sensor can report and on generated timing traces, and compares with `promtool`. A one-shot translation goes through the same verifier and fails with concrete counterexamples; the Gauntlet loop feeds them back until zero. | A person signs the certificate; then the tombstone |
+| **Console** | `/` | The night shift on H1. Fan 4 on Compute2 (rack R1-03) stops; the released rules warn before the old Nagios check would page. Alarm first, with steps to acknowledge, investigate, dispatch, verify recovery and hand off. Alerting never depends on the model; Nemotron investigation is optional and the offline path says so. Rack and feed chips open the same equipment in Preflight. |
+| **Verify a change** | `/verify` | Proves the alarm path still works: the v1 and v2 candidate rules run through the harness (real plugin, promtool, amtool), with held-out cases, a wrong-recipient mutant and an alert-everything decoy. |
+| **Preflight** | `/preflight` | The what-if simulator described above. |
+| **Modernize** | `/modernize/*` | M1–M5 on the real Texas Tech HPCC Redfish check: import and gaps, Nemotron recovers behavior and asks the operator, generate, test, then repair / review / shadow / rollback / release. See `docs/modernize-demo.md`. |
 
-Nemotron writes sentences and rules. Execution decides whether they're right. That is the answer to "isn't this just pasting the script into an LLM?"
+`/about` is the landing page. The older screens (`/operate/*`, `/checks`, `/read`, `/find`, `/prove`, `/handoff`) redirect to the console; their code is still in `src/screens` and `src/modern/Operate.tsx`.
+
+Nemotron writes sentences, rules and plans. Execution decides whether they're right. That is the answer to "isn't this just pasting the script into an LLM?"
+
+## Where this is going (V4)
+
+The V4 direction is "make existing data centers AI-ready": help controls engineers integrate a liquid-cooled GPU retrofit (CDU, leak sensors, rack mapping) into the existing BMS with tested, reviewable changes, then use that verified equipment map for incident response. Most of that is **not built yet**. `docs/v4-gaps.md` is the checklist of what main is missing; tick items there as they land.
 
 ## Run it
 
@@ -75,25 +82,24 @@ Open http://localhost:5173/#/ for the fixture-driven UI (no backend needed), or 
 
 **Real work orders.** Set `GAUNTLET_GITHUB_REPO=owner/repo` (with `gh auth login`) and Accept opens a GitHub issue.
 
-## Demo (2 minutes)
+## Demos
 
-1. **Checks** → open `check_rack_inlet`.
-2. **Read** → *Read with Nemotron*. Watch statements verify by execution (`27.1 → WARNING ✓`). Director toggle shows a flagged statement.
-3. **Find** → *Replay and find*. Six findings. Hand the judge the mouse: `A` accepts, `D` dismisses. Work order #482 opens.
-4. **Prove** → *Generate and verify*. Coverage strip over every value. One-shot: 3 counterexamples. Gauntlet: 0. "Same model both times. The difference is the proof." `S` signs off → tombstone.
-5. **Handoff** → everything the shift decided, with names and times.
+- **Preflight (2–3 min):** `docs/DEMO.md`. `make rehearse` clicks through it and checks every number.
+- **Modernize + console (3 min):** `docs/modernize-demo.md`.
 
-Keyboard: `1–5` screens · `A` accept · `D` dismiss · `S` sign off · `U` undo · `→` next step · `?` help · `Ctrl+Shift+D` Director (replay, jump to end, planned failures, speed).
+Keyboard on the console: `?` help · `Ctrl+Shift+D` Director (replay, jump to end, planned failures, speed).
 
 ## Layout
 
 ```
-frontend/   React + Vite + Tailwind. src/screens (Checks, Read, Find, Prove, Handoff), src/data (DataSource, Mock, Api), src/fixtures
-backend/    FastAPI. app/main.py (SSE endpoints), app/llm.py (Nemotron via build.nvidia.com, cache), app/verify (sweep.py, traces.py), app/prompts
-            engine/ (pure simulator, cut sets, planner) · app/preflight (API, discovery, agent, meters.py + telemetry.py for Tiger)
-legacy/     the real Nagios config for check_rack_inlet, inventory.csv, oncall_roster.csv, plugin stand-in, README with declared drift
+frontend/   React + Vite + Tailwind. src/console (Console, Verify), src/preflight (Preflight, FacilityMap, Panels),
+            src/modern (Modernize M1–M5, store, api), src/components (shell, ui), src/screens (Landing; older retired screens), src/data + src/fixtures (data sources for the older screens)
+backend/    FastAPI. app/main.py, app/llm.py (Nemotron via build.nvidia.com, cache), app/ttu (Modernize: inputs, agent, harness, ops),
+            app/verify, app/prompts · engine/ (pure simulator, cut sets, planner) · app/preflight (API, discovery, agent, meters + telemetry for Tiger)
+legacy/     the pinned TTU Redfish plugins and Nagios objects (legacy/ttu), plus the older check_rack_inlet config and plugin stand-in
 .cursor/    build rules used to design this (domain, UX, design system, engine, verification UI, Nemotron API, QA)
-docs/       DEMO.md (preflight demo), modernize-demo.md, devpost.md, DESIGN.md, PROMPT.md (the build prompt)
+docs/       DEMO.md (Preflight demo), modernize-demo.md, devpost.md, DESIGN.md, ux-audit.md, v4-gaps.md (V4 checklist),
+            direction-ai-retrofit.md, preflight-test-log.md · build-spec.md and PROMPT.md are the original build plans (historical)
 ```
 
 ## Honest limits

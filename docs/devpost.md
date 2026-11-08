@@ -96,7 +96,7 @@ The difference between capacity and redundancy is one shared node, and a capacit
 
 ## Also in the repo
 
-**Modernize and Operate**, the team's earlier track work, is still in the app. It retires an inherited Nagios check by proof: the real Texas Tech HPCC plugin runs against a Redfish mock, Prometheus rules are tested with `promtool` and `amtool`, and a held-out suite rejects a wrong-recipient mutant and an alert-everything decoy. See `docs/modernize-demo.md`.
+**Modernize, Verify a change and the console**, the team's earlier track work, are still in the app, on the same hall H1 as Preflight. Modernize retires an inherited Nagios check by proof: the real Texas Tech HPCC plugin runs against a Redfish mock, Prometheus rules are tested with `promtool` and `amtool`, and a held-out suite rejects a wrong-recipient mutant and an alert-everything decoy. The console replays an alarm-first night shift (scripted readings) where alerting never depends on the model. See `docs/modernize-demo.md`.
 
 ## Built With
 
