@@ -34,8 +34,10 @@ def test_confirming_a_finding_changes_simulation_and_is_audited(client):
     log = client.get("/api/preflight/audit").json()
     assert log[0]["action"] == "finding.confirmed" and log[0]["actor"] == "maya"
     edges = client.get("/api/preflight/facility").json()["edges"]
-    mccb = [e for e in edges if e["consumer"] == "MCC-B"]
-    assert [(e["supplier"], e["source"]) for e in mccb] == [("ATS-1", "engineer_confirmed")] and mccb[0]["citations"]
+    mccb = {e["supplier"]: e for e in edges if e["consumer"] == "MCC-B"}
+    assert (mccb["ATS-1"]["source"], mccb["ATS-1"]["status"]) == ("engineer_confirmed", "confirmed")
+    assert mccb["ATS-1"]["citations"]
+    assert (mccb["ATS-2"]["source"], mccb["ATS-2"]["status"]) == ("documented", "rejected")  # kept, not deleted
 
 
 def test_rejecting_keeps_the_documented_graph(client):
@@ -171,3 +173,9 @@ def test_model_read_feeds_findings_and_is_audited(client):
     f = next(f for f in d["findings"] if f["id"] == "F-MCC-B-ATS-1")
     assert any(s["doc_id"] == "WO-9001" and s["extractor"] == "nemotron-read" for s in f["supporting"])
     assert "discovery.model_read" in [a["action"] for a in client.get("/api/preflight/audit").json()]
+
+
+def test_export_after_confirming_writes_only_the_live_feed(client):
+    client.post("/api/preflight/findings/F-MCC-B-ATS-1/decision", json={"decision": "confirmed", "actor": "maya"})
+    rows = {r.split(",")[0]: r for r in client.get("/api/preflight/export.csv").text.splitlines()}
+    assert rows["MCC-B"].endswith("=ATS-1")  # CSV has no status column, so the set-aside ATS-2 feed is left out

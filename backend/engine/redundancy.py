@@ -92,11 +92,18 @@ def service_redundancy(
     services = facility.critical_services()
     tree = FaultTree(facility, states, candidates(facility, states, services), max_order)
     out = []
+    seen: dict[tuple[str, str], GroupRedundancy] = {}  # shared infrastructure groups appear under many services
+
+    def cached(n: Node, g: RequirementGroup) -> GroupRedundancy:
+        if (n.id, g.name) not in seen:
+            seen[(n.id, g.name)] = group_redundancy(tree, n, g)
+        return seen[(n.id, g.name)]
+
     for svc in services:
         closure = [by_id[n] for n in sorted(upstream(facility, [svc]) | {svc})]
         # Redundant groups on the service and on the infrastructure feeding it (other racks are not part of it).
         groups = [
-            group_redundancy(tree, n, g)
+            cached(n, g)
             for n in closure
             if n.type not in SERVICE_TYPES or n.id == svc
             for g in n.requires

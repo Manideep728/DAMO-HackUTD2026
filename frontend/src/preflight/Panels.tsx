@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Check, X, FileText, CircleAlert } from 'lucide-react';
+import { Check, X, FileText, CircleAlert, Gauge } from 'lucide-react';
 import { Badge, Button, StatusPill, cx } from '../components/ui';
-import type { CutSets, Evidence, ModelRead, Transient, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
+import type { CutSets, Evidence, LoadSource, ModelRead, Transient, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
@@ -105,7 +105,7 @@ export function CutSetPanel({ cuts, maintenance, picked, onPick }: { cuts: CutSe
         {maintenance.length > 0 && <> while <span className="mono">{maintenance.join(', ')}</span> is in maintenance</>}. Click one to see it on the map.
       </p>
       {cuts.single_points.length > 0
-        ? <div className="rounded-lg border border-critical/40 bg-critical/8 px-3 py-2 text-[12.5px]"><CircleAlert size={13} className="inline text-critical mr-1" />Single points of failure: <span className="mono font-semibold">{cuts.single_points.join(', ')}</span></div>
+        ? <div data-testid="single-points" className="rounded-lg border border-critical/40 bg-critical/8 px-3 py-2 text-[12.5px]"><CircleAlert size={13} className="inline text-critical mr-1" />Single points of failure: <span className="mono font-semibold">{cuts.single_points.join(', ')}</span></div>
         : <div className="rounded-lg border border-ok/40 px-3 py-2 text-[12.5px] text-ok">No single point of failure.</div>}
       <ul className="grid gap-1">
         {cuts.cut_sets.slice(0, 40).map((c) => {
@@ -217,13 +217,46 @@ function Quotes({ title, items }: { title: string; items: Evidence[] }) {
     <div className="text-[12px]">
       <div className="text-muted mb-1">{title}</div>
       <ul className="grid gap-1">
-        {items.map((q, i) => (
+        {items.map((q, i) => q.kind === 'meters' ? (
+          <li key={i} className="flex gap-1.5" data-testid="meter-evidence"><Gauge size={14} className="shrink-0 mt-0.5 text-accent" />
+            <span><span className="mono font-semibold">Meters</span> <span className="text-faint">Tiger · synthetic readings · {q.date}</span> {q.quote}</span></li>
+        ) : (
           <li key={i} className="flex gap-1.5"><FileText size={12} className="shrink-0 mt-0.5 text-faint" />
             <span><span className="mono">{q.doc_id}</span> <span className="text-faint">{q.date} · {q.kind.replace('_', ' ')}</span> “{q.quote}”{q.extractor?.includes('nemotron-read') && <span className="text-accent"> · {q.extractor.startsWith('rules') ? 'read by the rules and Nemotron' : 'read by Nemotron'}</span>}{q.extractor?.includes('nemotron-resolve') && <span className="text-muted"> · name resolved by Nemotron</span>}{q.reason && <span className="text-muted"> · {q.reason}</span>}</span></li>
         ))}
       </ul>
     </div>
   );
+}
+
+/** One line under the plan button: what hourly load the planner simulated against. */
+export function LoadSourceLine({ src }: { src?: LoadSource }) {
+  if (!src || src.source === 'none') return null;
+  if (src.source === 'assumed') {
+    return (
+      <p className="flex items-start gap-2 text-[14px] text-muted" data-testid="load-source">
+        <Gauge size={16} className="shrink-0 mt-0.5" />
+        <span>Load: hand-written hourly profile. No meter data; sync meters from the Admin menu.</span>
+      </p>
+    );
+  }
+  return (
+    <p className="flex items-start gap-2 text-[14px]" data-testid="load-source">
+      <Gauge size={16} className="shrink-0 mt-0.5 text-accent" />
+      <span>
+        Load: <span className="font-medium">measured</span>, the worst hour of the week over {src.profile_weeks} weeks of meter data in Tiger.{' '}
+        <span className="text-muted">Synthetic readings · {src.offline ? 'offline, last synced' : 'synced'} {src.synced_at}</span>
+        {src.offline && <> <Badge tone="warning">offline</Badge></>}
+      </span>
+    </p>
+  );
+}
+
+/** Planner mitigation ids in words: shed_flexible_load, temporary_cooling, postpone:<window>, restore:<node>. */
+function mitigationText(m: string): string {
+  if (m.startsWith('postpone:')) return `${m.slice('postpone:'.length)} postponed`;
+  if (m.startsWith('restore:')) return `${m.slice('restore:'.length)} switched back to its documented feed`;
+  return m.replaceAll('_', ' ');
 }
 
 export function PlanResults({ res, compare, onToggleCompare }: { res: PlanSearch; compare: number[]; onToggleCompare: (i: number) => void }) {
@@ -237,7 +270,7 @@ export function PlanResults({ res, compare, onToggleCompare }: { res: PlanSearch
             <input type="checkbox" checked={compare.includes(i)} onChange={() => onToggleCompare(i)} className="h-5 w-5 shrink-0" />
             {top ? (i === 0 ? <StatusPill kind="ok" word="Recommended" size="sm" /> : <Badge>Alternative</Badge>) : <Badge tone="warning">Rejected</Badge>}
             <span className="mono font-semibold">hour {p.start}–{p.end}</span>
-            {p.mitigations.length > 0 && <span className="text-muted">with {p.mitigations.join(', ').replaceAll('_', ' ')}</span>}
+            {p.mitigations.length > 0 && <span className="text-muted">with {p.mitigations.map(mitigationText).join(', ')}</span>}
           </span>
           <span className="text-muted">cut-set order {p.min_cut_order}{p.single_points.length > 0 && <> · single points <span className="mono">{p.single_points.join(', ')}</span></>} · lowest headroom {pct(p.min_margin)}{p.tightest && <> on <span className="mono">{p.tightest}</span></>}</span>
           {p.reasons.length > 0 && <span className={top ? 'text-muted' : 'text-warning'}>{p.reasons.join('; ')}</span>}

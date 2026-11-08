@@ -8,3 +8,4 @@ pyyaml
 python-dotenv
 httpx
 pytest
+psycopg[binary]>=3.2,<4

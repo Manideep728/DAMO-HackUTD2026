@@ -19,7 +19,8 @@ The Gauntlet answers three questions about a proposed change: what fails, what's
 - **Simulate.** Click equipment on the dependency map to put it in maintenance or fail it. The simulator propagates power and cooling, sheds the least critical load first when a supplier is overloaded, and gives every failed rack a causal trace.
 - **Weak points.** Minimal cut sets up to order 3: the smallest combinations of failures that take down a critical service. During a maintenance window it shows which sets shrink. For each service it reports redundancy two ways, by capacity (2N, N+1, N) and by independence (how many failures it takes to lose every supplier), and the effective level is the lower of the two.
 - **Findings.** Discovery reads work orders, logs, change tickets and the one-line text. It resolves names like "transfer sw 1" or "pump mcc b" to inventory ids, extracts "X is fed from Y" claims with exact quotes, and compares them with the documented graph. Each finding says whether it confirms, contradicts or adds an edge, how confident it is, and what changes if it's true. An engineer confirms or rejects it, and the decision goes to an audit log.
-- **Plan.** Give it equipment, a duration and a range of hours. It simulates every start hour, ranks the windows on critical loss, shed load, cut-set order, single points and headroom, and tries mitigations: shedding flexible GPU load, temporary cooling, postponing overlapping work. Every rejected window says where it loses to the recommended one.
+- **Plan.** Give it equipment, a duration and a range of hours. It simulates every start hour, ranks the windows on critical loss, shed load, cut-set order, single points and headroom, and tries mitigations: shedding flexible GPU load, temporary cooling, postponing overlapping work, and switching equipment the records moved back to its documented feed. Every rejected window says where it loses to the recommended one. After the ATS-1 finding is confirmed, the 6-hour utility test is recommended at hour 0–6 with MCC-B switched back to ATS-2 first; without that switch the same hour has ATS-1 and GEN-1 as single points.
+- **Meters.** Power readings live in Tiger (TimescaleDB). The planner simulates against measured load, the worst hourly average at each hour of the week over 4 weeks, instead of a hand-written profile. Discovery reconciles the meters against the drawings as a source independent of every document.
 - **Ask.** A Nemotron agent answers questions like "When is the safest time to take CRAH-3 offline for 4 hours?" by calling the simulator's tools and explaining the results.
 
 In the demo, confirming the ATS-1 finding drops all 8 racks in R1, plus the inference workload, from 2N or N+1 to N. Failing ATS-1 then takes down 18 racks and workloads, 400 kW. The planner recommends hour 6 to hour 12 for six hours of Pump A work, out of 52 options it simulated.
@@ -49,9 +50,13 @@ MOCUS expands the tree, and the simulator re-checks every candidate. On graphs u
 
 Every quote must appear verbatim in the cited record. Sentences describing temporary, proposed or uninstalled connections are set aside with a reason. On 10 seeded sets of messy generated records, precision is 1.0 on every set, and recall has a mean of 0.943 (lowest 0.867).
 
+**Meters in Tiger.** `preflight.readings` is a hypertable of power readings. A continuous aggregate keeps hourly averages current, and the planner's profile per leaf load is the maximum of those averages at each hour of the week over 4 weeks. Reconciliation is one SQL query: bucket to 15 minutes with `time_bucket`, subtract each supplier's documented loads from its own meter, and `corr()` what's left against each candidate consumer. A move needs both sides: the new supplier's gap rises with the consumer (r ≥ 0.9), the documented supplier's falls with it (r ≤ −0.9), and the gap is within 15% of the consumer's load. The one-sided case is the trap: PUMP-B's load is in ATS-1's gap too (r = 0.96), but MCC-B balances, so it isn't flagged.
+
+We have no real meters. The readings are synthetic: the simulator runs on the as-built wiring every 15 minutes for 28 days (115,584 rows), with load shapes, weekend variation, independent pump speed and 0.2% meter error. On Tiger, seeding takes 4.4 s and a sync 3.6 s. The sync finds exactly one difference, MCC-B on ATS-1 (r = 0.96 / −0.97, a 16.7 kW gap), and lifts that finding from 0.97 to 0.99. With no records at all, the meters alone raise it at 0.8. Meters generated from the documented wiring find nothing, which is a test. When the meters balance the drawings, they halve a contradicting finding instead. Venue Wi-Fi blocked Tiger's port, so every sync also writes a local snapshot the app can start from.
+
 **Agent.** Nemotron runs over NVIDIA's OpenAI-compatible API with native tool calling: `simulate`, `find_cut_sets`, `evaluate_plan`, `search_plans`, `search_docs`, `get_node`, `get_neighbors` and `propose_dependency`. The final answer is structured, with a recommendation, rejected alternatives, risks and assumptions, and each claim cites tool-call ids. A checker rejects any answer that names a node or number missing from the results it cites, and sends the rejection back to the model. Questions about CFD, load flow or anything outside the facility get a refusal.
 
-**Product.** FastAPI with server-sent events, SQLite for decisions and the audit log, and React with @xyflow/react for the map. A banner on every screen says what the model doesn't cover.
+**Product.** FastAPI with server-sent events, SQLite for decisions and the audit log, Tiger (TimescaleDB) for meter data, and React with @xyflow/react for the map. A banner on every screen says what the model doesn't cover.
 
 ## Challenges we ran into
 
@@ -66,7 +71,7 @@ Every quote must appear verbatim in the cited record. Sentences describing tempo
 
 - **The headline is a computed result.** The ATS-1 single point comes from three verbatim quotes and a re-run of the cut sets. Nothing in the engine knows about it.
 - **Live Nemotron eval:** ⟦N⟧/⟦72⟧ passes across 3 runs of 24 questions with ⟦model id⟧. Expected answers are computed by the engine at test time. Reproduce with `cd backend && .venv/bin/python -m tests.preflight.eval.run_live --runs 3`.
-- **97 tests** covering:
+- **131 tests** covering:
   - each requirement mode
   - monotonicity and determinism properties
   - a golden demo
@@ -76,6 +81,7 @@ Every quote must appear verbatim in the cited record. Sentences describing tempo
   - the API
   - the agent eval in scripted mode
   - a check that random model answers can't change the demo findings
+  - meter reconciliation, run as real SQL against TimescaleDB in CI, with a no-rewire control
 - **Fails closed.** No key, a rate limit or a dropped connection falls back to a labeled scripted planner using the same tools and the same checker. Nothing that ran scripted is presented as live.
 
 ## What we learned
@@ -94,7 +100,7 @@ The difference between capacity and redundancy is one shared node, and a capacit
 
 ## Built With
 
-nvidia-nemotron · python · fastapi · sqlite · react · typescript · vite · tailwindcss · xyflow · github-actions
+nvidia-nemotron · tiger-data · timescaledb · postgresql · python · fastapi · sqlite · react · typescript · vite · tailwindcss · xyflow · github-actions
 
 ## Try it out
 

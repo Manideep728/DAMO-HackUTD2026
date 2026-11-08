@@ -80,6 +80,10 @@ class Supply(BaseModel):
     citations: list[Citation] = []
 
 
+def _is(s: Supply, source: EdgeSource, status: EdgeStatus) -> bool:
+    return s.source == source and s.status == status
+
+
 class RequirementGroup(BaseModel):
     name: str
     resource: Resource = Resource.power
@@ -144,13 +148,43 @@ class Facility(BaseModel):
         ]
 
     def with_edge(self, consumer: str, group: str, supply: Supply, replace: str | None = None) -> Facility:
-        """Copy of the facility with one edge added to a group (optionally replacing another supplier)."""
+        """Copy of the facility with one edge added to a group. A replaced supplier stays in the group as rejected,
+        so the model remembers where the consumer used to be fed from and a plan can offer to move it back."""
         f = self.model_copy(deep=True)
         node = f.by_id()[consumer]
         for g in node.requires:
             if g.name == group:
-                if replace:
-                    g.suppliers = [s for s in g.suppliers if s.supplier != replace]
+                for s in g.suppliers:
+                    if s.supplier == replace:
+                        s.status = EdgeStatus.rejected
                 g.suppliers = [s for s in g.suppliers if s.supplier != supply.supplier] + [supply]
                 return Facility.model_validate(f.model_dump())
         raise KeyError(f"{consumer} has no group {group}")
+
+    def restorable(self) -> list[tuple[str, str, str, str]]:
+        """(consumer, group, current supplier, documented supplier) for every group whose documented feed was
+        replaced by one found in the records: the feed the drawings say it should be on."""
+        out = []
+        for n in self.nodes:
+            for g in n.requires:
+                old = [s.supplier for s in g.suppliers if _is(s, EdgeSource.documented, EdgeStatus.rejected)]
+                new = [s.supplier for s in g.suppliers if _is(s, EdgeSource.engineer_confirmed, EdgeStatus.confirmed)]
+                if len(old) == 1 and len(new) == 1:
+                    out.append((n.id, g.name, new[0], old[0]))
+        return out
+
+    def with_restored(self, consumer: str) -> Facility:
+        """Copy with the consumer switched back to its documented feed, the record-found feed set aside."""
+        match = [r for r in self.restorable() if r[0] == consumer]
+        if not match:
+            raise KeyError(f"{consumer} has no documented feed to restore")
+        _, group, current, documented = match[0]
+        f = self.model_copy(deep=True)
+        for g in f.by_id()[consumer].requires:
+            if g.name == group:
+                for s in g.suppliers:
+                    if s.supplier == documented:
+                        s.status = EdgeStatus.confirmed
+                    elif s.supplier == current:
+                        s.status = EdgeStatus.rejected
+        return f

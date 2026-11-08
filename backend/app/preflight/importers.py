@@ -39,7 +39,8 @@ def _group_to_str(g: RequirementGroup) -> str:
     head = [g.name, g.mode.value] + ([str(g.k)] if g.mode == Mode.k_of_n else []) + [g.resource.value]
     if g.split != Split.proportional:
         head.append(g.split.value)
-    return ":".join(head) + "=" + "|".join(s.supplier for s in g.suppliers)
+    # CSV has no status column, so only live suppliers are written; a rejected one would come back as live.
+    return ":".join(head) + "=" + "|".join(g.live_suppliers())
 
 
 def _group_from_str(text: str) -> RequirementGroup:

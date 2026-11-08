@@ -6,6 +6,9 @@ Plans are ranked lexicographically, best first:
 3. the smallest cut-set order during the window (higher is safer; a 1 is a single point of failure)
 4. the lowest headroom during the window, capped at 20% (above that, more headroom is not a reason to pick)
 5. fewer single points of failure, then fewer mitigations, then the earliest start
+
+Mitigations tried on the most promising windows: shed flexible load, temporary cooling, postpone overlapping
+work, and, where records moved a consumer off its documented feed, switch it back to that feed first.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ from .timestep import Profiles, Window, scale_at, snapshot, states_at
 SHED = "shed_flexible_load"
 COMFORTABLE = 0.20
 TEMP_COOLING = "temporary_cooling"
+RESTORE = "restore:"  # restore:<consumer> switches it back to its documented feed before the work
 
 
 @dataclass
@@ -134,6 +138,9 @@ def evaluate_plan(
     postponed = {w.label for w in overlapping if f"postpone:{w.label}" in mitig}
     active_windows = [w for w in windows if w.label not in postponed]
     fac = facility
+    restored = [m.removeprefix(RESTORE) for m in mitig if m.startswith(RESTORE)]
+    for consumer in restored:
+        fac = fac.with_restored(consumer)
     if TEMP_COOLING in mitig:
         zones = {facility.by_id()[n].zone for n in plan.task.nodes}
         fac = _with_temp_cooling(facility, zones or {n.zone for n in facility.nodes}, temp_cooling_kw)
@@ -211,12 +218,16 @@ def evaluate_plan(
         ev.reasons.append(f"single point of failure during the window: {', '.join(singles)}")
     if worst[1] is not None and worst[0] < 0.10 and not lost:
         ev.reasons.append(f"headroom {worst[0]:.0%} on {worst[1]} at hour {worst[2]}")
+    feeds = {c: doc for c, _, _, doc in facility.restorable()}
+    for consumer in restored:
+        ev.reasons.append(f"assumes {consumer} is switched back to its documented feed {feeds[consumer]} first")
     return ev
 
 
-def _mitigation_options(task: Task, windows: list[Window], start: int) -> list[list[str]]:
+def _mitigation_options(facility: Facility, task: Task, windows: list[Window], start: int) -> list[list[str]]:
     end = start + task.duration_h
     basic = [SHED, TEMP_COOLING] + [f"postpone:{w.label}" for w in windows if w.start < end and start < w.end]
+    basic += [f"{RESTORE}{consumer}" for consumer, *_ in facility.restorable()]
     opts = [[m] for m in basic]
     opts += [list(c) for c in combinations(basic, 2)]
     return opts
@@ -246,7 +257,7 @@ def search_plans(
         if not safe_enough:
             # Try mitigations on the most promising windows only.
             for e in sorted(evals, key=lambda e: e.score, reverse=True)[: max(top_n, 3)]:
-                for m in _mitigation_options(task, windows, e.start):
+                for m in _mitigation_options(facility, task, windows, e.start):
                     evals.append(
                         evaluate_plan(
                             facility,

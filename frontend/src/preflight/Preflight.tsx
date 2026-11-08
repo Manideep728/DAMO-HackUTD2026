@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Info, RotateCcw, Send, Wrench, Zap, CircleCheck, OctagonAlert, TriangleAlert, ShieldCheck, X, MousePointerClick, Loader2, Upload, Download, ArrowUp, ArrowDown, Rows3, Sparkles, Search, Check, Settings2, CalendarClock, ChevronDown, Plus, HelpCircle } from 'lucide-react';
+import { Info, RotateCcw, Send, Wrench, Zap, CircleCheck, OctagonAlert, TriangleAlert, ShieldCheck, X, MousePointerClick, Loader2, Upload, Download, ArrowUp, ArrowDown, Rows3, Sparkles, Search, Check, Settings2, CalendarClock, ChevronDown, Plus, HelpCircle, Gauge } from 'lucide-react';
 import { Badge, Button, cx } from '../components/ui';
 import { FacilityMap, LAYERS, TONE_WORD, toneOf, rowOf, groupId, type Tone } from './FacilityMap';
 import { defaultZone, visibleNodes } from './mapView';
-import { CutSetPanel, FindingsPanel, ImpactPanel, PlanResults, planOf } from './Panels';
+import { CutSetPanel, FindingsPanel, ImpactPanel, LoadSourceLine, PlanResults, planOf } from './Panels';
 import { pf, type Transient, type AgentEvent, type CutSets, type Facility, type Findings, type PlanSearch, type ServiceRed, type SimResult, type Toggle } from './api';
 
 type Tab = 'impact' | 'weak' | 'findings' | 'plan' | 'agent';
@@ -73,7 +73,6 @@ export default function Preflight() {
   useEffect(() => {
     loadFacility();
     pf.findings().then(setFindings).catch((e) => setError(e.message));
-    pf.redundancy({}).then((r) => setBaseRed(r.services)).catch(() => undefined);
   }, [loadFacility]);
 
   // Deep link from the console (#/preflight?focus=R1-03): open that equipment's trace, with its row expanded.
@@ -92,11 +91,15 @@ export default function Preflight() {
     let live = true;
     const maint = Object.entries(toggles).filter(([, s]) => s === 'maintenance').map(([n]) => n);
     const failed = Object.fromEntries(Object.entries(toggles).filter(([, s]) => s === 'failed')) as Record<string, Toggle>;
+    // The baseline (nothing toggled) is refetched with every scenario, so it follows confirmed findings; with
+    // nothing toggled the scenario is the baseline and one request serves both.
+    const scenario = pf.redundancy(toggles);
+    const baseline = Object.keys(toggles).length ? pf.redundancy({}) : scenario;
     Promise.all([
-      pf.simulate(toggles), pf.redundancy(toggles),
+      pf.simulate(toggles), scenario, baseline,
       maint.length ? pf.maintenanceCuts(maint) : pf.cutsets(failed),
       Object.keys(failed).length ? pf.transient(Object.keys(failed)) : Promise.resolve(null),
-    ]).then(([s, r, c, t]) => { if (live) { setSim(s); setRed(r.services); setCuts(c); setTrans(t); setError(''); } })
+    ]).then(([s, r, b, c, t]) => { if (live) { setSim(s); setRed(r.services); setBaseRed(b.services); setCuts(c); setTrans(t); setError(''); } })
       .catch((e) => live && setError(e.message));
     return () => { live = false; };
   }, [facility, toggles]);
@@ -108,11 +111,25 @@ export default function Preflight() {
       setToggles({}); setHighlight([]); setSelected(null); setExpanded(new Set());
       await loadFacility();
       setFindings(await pf.findings());
-      pf.redundancy({}).then((x) => setBaseRed(x.services)).catch(() => undefined);
       setNotice(`Loaded ${r.name}: ${r.nodes} nodes.`); setError('');
     } catch (e) {
       setError(`${what} failed: ${(e as Error).message.replace(/^import failed: /, '')}`);
     }
+  };
+
+  // Meters: re-pull measured load and meter evidence from Tiger. Venue Wi-Fi often blocks its port; the app keeps
+  // running on the last snapshot either way, so a failure is a notice, not a broken screen.
+  const [syncing, setSyncing] = useState(false);
+  const syncMeters = async () => {
+    setAdmin(false); setSyncing(true);
+    try {
+      const r = await pf.syncMeters();
+      await loadFacility();
+      setFindings(await pf.findings());
+      setNotice(`Meters synced from Tiger: ${r.rows?.toLocaleString()} readings.`); setError('');
+    } catch (e) {
+      setError(`Meter sync failed: ${(e as Error).message}. If you're on venue Wi-Fi, try a hotspot; the last snapshot stays in use.`);
+    } finally { setSyncing(false); }
   };
 
   const setState = useCallback((id: string, st: Toggle | null) => setToggles((t) => {
@@ -176,6 +193,7 @@ export default function Preflight() {
                 <button role="menuitem" onClick={() => fileInput.current?.click()} className="h-12 px-3 rounded-lg text-left text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5"><Upload size={16} /> <span className="grid leading-tight">Import<span className="text-[12px] text-muted">CSV or JSON, replaces the demo hall</span></span></button>
                 <a role="menuitem" href="/api/preflight/export.csv" download="facility.csv" onClick={() => setAdmin(false)} className="h-12 px-3 rounded-lg text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5"><Download size={16} /> <span className="grid leading-tight">Export<span className="text-[12px] text-muted">the current graph as CSV</span></span></a>
                 <button role="menuitem" onClick={() => { setAdmin(false); swapFacility('Restoring the demo', pf.restoreDemo); }} className="h-12 px-3 rounded-lg text-left text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5"><RotateCcw size={16} /> Restore demo</button>
+                <button role="menuitem" onClick={syncMeters} disabled={syncing} className="h-12 px-3 rounded-lg text-left text-[14px] hover:bg-surface-2 inline-flex items-center gap-2.5 disabled:opacity-60">{syncing ? <Loader2 size={16} className="animate-spin" /> : <Gauge size={16} />} <span className="grid leading-tight">{syncing ? 'Syncing meters…' : 'Sync meters'}<span className="text-[12px] text-muted">{facility.load_source?.source === 'meters' ? `Tiger · ${facility.load_source.offline ? 'offline, last' : 'last'} sync ${facility.load_source.synced_at}` : 'measured load from Tiger'}</span></span></button>
               </div>
             )}
           </div>
@@ -413,6 +431,7 @@ function PlanPanel({ facility, preset }: { facility: Facility; preset: string[] 
         <div className="flex justify-between text-[12px] text-muted mono"><span>now</span><span>+12 h</span><span>+24 h</span><span>+36 h</span><span>+48 h</span></div>
       </div>
       <Button variant="primary" onClick={run} disabled={busy} className="!h-12 !rounded-xl !text-[15px]">{busy ? 'Simulating windows…' : 'Find the safest window'}</Button>
+      <LoadSourceLine src={facility.load_source} />
       {error && <p className="text-critical">{error}</p>}
     </div>
     <div className="grid gap-3 min-w-0">
@@ -687,10 +706,13 @@ function Why({ facility, sim, red, baseRed, toggles, expanded, onClose, onShow, 
     return `What happens if ${parts.join(' and ')}?`;
   })();
   const [events, setEvents] = useState<AgentEvent[]>([]);
+  // Wait until the scenario settles: with a key every run spends Nemotron calls, and clicking through a few
+  // changes should not start one run per click.
   useEffect(() => {
     setEvents([]);
-    const stop = pf.ask(question, (e) => setEvents((xs) => [...xs, e]));
-    return stop;
+    let stop = () => {};
+    const timer = window.setTimeout(() => { stop = pf.ask(question, (e) => setEvents((xs) => [...xs, e])); }, 800);
+    return () => { window.clearTimeout(timer); stop(); };
   }, [question]);
   const start = events.find((e) => e.type === 'start');
   const calls = events.filter((e) => e.type === 'tool_call');

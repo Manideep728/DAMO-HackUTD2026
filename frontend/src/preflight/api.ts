@@ -14,6 +14,12 @@ export interface FEdge {
 export interface Facility {
   name: string; fidelity: string; critical_services: string[]; nodes: FNode[]; edges: FEdge[]; suspected: FEdge[];
   windows: { nodes: string[]; start: number; end: number; label: string }[];
+  load_source?: LoadSource;
+}
+/** Where the planner's hourly load comes from: Tiger meter data (or its last local snapshot), or the hand-written profile. */
+export interface LoadSource {
+  source: 'meters' | 'assumed' | 'none'; synced_at?: string; rows?: number; profile_weeks?: number;
+  reconcile_days?: number; offline?: boolean; synthetic?: boolean;
 }
 export interface TraceStep { node: string; state: string; kind: string; group: string | null; missing: string[]; at: string | null; detail: string }
 export interface SimResult {
@@ -77,6 +83,8 @@ export const pf = {
     return data as { name: string; nodes: number };
   },
   restoreDemo: () => j<{ name: string; nodes: number }>('/facility/demo', {}),
+  /** Pull measured load and meter evidence from Tiger. 503 when the meter database can't be reached. */
+  syncMeters: () => j<LoadSource>('/meters/sync', {}),
   decide: (id: string, decision: 'confirmed' | 'rejected', actor: string, note = '') =>
     j<Finding>(`/findings/${encodeURIComponent(id)}/decision`, { decision, actor, note }),
   searchPlans: (task: { name: string; nodes: string[]; duration_h: number; earliest: number; latest: number }) =>
