@@ -1,12 +1,14 @@
 # DAMO
 
-**Two pumps, two power paths, one transfer switch.** The one-line diagram says Pump A and Pump B are independent. A 2023 work order and a 2024 IR scan say both panels run through ATS-1. DAMO reads both, shows you the conflict with exact quotes, and simulates what happens when ATS-1 fails: 18 racks, 400 kW.
+**Retrofit the data center you already have, with evidence for every change.**
+
+DAMO reads the records an operating hall runs on, finds where they disagree, and tests every integration change before anyone touches the floor. Nemotron does the reading. Deterministic checks decide whether it was right.
 
 <p align="center">
   <img src="docs/screenshots/6-preflight/04-scenario-ats-1-fails.png" alt="Preflight: ATS-1 fails and the cascade takes out both pumps, the chilled-water loop and 18 racks" width="100%">
+  <br>
+  <sub>Preflight. The drawings show two independent pumps; the maintenance records show both run through transfer switch ATS-1. When it fails, 18 racks and 400 kW go down.</sub>
 </p>
-
-DAMO helps engineers add liquid-cooled GPU racks to a data center that is already running. It reconciles drawings, BMS point lists and maintenance logs into one dependency graph, tests every integration change before handover, and carries that record into night-shift operations. Nemotron does the reading and planning. A deterministic engine and real test harnesses decide whether it was right.
 
 HackUTD 2026 · NMC² · NVIDIA Nemotron · 8090 · MLH Best Use of Tiger Data
 
