@@ -329,6 +329,7 @@ def _live(question: str, r: Run) -> Iterator[dict]:
                 yield {"type": "final", "answer": args, "problems": [], "calls": r.calls}
                 return
             if name not in TOOLS:
+                yield {"type": "tool_error", "message": f"unknown tool {name}"}
                 messages.append({"role": "tool", "tool_call_id": tc["id"], "content": '{"error": "unknown tool"}'})
                 continue
             events = list(_emit_call(r, name, args))
