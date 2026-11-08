@@ -1,0 +1,3 @@
+# Vendored legacy inputs stay byte-for-byte (bash breaks on CRLF)
+legacy/ttu/** -text
+*.sh text eol=lf
