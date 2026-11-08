@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Check, X, FileText, CircleAlert } from 'lucide-react';
+import { Check, X, FileText, CircleAlert, Gauge } from 'lucide-react';
 import { Badge, Button, StatusPill, cx } from '../components/ui';
-import type { CutSets, Evidence, ModelRead, Transient, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
+import type { CutSets, Evidence, LoadSource, ModelRead, Transient, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
@@ -216,12 +216,27 @@ function Quotes({ title, items }: { title: string; items: Evidence[] }) {
     <div className="text-[12px]">
       <div className="text-muted mb-1">{title}</div>
       <ul className="grid gap-1">
-        {items.map((q, i) => (
+        {items.map((q, i) => q.kind === 'meters' ? (
+          <li key={i} className="flex gap-1.5" data-testid="meter-evidence"><Gauge size={12} className="shrink-0 mt-0.5 text-accent" />
+            <span><span className="mono">Meters</span> <span className="text-faint">Tiger · synthetic · {q.date}</span> {q.quote}</span></li>
+        ) : (
           <li key={i} className="flex gap-1.5"><FileText size={12} className="shrink-0 mt-0.5 text-faint" />
             <span><span className="mono">{q.doc_id}</span> <span className="text-faint">{q.date} · {q.kind.replace('_', ' ')}</span> “{q.quote}”{q.extractor?.includes('nemotron-read') && <span className="text-accent"> · {q.extractor.startsWith('rules') ? 'read by the rules and Nemotron' : 'read by Nemotron'}</span>}{q.extractor?.includes('nemotron-resolve') && <span className="text-muted"> · name resolved by Nemotron</span>}{q.reason && <span className="text-muted"> · {q.reason}</span>}</span></li>
         ))}
       </ul>
     </div>
+  );
+}
+
+/** One line under the plan button: what hourly load the planner simulated against. */
+export function LoadSourceLine({ src }: { src?: LoadSource }) {
+  if (!src || src.source === 'none') return null;
+  if (src.source === 'assumed') return <p className="text-[12px] text-muted" data-testid="load-source">Load: hand-written hourly profile (no meter data).</p>;
+  return (
+    <p className="text-[12px] text-muted" data-testid="load-source">
+      Load: measured, the worst hour-of-week over {src.profile_weeks} weeks of synthetic meter data in Tiger
+      {src.offline ? <> (offline, last synced {src.synced_at})</> : <> (synced {src.synced_at})</>}.
+    </p>
   );
 }
 

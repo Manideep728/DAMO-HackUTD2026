@@ -3,7 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 // The rehearsal runs its own backend and frontend on spare ports, with a throwaway database and the scripted
-// agent (GAUNTLET_MODE=mock), so it never touches a running dev server or spends API calls.
+// agent (GAUNTLET_MODE=mock) and the hand-written load profile (PREFLIGHT_METERS=off), so it never touches a
+// running dev server, the meter database or the API.
 const python = process.env.PREFLIGHT_PYTHON ?? '.venv/bin/python';
 const db = path.join(os.tmpdir(), `preflight-rehearsal-${process.pid}.sqlite`);
 
@@ -18,7 +19,7 @@ export default defineConfig({
       command: `${python} -m uvicorn app.main:app --port 8012`,
       cwd: '../backend',
       url: 'http://localhost:8012/api/preflight/facility',
-      env: { PREFLIGHT_DB: db, GAUNTLET_MODE: 'mock' },
+      env: { PREFLIGHT_DB: db, GAUNTLET_MODE: 'mock', PREFLIGHT_METERS: 'off' },
       timeout: 60_000,
     },
     {

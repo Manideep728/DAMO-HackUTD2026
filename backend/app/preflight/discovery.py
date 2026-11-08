@@ -10,6 +10,7 @@ asking Nemotron which inventory item a leftover phrase names. A model answer is 
 the phrase carries that node's own suffix ("b" for MCC-B), and the quote still has to be verbatim, so the model
 can widen what is read but cannot invent an edge. Extraction is rule-based so it runs offline and is measurable;
 a model-based extractor can be plugged in through ``extra_claims`` and goes through the same verbatim check.
+Meter evidence (``meters``) is weighed like a record but has no quote: its citation is a statement about readings.
 """
 
 from __future__ import annotations
@@ -23,6 +24,8 @@ from dataclasses import asdict, dataclass, field, replace
 from engine.cutsets import find_cut_sets
 from engine.model import Citation, EdgeSource, EdgeStatus, Facility, Mode, NodeType, Resource, Supply
 from engine.redundancy import service_redundancy
+
+from .meters import MeterEvidence
 
 CORPUS = pathlib.Path(__file__).resolve().parent / "data" / "corpus" / "demo_corpus.json"
 
@@ -42,7 +45,15 @@ TYPE_WORDS: dict[NodeType, list[str]] = {
 ABBREVIATIONS = {"sw": "switch", "xfer": "transfer", "batt": "battery"}
 CONSUMER_FIRST = ["back-fed from", "re-fed from", "fed from", "powered from", "supplied from", "panel:", "restore"]
 SUPPLIER_FIRST = ["carrying", "feeds", "feed", "supplies", "powers"]
-WEIGHTS = {"maintenance_log": 0.85, "work_order": 0.75, "inventory": 0.6, "change_ticket": 0.5, "one_line": 0.5}
+WEIGHTS = {
+    "maintenance_log": 0.85,
+    "work_order": 0.75,
+    "meters": 0.8,  # reconciled power meters: independent of every document
+    "inventory": 0.6,
+    "change_ticket": 0.5,
+    "one_line": 0.5,
+}
+METER_DOC = "METERS"
 PLANNED_WEIGHT = 0.2
 NOT_CURRENT = [
     (re.compile(r"\bremoved\b"), "temporary connection that was later removed"),
@@ -405,6 +416,15 @@ def impact(facility: Facility, f: Finding, max_order: int = 2) -> dict:
     }
 
 
+def meter_claims(evidence: Iterable[MeterEvidence]) -> list[Claim]:
+    """Meter evidence as claims, so it is weighed like any other source. It has no quote to check: its text is a
+    statement about measurements, and the citation is marked as meters so it is never shown as a quote."""
+    return [
+        Claim(e.consumer, e.supplier, METER_DOC, e.synced_at, "meters", e.statement(), extractor="tiger")
+        for e in evidence
+    ]
+
+
 def _one_per_doc(claims: list[Claim]) -> list[Claim]:
     """A record read by both the rules and the model counts once; its citation names both readers."""
     by_doc: dict[str, Claim] = {}
@@ -424,6 +444,7 @@ def discover(
     with_impact: bool = True,
     model: ModelResolver | None = None,
     extra_rejected: Iterable[Rejection] = (),
+    meters: Iterable[MeterEvidence] = (),
 ) -> DiscoveryResult:
     resolver = Resolver(facility, model)
     by_doc = {d.id: d for d in docs}
@@ -445,7 +466,7 @@ def discover(
 
     current = [c for c in claims if c.current]
     pairs: dict[tuple[str, str], list[Claim]] = {}
-    for c in current:
+    for c in current + meter_claims(meters):
         pairs.setdefault((c.consumer, c.supplier), []).append(c)
     pairs = {k: _one_per_doc(v) for k, v in pairs.items()}
 

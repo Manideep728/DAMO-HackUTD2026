@@ -1,4 +1,5 @@
-.PHONY: setup dev backend frontend test eval rehearse warm promtool
+LOCAL_TSDB = postgresql://postgres:preflight@localhost:5434/postgres
+.PHONY: setup dev backend frontend test test-db eval rehearse warm promtool db-up db-down meters-check meters-seed meters-sync
 setup: ## backend virtualenv and dependencies, frontend dependencies
 	cd backend && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt
 	cd frontend && npm ci
@@ -12,6 +13,18 @@ test: ## engine, discovery, API and agent eval
 	cd backend && .venv/bin/python -m pytest -q
 eval: ## agent eval; EVAL_MODE=live runs it against Nemotron
 	cd backend && EVAL_MODE=$${EVAL_MODE:-scripted} .venv/bin/python -m pytest -q tests/preflight/test_agent_eval.py
+test-db: ## the tests plus the TimescaleDB ones, against the local container from db-up
+	cd backend && TEST_DATABASE_URL=$(LOCAL_TSDB) .venv/bin/python -m pytest -q
+db-up: ## scratch TimescaleDB for tests on :5434 (never Tiger)
+	docker run -d --name preflight-tsdb -p 5434:5432 -e POSTGRES_PASSWORD=preflight timescale/timescaledb:2.17.2-pg16
+db-down:
+	docker rm -f preflight-tsdb
+meters-check: ## connect to METERS_DATABASE_URL (Tiger), create the schema, count readings
+	cd backend && .venv/bin/python -m app.preflight.telemetry check
+meters-seed: ## write 28 days of synthetic meter readings (as-built wiring) to METERS_DATABASE_URL
+	cd backend && .venv/bin/python -m app.preflight.telemetry seed --days 28
+meters-sync: ## pull measured profiles and meter evidence into the local snapshot
+	cd backend && .venv/bin/python -m app.preflight.telemetry sync
 rehearse: ## click through docs/DEMO.md in a browser and check every number it quotes
 	cd frontend && npx playwright test
 warm: ## run read/find/prove once live so GAUNTLET_MODE=cached works offline

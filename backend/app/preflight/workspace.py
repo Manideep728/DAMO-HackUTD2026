@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime as dt
+import os
 import threading
 from dataclasses import dataclass, field
 
@@ -11,8 +13,10 @@ from engine.timestep import Window
 from .data.demo import demo_facility, demo_profiles, demo_windows
 from .discovery import Claim, DiscoveryResult, Doc, Finding, Rejection, apply_finding, discover, load_corpus
 from .extract_model import ReadModel, read_records
+from .meters import MeterEvidence
 from .resolve_model import nemotron_resolver
 from .store import Store
+from .telemetry import URL_ENV, MetersUnavailable, Telemetry, sync
 
 
 @dataclass
@@ -27,7 +31,34 @@ class Workspace:
     model_claims: list[Claim] = field(default_factory=list)
     model_rejected: list[Rejection] = field(default_factory=list)
     model_read: dict | None = None
+    telemetry: Telemetry | None = None  # meter data for the demo hall, from Tiger or its local snapshot
+    on_demo: bool = True  # meters describe the demo hall; an imported site has none
     _lock: threading.Lock = field(default_factory=threading.Lock)
+
+    def meter_evidence(self) -> list[MeterEvidence]:
+        return self.telemetry.evidence if self.telemetry and self.on_demo else []
+
+    def use_meters(self, t: Telemetry | None) -> None:
+        """Measured profiles replace the hand-written ones, and meter evidence joins discovery."""
+        with self._lock:
+            self.telemetry = t
+            if self.on_demo:
+                self.profiles = t.profiles(dt.date.today()) if t else demo_profiles()
+            self._discovery = None
+
+    def sync_meters(self, actor: str) -> dict:
+        url = os.getenv(URL_ENV)
+        if not url:
+            raise MetersUnavailable(f"{URL_ENV} is not set")
+        self.use_meters(sync(url, demo_facility()))
+        summary = self.load_source()
+        self.store.audit(actor, "meters.synced", summary)
+        return summary
+
+    def load_source(self) -> dict:
+        if self.telemetry and self.on_demo:
+            return self.telemetry.summary()
+        return {"source": "assumed" if self.profiles else "none"}
 
     def discovery(self) -> DiscoveryResult:
         with self._lock:
@@ -38,6 +69,7 @@ class Workspace:
                     extra_claims=self.model_claims,
                     extra_rejected=self.model_rejected,
                     model=nemotron_resolver(self.documented),
+                    meters=self.meter_evidence(),
                 )
             return self._discovery
 
@@ -103,6 +135,7 @@ class Workspace:
         with self._lock:
             self.documented = facility
             self.docs, self.labels, self.profiles, self.windows = [], [], {}, []
+            self.on_demo = False
             self._clear_model_read()
             self._discovery = None
         self.store.audit(actor, "facility.imported", {"name": facility.name, "nodes": len(facility.nodes)})
@@ -111,7 +144,9 @@ class Workspace:
         fresh = Workspace(self.store)
         with self._lock:
             self.documented, self.docs, self.labels = fresh.documented, fresh.docs, fresh.labels
-            self.profiles, self.windows = fresh.profiles, fresh.windows
+            self.windows = fresh.windows
+            self.on_demo = True
+            self.profiles = self.telemetry.profiles(dt.date.today()) if self.telemetry else fresh.profiles
             self._clear_model_read()
             self._discovery = None
         self.store.audit(actor, "facility.restored_demo", {"name": self.documented.name})

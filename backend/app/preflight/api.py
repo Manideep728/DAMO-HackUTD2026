@@ -19,10 +19,13 @@ from .discovery import score, to_dict
 from .extract_model import ModelUnavailable
 from .importers import from_csv, from_json, to_csv
 from .store import DEFAULT_DB, Store
+from .telemetry import MetersUnavailable
+from .telemetry import load as load_meters
 from .workspace import Workspace
 
 router = APIRouter(prefix="/api/preflight")
 WS = Workspace(Store(os.getenv("PREFLIGHT_DB") or DEFAULT_DB))
+WS.use_meters(load_meters(WS.documented))  # Tiger if it answers, else the last snapshot, else assumed load
 
 LAYER = {
     NodeType.utility_feed: 0,
@@ -145,6 +148,7 @@ def facility() -> dict:
         "edges": edges,
         "suspected": suspected,
         "profiles": ws.profiles,
+        "load_source": ws.load_source(),
         "windows": [w.__dict__ | {"state": w.state.value} for w in ws.windows],
     }
 
@@ -220,6 +224,14 @@ def model_read(request: Request) -> dict:
     try:
         return workspace().read_with_model(request.headers.get("x-actor", "engineer"))
     except ModelUnavailable as e:
+        raise HTTPException(503, str(e)) from e
+
+
+@router.post("/meters/sync")
+def meters_sync(request: Request) -> dict:
+    try:
+        return workspace().sync_meters(request.headers.get("x-actor", "engineer"))
+    except MetersUnavailable as e:
         raise HTTPException(503, str(e)) from e
 
 
