@@ -26,13 +26,21 @@ export interface CutSet { nodes: string[]; order: number; lost_services: string[
 export interface CutSets { max_order: number; services: string[]; cut_sets: CutSet[]; total: number; single_points: string[]; notes: string[]; maintenance: string[] }
 export interface GroupRed { node: string; group: string; resource: string; suppliers: string[]; needed: number; available: number; level: string; independence: number; shared: string[] }
 export interface ServiceRed { service: string; capacity_level: string; independence: number; effective: string; single_points: string[]; groups: GroupRed[] }
-export interface Evidence { doc_id: string; date: string; kind: string; quote: string; reason: string }
+export interface Transient {
+  events: { t_s: number; what: string; nodes: string[] }[];
+  lost_transient: string[]; lost_steady: string[]; assumptions: string[];
+}
+export interface Evidence { doc_id: string; date: string; kind: string; quote: string; reason: string; extractor?: string }
 export interface Finding {
   id: string; consumer: string; supplier: string; classification: 'confirms' | 'contradicts' | 'new'; replaces: string | null;
   confidence: number; supporting: Evidence[]; contradicting: Evidence[]; set_aside: Evidence[]; status: string; claim: string;
   impact: { new_single_points?: string[]; single_points_after?: string[]; services_downgraded?: string[]; redundancy_after?: Record<string, string> };
 }
-export interface Findings { findings: Finding[]; rejected: { doc_id: string; quote: string; reason: string }[]; metrics: { precision: number; recall: number } }
+export interface Findings { findings: Finding[]; rejected: { doc_id: string; quote: string; reason: string }[]; metrics: { precision: number; recall: number } | null; records: number; model_read: ModelRead | null }
+export interface ModelRead {
+  model: string; records: number; answered: number; proposed: number; kept: number; set_aside: number;
+  rejected: { unknown_node: number; not_verbatim: number; wrong_pair: number }; new_findings: string[]; seconds: number;
+}
 export interface PlanEval {
   start: number; end: number; mitigations: string[]; lost_services: string[]; lost_load: string[]; lost_kw?: number;
   min_cut_order: number; single_points: string[]; min_margin: number; tightest: string | null; tightest_hour?: number | null; reasons: string[];
@@ -56,6 +64,19 @@ export const pf = {
   maintenanceCuts: (maintenance: string[], max_order = 2) => j<CutSets>('/cutsets', { max_order, maintenance }),
   redundancy: (state_changes: Record<string, Toggle>) => j<{ services: ServiceRed[] }>('/redundancy', { state_changes }),
   findings: () => j<Findings>('/findings'),
+  modelRead: () => j<ModelRead>('/findings/model-read', {}),
+  transient: (failed: string[]) => j<Transient>('/transient', { failed }),
+  /** Upload a facility as CSV or JSON (the format Export writes). Replaces the demo records too. */
+  async importFacility(file: File): Promise<{ name: string; nodes: number }> {
+    const isJson = file.name.toLowerCase().endsWith('.json') || file.type.includes('json');
+    const r = await fetch('/api/preflight/import', {
+      method: 'POST', headers: { 'Content-Type': isJson ? 'application/json' : 'text/csv' }, body: await file.text(),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((data as { detail?: string }).detail || `${r.status} ${r.statusText}`);
+    return data as { name: string; nodes: number };
+  },
+  restoreDemo: () => j<{ name: string; nodes: number }>('/facility/demo', {}),
   decide: (id: string, decision: 'confirmed' | 'rejected', actor: string, note = '') =>
     j<Finding>(`/findings/${encodeURIComponent(id)}/decision`, { decision, actor, note }),
   searchPlans: (task: { name: string; nodes: string[]; duration_h: number; earliest: number; latest: number }) =>

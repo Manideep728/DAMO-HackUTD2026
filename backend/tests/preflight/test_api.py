@@ -80,7 +80,94 @@ def test_csv_round_trip_and_import(client):
     assert bad.status_code == 422 and "row 2" in bad.json()["detail"]
 
 
+def test_an_imported_facility_does_not_inherit_the_demo_records_and_the_demo_can_be_restored(client):
+    from app.preflight.data.generator import generate_facility
+
+    r = client.post("/api/preflight/import", content=to_csv(generate_facility(1)), headers={"content-type": "text/csv"})
+    assert r.status_code == 200
+    assert client.get("/api/preflight/findings").json()["findings"] == []
+    node = client.get("/api/preflight/facility").json()["nodes"][0]["id"]
+    task = {"name": "t", "nodes": [node], "duration_h": 4, "earliest": 0, "latest": 24}
+    assert client.post("/api/preflight/plans/search", json={"task": task}).json()["top"]
+
+    assert client.post("/api/preflight/facility/demo").json()["nodes"] == 43
+    ids = [f["id"] for f in client.get("/api/preflight/findings").json()["findings"]]
+    assert "F-MCC-B-ATS-1" in ids
+    events = [a["action"] for a in client.get("/api/preflight/audit").json()]
+    assert "facility.imported" in events and "facility.restored_demo" in events
+
+
 def test_agent_streams_tool_calls_and_a_traced_answer(client):
     with client.stream("POST", "/api/preflight/agent", json={"question": "What happens if ATS-1 fails?"}) as r:
         body = "".join(r.iter_text())
     assert '"type": "tool_call"' in body and '"tool": "simulate"' in body and '"type": "final"' in body
+
+
+def test_cached_mode_replays_a_recorded_turn_and_falls_back_without_one(tmp_path, monkeypatch):
+    import json as _json
+
+    from app import llm
+    from app.preflight import agent
+    from app.preflight.store import Store
+    from app.preflight.workspace import Workspace
+
+    monkeypatch.setattr(llm, "MODE", "cached")
+    monkeypatch.setenv("AGENT_RECORDINGS", str(tmp_path))
+    q = "Write me a poem about chillers"
+    answer = {"refused": True, "recommendation": "Out of scope for this simulator."}
+    first_turn = [{"role": "system", "content": agent.SYSTEM}, {"role": "user", "content": q}]
+    key = llm._key(agent.MODEL, [first_turn, agent.openai_tools()])
+    call = {"id": "c1", "type": "function", "function": {"name": "final_answer", "arguments": _json.dumps(answer)}}
+    (tmp_path / f"{key}.json").write_text(_json.dumps({"message": {"content": "", "tool_calls": [call]}}))
+
+    replayed = list(agent.run(q, Workspace(Store(":memory:"))))
+    assert replayed[0]["mode"] == "live" and not any(e["type"] == "fallback" for e in replayed)
+    assert replayed[-1]["answer"] == answer
+
+    missing = list(agent.run("What happens if ATS-1 fails?", Workspace(Store(":memory:"))))
+    assert any(e["type"] == "fallback" for e in missing) and missing[-1]["type"] == "final"
+
+
+def test_the_store_survives_concurrent_requests(tmp_path):
+    # The API serves requests from a thread pool over one SQLite connection; the page fires several at once.
+    from concurrent.futures import ThreadPoolExecutor
+
+    store = Store(tmp_path / "s.sqlite")
+
+    def work(i: int) -> None:
+        for j in range(60):
+            store.decide(f"F-{i}-{j % 3}", "confirmed", "t", "")
+            store.decisions()
+            store.audit_log(limit=20)
+            store.scenarios()
+
+    with ThreadPoolExecutor(8) as pool:
+        list(pool.map(work, range(8)))  # re-raises any worker exception
+    assert len(store.decisions()) == 24
+
+
+def test_model_read_without_a_model_is_a_clear_503(client):
+    r = client.post("/api/preflight/findings/model-read")
+    assert r.status_code == 503 and "Nemotron unavailable" in r.json()["detail"]
+    assert client.get("/api/preflight/findings").json()["model_read"] is None
+
+
+def test_model_read_feeds_findings_and_is_audited(client):
+    import json
+
+    ws = api.WS
+    quote = "the B side pump panel fed from ATS-1"
+    ws.docs = [*ws.docs, type(ws.docs[0])("WO-9001", "work_order", "2024-09-01", "t", f"Found {quote}.")]
+    ws._discovery = None
+
+    def model(prompt: str) -> str:
+        feeds = [{"consumer": "MCC-B", "supplier": "ATS-1", "quote": quote}] if "WO-9001" in prompt else []
+        return json.dumps({"feeds": feeds})
+
+    stats = ws.read_with_model("maya", model)
+    assert stats["kept"] == 1 and stats["new_findings"] == []  # it supports the existing ATS-1 finding
+    d = client.get("/api/preflight/findings").json()
+    assert d["model_read"]["kept"] == 1
+    f = next(f for f in d["findings"] if f["id"] == "F-MCC-B-ATS-1")
+    assert any(s["doc_id"] == "WO-9001" and s["extractor"] == "nemotron-read" for s in f["supporting"])
+    assert "discovery.model_read" in [a["action"] for a in client.get("/api/preflight/audit").json()]

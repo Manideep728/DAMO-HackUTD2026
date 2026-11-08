@@ -27,6 +27,8 @@ const EquipmentNode = memo(function EquipmentNode({ data }: NodeProps<Node<MapNo
   return (
     <button
       type="button"
+      data-testid={`node-${n.id}`}
+      data-state={tone}
       style={{ transitionDelay: `${delay}ms`, width: NODE_W, height: NODE_H }}
       className={cx('fm-node relative rounded-lg px-2 text-left', `fm-${tone}`, selected && 'fm-selected', picked && 'fm-picked', focus === 'dim' && 'fm-dim', focus === 'chain' && 'fm-chain')}
       aria-label={`${n.label}, ${tone === 'ok' ? 'in service' : tone}`}
@@ -122,7 +124,7 @@ export function FacilityMap({ facility, sim, toggles, selected, hover, picked, o
       id: `${e.supplier}->${e.consumer}:${i}`, source: e.supplier, target: e.consumer, animated: inChain && !broken,
       style: { stroke: color, strokeWidth: inChain || suspected ? 1.8 : 1, strokeDasharray: suspected ? '5 4' : broken ? '3 4' : undefined, opacity, transition: 'opacity .25s ease, stroke .4s ease' },
       markerEnd: inChain || suspected ? { type: MarkerType.ArrowClosed, color, width: 12, height: 12 } : undefined,
-      label: suspected && (!chain || inChain) ? 'suspected · 97%' : undefined,
+      label: suspected && (!chain || inChain) ? (e.status === 'suspected' ? `suspected · ${Math.round(e.confidence * 100)}%` : 'from records') : undefined,
       labelStyle: { fill: 'var(--untrusted)', fontSize: 10, fontWeight: 600 }, labelBgStyle: { fill: 'var(--panel)' }, labelBgPadding: [4, 2] as [number, number],
     };
   });

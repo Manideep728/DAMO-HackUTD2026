@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Info, RotateCcw, Send, Wrench, Zap, CircleCheck, OctagonAlert, TriangleAlert, ShieldCheck, X, MousePointerClick, Loader2 } from 'lucide-react';
+import { Info, RotateCcw, Send, Wrench, Zap, CircleCheck, OctagonAlert, TriangleAlert, ShieldCheck, X, MousePointerClick, Loader2, Upload, Download } from 'lucide-react';
 import { Badge, Button, cx } from '../components/ui';
 import { FacilityMap, LAYERS } from './FacilityMap';
+import { defaultZone, visibleNodes } from './mapView';
 import { CutSetPanel, FindingsPanel, ImpactPanel, PlanResults, planOf } from './Panels';
-import { pf, type AgentEvent, type CutSets, type Facility, type Findings, type PlanSearch, type ServiceRed, type SimResult, type Toggle } from './api';
+import { pf, type Transient, type AgentEvent, type CutSets, type Facility, type Findings, type PlanSearch, type ServiceRed, type SimResult, type Toggle } from './api';
 
 type Tab = 'impact' | 'weak' | 'findings' | 'plan' | 'agent';
 const TABS: [Tab, string][] = [['impact', 'Impact'], ['weak', 'Weak points'], ['findings', 'Findings'], ['plan', 'Plan'], ['agent', 'Ask']];
@@ -24,6 +25,7 @@ export default function Preflight() {
   const [red, setRed] = useState<ServiceRed[]>([]);
   const [baseRed, setBaseRed] = useState<ServiceRed[]>([]);
   const [cuts, setCuts] = useState<CutSets | null>(null);
+  const [trans, setTrans] = useState<Transient | null>(null);
   const [findings, setFindings] = useState<Findings | null>(null);
   const [tab, setTab] = useState<Tab>('impact');
   const [zone, setZone] = useState('all');
@@ -38,8 +40,16 @@ export default function Preflight() {
   }, []);
   useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  const loadFacility = useCallback(() => pf.facility().then(setFacility).catch((e) => setError(e.message)), []);
+  // Large sites open on one hall; reset the zone only when a different facility arrives, not after a decision.
+  const shownFacility = useRef('');
+  const loadFacility = useCallback(() => pf.facility().then((f) => {
+    setFacility(f);
+    const key = `${f.name}:${f.nodes.length}`;
+    if (key !== shownFacility.current) { shownFacility.current = key; setZone(defaultZone(f)); }
+  }).catch((e) => setError(e.message)), []);
   useEffect(() => {
     loadFacility();
     pf.findings().then(setFindings).catch((e) => setError(e.message));
@@ -52,11 +62,28 @@ export default function Preflight() {
     let live = true;
     const maint = Object.entries(toggles).filter(([, s]) => s === 'maintenance').map(([n]) => n);
     const failed = Object.fromEntries(Object.entries(toggles).filter(([, s]) => s === 'failed')) as Record<string, Toggle>;
-    Promise.all([pf.simulate(toggles), pf.redundancy(toggles), maint.length ? pf.maintenanceCuts(maint) : pf.cutsets(failed)])
-      .then(([s, r, c]) => { if (live) { setSim(s); setRed(r.services); setCuts(c); setError(''); } })
+    Promise.all([
+      pf.simulate(toggles), pf.redundancy(toggles),
+      maint.length ? pf.maintenanceCuts(maint) : pf.cutsets(failed),
+      Object.keys(failed).length ? pf.transient(Object.keys(failed)) : Promise.resolve(null),
+    ]).then(([s, r, c, t]) => { if (live) { setSim(s); setRed(r.services); setCuts(c); setTrans(t); setError(''); } })
       .catch((e) => live && setError(e.message));
     return () => { live = false; };
   }, [facility, toggles]);
+
+  // Swapping the facility clears the scenario: the old toggles name equipment that may not exist any more.
+  const swapFacility = async (what: string, load: () => Promise<{ name: string; nodes: number }>) => {
+    try {
+      const r = await load();
+      setToggles({}); setHighlight([]); setSelected(null);
+      await loadFacility();
+      setFindings(await pf.findings());
+      pf.redundancy({}).then((x) => setBaseRed(x.services)).catch(() => undefined);
+      setNotice(`Loaded ${r.name}: ${r.nodes} nodes.`); setError('');
+    } catch (e) {
+      setError(`${what} failed: ${(e as Error).message.replace(/^import failed: /, '')}`);
+    }
+  };
 
   const setState = useCallback((id: string, st: Toggle | null) => setToggles((t) => {
     const copy = { ...t }; if (st) copy[id] = st; else delete copy[id]; return copy;
@@ -67,7 +94,7 @@ export default function Preflight() {
   const maintenance = Object.entries(toggles).filter(([, s]) => s === 'maintenance').map(([n]) => n);
   const visibleFacility = useMemo(() => {
     if (!facility || zone === 'all') return facility;
-    const keep = new Set(facility.nodes.filter((n) => n.zone === zone).map((n) => n.id));
+    const keep = visibleNodes(facility, zone).all; // the zone plus everything feeding it
     return { ...facility, nodes: facility.nodes.filter((n) => keep.has(n.id)), edges: facility.edges.filter((e) => keep.has(e.consumer) && keep.has(e.supplier)), suspected: facility.suspected.filter((e) => keep.has(e.consumer) && keep.has(e.supplier)) };
   }, [facility, zone]);
 
@@ -91,9 +118,16 @@ export default function Preflight() {
             {zones.map((z) => <option key={z} value={z}>{z === 'all' ? 'Whole site' : `Zone ${z}`}</option>)}
           </select>
           <Button onClick={reset} disabled={!active && !highlight.length && !selected}><RotateCcw size={14} /> Reset scenario</Button>
+          <input ref={fileInput} type="file" accept=".csv,.json,text/csv,application/json" className="hidden" aria-label="Facility file"
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) swapFacility('Import', () => pf.importFacility(f)); }} />
+          <Button onClick={() => fileInput.current?.click()} title="Load a facility from CSV or JSON. Replaces the demo hall and its records."><Upload size={14} /> Import</Button>
+          <a href="/api/preflight/export.csv" download="facility.csv" className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border hairline text-[13px] hover:bg-surface-2" title="Download the current graph as CSV"><Download size={14} /> Export</a>
+          <Button onClick={() => swapFacility('Restoring the demo', pf.restoreDemo)}>Restore demo</Button>
         </div>
       </header>
-      {error && <div className="text-critical text-[13px]" role="alert">{error}</div>}
+      {error && <div className="text-critical text-[13px] whitespace-pre-wrap" role="alert">{error}</div>}
+      {notice && !error && <div className="text-muted text-[13px]" role="status">{notice}</div>}
+      {zone !== 'all' && <div className="text-muted text-[12.5px]" data-testid="zone-hint">Showing zone {zone} and what feeds it ({visibleFacility.nodes.length} of {facility.nodes.length} nodes). Pick Whole site to see everything.</div>}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px] items-start">
         {/* Map: the hero */}
@@ -156,9 +190,13 @@ export default function Preflight() {
               ))}
             </nav>
             <div key={tab} className="p-4 min-h-0 stage-in">
-              {tab === 'impact' && <ImpactPanel sim={sim} red={red} onPick={setHighlight} />}
+              {tab === 'impact' && <ImpactPanel sim={sim} red={red} transient={trans} onPick={setHighlight} />}
               {tab === 'weak' && <CutSetPanel cuts={cuts} maintenance={maintenance} picked={highlight.join('+')} onPick={setHighlight} />}
-              {tab === 'findings' && <FindingsPanel data={findings} onShow={setHighlight} onDecide={async (f, d, actor, note) => {
+              {tab === 'findings' && <FindingsPanel data={findings} onShow={setHighlight} onModelRead={async () => {
+                await pf.modelRead();
+                setFindings(await pf.findings());
+                await loadFacility();
+              }} onDecide={async (f, d, actor, note) => {
                 await pf.decide(f.id, d, actor, note);
                 setFindings(await pf.findings());
                 await loadFacility();

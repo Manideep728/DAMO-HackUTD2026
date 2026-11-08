@@ -5,8 +5,11 @@ spans → reject any quote that is not verbatim in its source → set aside non-
 proposed, removed) with a reason → compare with the documented graph (confirms / contradicts / new) → score
 confidence → rerun the simulator with the edge to show the impact if it is true.
 
-Extraction is rule-based by default so it runs offline and is measurable. A model-based extractor can be
-plugged in through ``extra_claims``; its claims go through the same verbatim check.
+Names resolve by alias first, then by a typo-tolerant match, then (when a resolver model is given) by
+asking Nemotron which inventory item a leftover phrase names. A model answer is kept only if the node exists and
+the phrase carries that node's own suffix ("b" for MCC-B), and the quote still has to be verbatim, so the model
+can widen what is read but cannot invent an edge. Extraction is rule-based so it runs offline and is measurable;
+a model-based extractor can be plugged in through ``extra_claims`` and goes through the same verbatim check.
 """
 
 from __future__ import annotations
@@ -14,8 +17,8 @@ from __future__ import annotations
 import json
 import pathlib
 import re
-from collections.abc import Iterable
-from dataclasses import asdict, dataclass, field
+from collections.abc import Callable, Iterable
+from dataclasses import asdict, dataclass, field, replace
 
 from engine.cutsets import find_cut_sets
 from engine.model import Citation, EdgeSource, EdgeStatus, Facility, Mode, NodeType, Resource, Supply
@@ -64,6 +67,7 @@ class Mention:
     surface: str
     start: int
     end: int
+    how: str = "alias"  # alias | fuzzy | nemotron
 
 
 @dataclass
@@ -139,16 +143,64 @@ def _norm(text: str) -> str:
     return "".join(words)
 
 
+def _osa(a: str, b: str) -> int:
+    """Edit distance counting a swap of two adjacent letters as one edit (optimal string alignment)."""
+    d = [[i + j if i * j == 0 else 0 for j in range(len(b) + 1)] for i in range(len(a) + 1)]
+    for i in range(1, len(a) + 1):
+        for j in range(1, len(b) + 1):
+            d[i][j] = min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] != b[j - 1]))
+            if i > 1 and j > 1 and a[i - 1] == b[j - 2] and a[i - 2] == b[j - 1]:
+                d[i][j] = min(d[i][j], d[i - 2][j - 2] + 1)
+    return d[-1][-1]
+
+
+# A phrase handed to the resolver model: the leftover side of a "fed from" clause with no resolved name.
+ModelResolver = Callable[[str, str], str | None]  # (phrase, sentence) -> node id or None
+
+
 class Resolver:
     """Maps surface forms ("transfer sw 1", "ATS1", "pump mcc b") to node ids, generically from ids and labels."""
 
-    def __init__(self, facility: Facility):
+    def __init__(self, facility: Facility, model: ModelResolver | None = None):
         self.alias: dict[str, str] = {}
+        self.model = model
+        self.suffix: dict[str, str] = {}
         for n in facility.nodes:
             suffix = n.id.split("-")[-1]
+            self.suffix[n.id] = suffix.lower()
             forms = [n.id, n.label] + [f"{w} {suffix}" for w in TYPE_WORDS.get(n.type, [])]
             for form in forms:
                 self.alias.setdefault(_norm(form), n.id)
+
+    def fuzzy(self, span: str) -> str | None:
+        """One edit away from a single node's alias (two for long names). The last character and every digit
+        must match exactly, so "pmup a" finds PUMP-A but "pump c" never becomes PUMP-A."""
+        key = _norm(span)
+        if len(key) < 4:
+            return None
+        digits = re.sub(r"\D", "", key)
+        limit = 2 if len(key) >= 9 else 1
+        best: dict[int, set[str]] = {}
+        for alias, nid in self.alias.items():
+            if alias[-1] != key[-1] or re.sub(r"\D", "", alias) != digits or abs(len(alias) - len(key)) > limit:
+                continue
+            dist = _osa(key, alias)
+            if dist <= limit:
+                best.setdefault(dist, set()).add(nid)
+        if not best:
+            return None
+        nodes = best[min(best)]
+        return next(iter(nodes)) if len(nodes) == 1 else None
+
+    def ask_model(self, phrase: str, sentence: str) -> str | None:
+        """The resolver model's answer, kept only if it names a real node whose suffix is in the phrase."""
+        if self.model is None or not phrase.strip():
+            return None
+        nid = self.model(phrase, sentence)
+        if nid not in self.suffix:
+            return None
+        words = {w.lower() for w in re.findall(r"[A-Za-z0-9]+", phrase)}
+        return nid if self.suffix[nid] in words else None
 
     def mentions(self, text: str) -> list[Mention]:
         tokens = list(re.finditer(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*", text))
@@ -156,13 +208,16 @@ class Resolver:
         i = 0
         while i < len(tokens):
             hit = None
-            for size in (4, 3, 2, 1):
-                if i + size > len(tokens):
-                    continue
-                span = text[tokens[i].start() : tokens[i + size - 1].end()]
-                nid = self.alias.get(_norm(span))
-                if nid:
-                    hit = (size, Mention(nid, span, tokens[i].start(), tokens[i + size - 1].end()))
+            for how, lookup in (("alias", self.alias.get), ("fuzzy", self.fuzzy)):
+                for size in (4, 3, 2, 1):
+                    if i + size > len(tokens):
+                        continue
+                    span = text[tokens[i].start() : tokens[i + size - 1].end()]
+                    nid = lookup(_norm(span)) if how == "alias" else lookup(span)
+                    if nid:
+                        hit = (size, Mention(nid, span, tokens[i].start(), tokens[i + size - 1].end(), how))
+                        break
+                if hit:
                     break
             if hit:
                 out.append(hit[1])
@@ -190,6 +245,38 @@ def _clauses(sentence: str) -> list[tuple[int, str]]:
     return parts
 
 
+def _model_mention(resolver: Resolver, clause: str, sentence: str, lo: int, hi: int, near_end: bool) -> list[Mention]:
+    """Ask the resolver model about the up-to-five words of clause[lo:hi] next to the verb."""
+    words = list(re.finditer(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*", clause[lo:hi]))
+    words = words[-5:] if near_end else words[:5]
+    if not words:
+        return []
+    a, b = lo + words[0].start(), lo + words[-1].end()
+    nid = resolver.ask_model(clause[a:b], sentence)
+    return [Mention(nid, clause[a:b], a, b, "nemotron")] if nid else []
+
+
+def modality(context: str, clause: str) -> tuple[bool, bool, str]:
+    """(current, planned, reason) for a claim, from its clause and the sentence context around it (lower case)."""
+    for pattern, why in NOT_CURRENT:
+        if pattern.search(context):
+            return False, False, why
+    if PLANNED.search(clause):
+        return True, True, "planned or temporary change; weak evidence of current state"
+    return True, False, ""
+
+
+def quote_context(doc: Doc, quote: str) -> tuple[str, str] | None:
+    """The sentence holding a quote plus the next one, and the sentence itself (lower case), or None."""
+    squash = lambda t: " ".join(t.split()).lower()
+    q = squash(quote)
+    sentences = chunks(doc)
+    for idx, (_, sentence) in enumerate(sentences):
+        if q in squash(sentence):
+            return " ".join(squash(s) for _, s in sentences[idx : idx + 2]), squash(sentence)
+    return None
+
+
 def extract(doc: Doc, resolver: Resolver) -> tuple[list[Claim], list[Rejection]]:
     claims: list[Claim] = []
     rejected: list[Rejection] = []
@@ -207,6 +294,10 @@ def extract(doc: Doc, resolver: Resolver) -> tuple[list[Claim], list[Rejection]]
             ms = resolver.mentions(clause)
             left = [m for m in ms if m.end <= pos]
             right = [m for m in ms if m.start >= pos + len(v)]
+            if left and not right:
+                right = _model_mention(resolver, clause, sentence, pos + len(v), len(clause), near_end=False)
+            elif right and not left:
+                left = _model_mention(resolver, clause, sentence, 0, pos, near_end=True)
             if not left or not right:
                 continue
             consumers, suppliers = (left[-1:], right[:1]) if v in CONSUMER_FIRST else (left[-2:], right)
@@ -224,16 +315,9 @@ def extract(doc: Doc, resolver: Resolver) -> tuple[list[Claim], list[Rejection]]
                         continue
                     if c.node == s.node:
                         continue
-                    claim = Claim(c.node, s.node, doc.id, doc.date, doc.kind, quote)
-                    for pattern, why in NOT_CURRENT:
-                        if pattern.search(context):
-                            claim.current, claim.reason = False, why
-                            break
-                    if claim.current and PLANNED.search(low):
-                        claim.planned, claim.reason = (
-                            True,
-                            "planned or temporary change; weak evidence of current state",
-                        )
+                    how = "nemotron-resolve" if "nemotron" in (c.how, s.how) else "rules"
+                    claim = Claim(c.node, s.node, doc.id, doc.date, doc.kind, quote, extractor=how)
+                    claim.current, claim.planned, claim.reason = modality(context, low)
                     claims.append(claim)
     return claims, rejected
 
@@ -263,7 +347,14 @@ def _power_group(facility: Facility, consumer: str):
 
 
 def _cite(c: Claim) -> dict:
-    return {"doc_id": c.doc_id, "date": c.date, "kind": c.kind, "quote": c.quote, "reason": c.reason}
+    return {
+        "doc_id": c.doc_id,
+        "date": c.date,
+        "kind": c.kind,
+        "quote": c.quote,
+        "reason": c.reason,
+        "extractor": c.extractor,
+    }
 
 
 def _confidence(support: list[Claim], against: list[Claim]) -> float:
@@ -314,10 +405,27 @@ def impact(facility: Facility, f: Finding, max_order: int = 2) -> dict:
     }
 
 
+def _one_per_doc(claims: list[Claim]) -> list[Claim]:
+    """A record read by both the rules and the model counts once; its citation names both readers."""
+    by_doc: dict[str, Claim] = {}
+    for c in claims:
+        seen = by_doc.get(c.doc_id)
+        if seen is None:
+            by_doc[c.doc_id] = c
+        elif c.extractor not in seen.extractor.split("+"):
+            by_doc[c.doc_id] = replace(seen, extractor=f"{seen.extractor}+{c.extractor}")
+    return list(by_doc.values())
+
+
 def discover(
-    facility: Facility, docs: list[Doc], extra_claims: Iterable[Claim] = (), with_impact: bool = True
+    facility: Facility,
+    docs: list[Doc],
+    extra_claims: Iterable[Claim] = (),
+    with_impact: bool = True,
+    model: ModelResolver | None = None,
+    extra_rejected: Iterable[Rejection] = (),
 ) -> DiscoveryResult:
-    resolver = Resolver(facility)
+    resolver = Resolver(facility, model)
     by_doc = {d.id: d for d in docs}
     claims: list[Claim] = []
     rejected: list[Rejection] = []
@@ -327,15 +435,19 @@ def discover(
         rejected += r
     extra_ok, extra_bad = validate(extra_claims, by_doc)
     rule_ok, rule_bad = validate(claims, by_doc)
-    claims, rejected = rule_ok + extra_ok, rejected + rule_bad + extra_bad
+    claims, rejected = rule_ok + extra_ok, rejected + rule_bad + extra_bad + list(extra_rejected)
+    set_aside: dict[tuple[str, str], list[Claim]] = {}
     for c in claims:
         if not c.current:
-            rejected.append(Rejection(c.doc_id, c.quote, c.reason))
+            set_aside.setdefault((c.consumer, c.supplier), []).append(c)
+    set_aside = {k: _one_per_doc(v) for k, v in set_aside.items()}
+    rejected += [Rejection(c.doc_id, c.quote, c.reason) for cs in set_aside.values() for c in cs]
 
     current = [c for c in claims if c.current]
     pairs: dict[tuple[str, str], list[Claim]] = {}
     for c in current:
         pairs.setdefault((c.consumer, c.supplier), []).append(c)
+    pairs = {k: _one_per_doc(v) for k, v in pairs.items()}
 
     findings: list[Finding] = []
     for (consumer, supplier), support in sorted(pairs.items()):
@@ -353,7 +465,7 @@ def discover(
             classification, replaces = "new", None
             against = []
         conf = _confidence(support, against)
-        aside = [_cite(c) for c in claims if not c.current and (c.consumer, c.supplier) == (consumer, supplier)]
+        aside = [_cite(c) for c in set_aside.get((consumer, supplier), [])]
         f = Finding(
             id=f"F-{consumer}-{supplier}",
             consumer=consumer,

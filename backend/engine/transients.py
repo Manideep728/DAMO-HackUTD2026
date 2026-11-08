@@ -86,7 +86,8 @@ def transient(
     ats = [n for n in facility.nodes if n.type == NodeType.ats]
     transfer = max((_param(n.metadata, "transfer_s") for n in ats), default=0.0)
     gen_ready = max((_param(g.metadata, "start_delay_s") for g in gens), default=float("inf")) + transfer
-    needs_gen = any(steady.up(g.id) and any(c == g.id for (_, c) in steady.shares) for g in gens)
+    carrying = sorted(g.id for g in gens if steady.up(g.id) and any(c == g.id for (_, c) in steady.shares))
+    needs_gen = bool(carrying)
     gen_ids = {g.id for g in gens}
     if needs_gen:
         dropped = [
@@ -98,7 +99,7 @@ def transient(
             events.append(
                 TransientEvent(0.0, "equipment without UPS drops until generators are online", sorted(dropped))
             )
-        events.append(TransientEvent(gen_ready, "generators online and transferred", sorted(gen_ids)))
+        events.append(TransientEvent(gen_ready, "generators online and transferred", carrying))
     else:
         p1 = simulate(battery, base)  # no generator start involved: only the failure itself
 
