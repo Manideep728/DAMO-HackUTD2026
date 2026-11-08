@@ -126,3 +126,21 @@ def test_cached_mode_replays_a_recorded_turn_and_falls_back_without_one(tmp_path
 
     missing = list(agent.run("What happens if ATS-1 fails?", Workspace(Store(":memory:"))))
     assert any(e["type"] == "fallback" for e in missing) and missing[-1]["type"] == "final"
+
+
+def test_the_store_survives_concurrent_requests(tmp_path):
+    # The API serves requests from a thread pool over one SQLite connection; the page fires several at once.
+    from concurrent.futures import ThreadPoolExecutor
+
+    store = Store(tmp_path / "s.sqlite")
+
+    def work(i: int) -> None:
+        for j in range(60):
+            store.decide(f"F-{i}-{j % 3}", "confirmed", "t", "")
+            store.decisions()
+            store.audit_log(limit=20)
+            store.scenarios()
+
+    with ThreadPoolExecutor(8) as pool:
+        list(pool.map(work, range(8)))  # re-raises any worker exception
+    assert len(store.decisions()) == 24
