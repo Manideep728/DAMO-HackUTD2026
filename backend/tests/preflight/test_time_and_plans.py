@@ -86,3 +86,12 @@ def test_every_rejected_plan_says_where_it_loses_to_the_recommended_one():
     overlap = next(r for r in res.rejected if r.start == 33 and not r.mitigations)
     assert "UTIL-B" in overlap.single_points and "UTIL-B" not in best.single_points
     assert any(why == "more single points of failure than the recommended plan (UTIL-B)" for why in overlap.reasons)
+
+
+def test_only_generators_that_pick_up_load_are_reported_starting():
+    from app.preflight.data.demo import demo_facility
+    from engine.transients import transient
+
+    rep = transient(demo_facility(), ["UTIL-A"])
+    started = next(e for e in rep.events if e.what == "generators online and transferred")
+    assert started.nodes == ["GEN-1"]  # UTIL-B is still up, so GEN-2 never takes load

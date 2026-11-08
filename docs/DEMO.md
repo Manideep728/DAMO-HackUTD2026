@@ -38,6 +38,8 @@ Between rehearsals, **Reset scenario** clears the toggles. Finding decisions liv
 
 5. **What that costs (15 s).** Fail **ATS-1**: 18 racks and workloads, 400 kW, each with a "why it failed" trace back to ATS-1.
 
+   *Optional (20 s), if time allows:* **Reset scenario**, then fail **UTIL-A** and **UTIL-B**. The steady-state numbers say nothing is lost, because the generators carry it. *First minutes after the failure* says otherwise. Chillers need 6 minutes to restart and racks ride through 4 without cooling, so 18 racks and workloads trip in between.
+
 6. **Pick the window (25 s).** *Plan* tab: PUMP-A, 6 hours, hours 0–48 → **Find the safest window**. Recommended: **hour 6 to hour 12**, out of 52 options simulated. Open a rejected one at hour 32 or 33. It overlaps GEN-2's annual service and adds UTIL-B as another single point, and it says so.
 
 7. **Ask (30 s).** *Ask* tab: "Are Pump A and Pump B independent?" The tool log streams `get_neighbors` twice, then `find_cut_sets`, `search_docs` and `propose_dependency`. Every claim in the answer cites the tool calls it came from. A claim that names a node or number not in those results gets the answer sent back to the model.

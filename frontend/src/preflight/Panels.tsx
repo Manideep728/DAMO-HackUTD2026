@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Check, X, FileText, CircleAlert } from 'lucide-react';
 import { Badge, Button, StatusPill, cx } from '../components/ui';
-import type { CutSets, Evidence, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
+import type { CutSets, Evidence, Transient, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-export function ImpactPanel({ sim, red, onPick }: { sim: SimResult | null; red: ServiceRed[]; onPick: (nodes: string[]) => void }) {
+export function ImpactPanel({ sim, red, transient, onPick }: { sim: SimResult | null; red: ServiceRed[]; transient: Transient | null; onPick: (nodes: string[]) => void }) {
   if (!sim) return <p className="text-muted text-[13px]">Simulating…</p>;
   const traced = Object.entries(sim.traces);
   return (
@@ -16,6 +16,7 @@ export function ImpactPanel({ sim, red, onPick }: { sim: SimResult | null; red: 
         <Stat label="Lowest headroom" value={sim.tightest ? `${pct(sim.min_margin)} on ${sim.tightest}` : 'n/a'} tone={sim.min_margin < 0.1 ? 'warning' : 'ok'} />
         <Stat label="Degraded equipment" value={sim.degraded.length} tone={sim.degraded.length ? 'warning' : 'ok'} />
       </div>
+      {transient && transient.events.length > 0 && <TransientTimeline t={transient} onPick={onPick} />}
       <section>
         <h3 className="text-[13px] font-semibold mb-2">Redundancy of critical services</h3>
         <p className="text-[12px] text-muted mb-2">Capacity asks whether there are enough suppliers. Independence asks how many failures it takes to lose them all. Click a row to show its shared dependencies.</p>
@@ -47,6 +48,42 @@ export function ImpactPanel({ sim, red, onPick }: { sim: SimResult | null; red: 
         </section>
       )}
     </div>
+  );
+}
+
+const clock = (s: number) => (s < 60 ? `${+s.toFixed(1)} s` : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')} min`);
+
+function TransientTimeline({ t, onPick }: { t: Transient; onPick: (nodes: string[]) => void }) {
+  const events = [...t.events].sort((a, b) => a.t_s - b.t_s);
+  const end = Math.max(...events.map((e) => e.t_s)) * 1.08 || 1;
+  const onlyDuring = t.lost_transient.filter((n) => !t.lost_steady.includes(n));
+  const bad = (what: string) => /exhausted|exceed|drops/.test(what);
+  return (
+    <section>
+      <h3 className="text-[13px] font-semibold mb-1 flex items-center gap-2">First minutes after the failure <Badge>simplified</Badge></h3>
+      <p className="text-[12px] text-muted mb-2">Steady-state snapshots with default timings, not a dynamic simulation. Click an event to show its equipment.</p>
+      {onlyDuring.length > 0 && (
+        <p className="text-[12.5px] text-critical mb-2" role="alert">
+          {onlyDuring.length} racks or workloads come back once things settle, but trip during the transition: <span className="mono">{onlyDuring.slice(0, 6).join(', ')}{onlyDuring.length > 6 ? '…' : ''}</span>
+        </p>
+      )}
+      <div className="relative h-6 mb-2 border-b hairline" aria-hidden>
+        {events.map((e, i) => (
+          <div key={i} title={`${clock(e.t_s)}: ${e.what}`} className={cx('absolute bottom-0 w-[3px] h-4 rounded-sm', bad(e.what) ? 'bg-critical' : 'bg-ok')} style={{ left: `${(e.t_s / end) * 100}%` }} />
+        ))}
+      </div>
+      <ol className="grid gap-1 text-[12px]">
+        {events.map((e, i) => (
+          <li key={i}>
+            <button type="button" className="text-left hover:underline" onClick={() => onPick(e.nodes)}>
+              <span className="mono font-semibold inline-block min-w-[64px]">{clock(e.t_s)}</span>
+              <span className={bad(e.what) ? 'text-critical' : 'text-text'}>{e.what}</span>
+              <span className="text-muted"> · {e.nodes.length > 4 ? `${e.nodes.slice(0, 4).join(', ')} +${e.nodes.length - 4}` : e.nodes.join(', ')}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 

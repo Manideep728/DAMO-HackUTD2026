@@ -3,7 +3,7 @@ import { Download, Info, RotateCcw, Send, Upload } from 'lucide-react';
 import { Badge, Button, cx } from '../components/ui';
 import { DependencyMap } from './DependencyMap';
 import { CutSetPanel, FindingsPanel, ImpactPanel, PlanResults, planOf } from './Panels';
-import { pf, type AgentEvent, type CutSets, type Facility, type Findings, type PlanSearch, type ServiceRed, type SimResult, type Toggle } from './api';
+import { pf, type Transient, type AgentEvent, type CutSets, type Facility, type Findings, type PlanSearch, type ServiceRed, type SimResult, type Toggle } from './api';
 
 type Tab = 'impact' | 'weak' | 'findings' | 'plan' | 'agent';
 const TABS: [Tab, string][] = [['impact', 'Impact'], ['weak', 'Weak points'], ['findings', 'Findings'], ['plan', 'Plan'], ['agent', 'Ask']];
@@ -15,6 +15,7 @@ export default function Preflight() {
   const [sim, setSim] = useState<SimResult | null>(null);
   const [red, setRed] = useState<ServiceRed[]>([]);
   const [cuts, setCuts] = useState<CutSets | null>(null);
+  const [trans, setTrans] = useState<Transient | null>(null);
   const [findings, setFindings] = useState<Findings | null>(null);
   const [tab, setTab] = useState<Tab>('impact');
   const [zone, setZone] = useState('all');
@@ -32,11 +33,12 @@ export default function Preflight() {
     let live = true;
     const maint = Object.entries(toggles).filter(([, s]) => s === 'maintenance').map(([n]) => n);
     const failed = Object.fromEntries(Object.entries(toggles).filter(([, s]) => s === 'failed')) as Record<string, Toggle>;
-    setSim(null); setCuts(null);
+    setSim(null); setCuts(null); setTrans(null);
     Promise.all([
       pf.simulate(toggles), pf.redundancy(toggles),
       maint.length ? pf.maintenanceCuts(maint) : pf.cutsets(failed),
-    ]).then(([s, r, c]) => { if (live) { setSim(s); setRed(r.services); setCuts(c); setError(''); } })
+      Object.keys(failed).length ? pf.transient(Object.keys(failed)) : Promise.resolve(null),
+    ]).then(([s, r, c, t]) => { if (live) { setSim(s); setRed(r.services); setCuts(c); setTrans(t); setError(''); } })
       .catch((e) => live && setError(e.message));
     return () => { live = false; };
   }, [facility, toggles]);
@@ -113,7 +115,7 @@ export default function Preflight() {
             ))}
           </nav>
           <div className="p-4 overflow-auto min-h-0">
-            {tab === 'impact' && <ImpactPanel sim={sim} red={red} onPick={setHighlight} />}
+            {tab === 'impact' && <ImpactPanel sim={sim} red={red} transient={trans} onPick={setHighlight} />}
             {tab === 'weak' && <CutSetPanel cuts={cuts} maintenance={maintenance} picked={highlight.join('+')} onPick={setHighlight} />}
             {tab === 'findings' && <FindingsPanel data={findings} onShow={setHighlight} onDecide={async (f, d, actor, note) => {
               await pf.decide(f.id, d, actor, note);
