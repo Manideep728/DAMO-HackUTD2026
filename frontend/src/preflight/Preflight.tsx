@@ -53,7 +53,6 @@ export default function Preflight() {
   useEffect(() => {
     loadFacility();
     pf.findings().then(setFindings).catch((e) => setError(e.message));
-    pf.redundancy({}).then((r) => setBaseRed(r.services)).catch(() => undefined);
   }, [loadFacility]);
 
   // Re-simulate whenever the scenario or the confirmed graph changes.
@@ -62,11 +61,15 @@ export default function Preflight() {
     let live = true;
     const maint = Object.entries(toggles).filter(([, s]) => s === 'maintenance').map(([n]) => n);
     const failed = Object.fromEntries(Object.entries(toggles).filter(([, s]) => s === 'failed')) as Record<string, Toggle>;
+    // The baseline (nothing toggled) is refetched with every scenario, so it follows confirmed findings; with
+    // nothing toggled the scenario is the baseline and one request serves both.
+    const scenario = pf.redundancy(toggles);
+    const baseline = Object.keys(toggles).length ? pf.redundancy({}) : scenario;
     Promise.all([
-      pf.simulate(toggles), pf.redundancy(toggles),
+      pf.simulate(toggles), scenario, baseline,
       maint.length ? pf.maintenanceCuts(maint) : pf.cutsets(failed),
       Object.keys(failed).length ? pf.transient(Object.keys(failed)) : Promise.resolve(null),
-    ]).then(([s, r, c, t]) => { if (live) { setSim(s); setRed(r.services); setCuts(c); setTrans(t); setError(''); } })
+    ]).then(([s, r, b, c, t]) => { if (live) { setSim(s); setRed(r.services); setBaseRed(b.services); setCuts(c); setTrans(t); setError(''); } })
       .catch((e) => live && setError(e.message));
     return () => { live = false; };
   }, [facility, toggles]);
@@ -78,7 +81,6 @@ export default function Preflight() {
       setToggles({}); setHighlight([]); setSelected(null);
       await loadFacility();
       setFindings(await pf.findings());
-      pf.redundancy({}).then((x) => setBaseRed(x.services)).catch(() => undefined);
       setNotice(`Loaded ${r.name}: ${r.nodes} nodes.`); setError('');
     } catch (e) {
       setError(`${what} failed: ${(e as Error).message.replace(/^import failed: /, '')}`);
