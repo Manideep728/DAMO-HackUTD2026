@@ -72,10 +72,21 @@ class Workspace:
         return finding
 
     def replace_facility(self, facility: Facility, actor: str) -> None:
+        """Swap in an imported facility. The demo's records, load profiles and maintenance windows describe the
+        demo hall, so they go too; otherwise its work orders would produce findings about look-alike ids."""
         with self._lock:
             self.documented = facility
+            self.docs, self.labels, self.profiles, self.windows = [], [], {}, []
             self._discovery = None
         self.store.audit(actor, "facility.imported", {"name": facility.name, "nodes": len(facility.nodes)})
+
+    def restore_demo(self, actor: str) -> None:
+        fresh = Workspace(self.store)
+        with self._lock:
+            self.documented, self.docs, self.labels = fresh.documented, fresh.docs, fresh.labels
+            self.profiles, self.windows = fresh.profiles, fresh.windows
+            self._discovery = None
+        self.store.audit(actor, "facility.restored_demo", {"name": self.documented.name})
 
 
 def parse_states(raw: dict[str, str] | None, facility: Facility) -> dict[str, State]:

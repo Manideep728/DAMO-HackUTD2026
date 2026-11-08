@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Info, RotateCcw, Send } from 'lucide-react';
+import { Download, Info, RotateCcw, Send, Upload } from 'lucide-react';
 import { Badge, Button, cx } from '../components/ui';
 import { DependencyMap } from './DependencyMap';
 import { CutSetPanel, FindingsPanel, ImpactPanel, PlanResults, planOf } from './Panels';
@@ -20,6 +20,8 @@ export default function Preflight() {
   const [zone, setZone] = useState('all');
   const [highlight, setHighlight] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const loadFacility = useCallback(() => pf.facility().then(setFacility).catch((e) => setError(e.message)), []);
   useEffect(() => { loadFacility(); pf.findings().then(setFindings).catch((e) => setError(e.message)); }, [loadFacility]);
@@ -38,6 +40,19 @@ export default function Preflight() {
       .catch((e) => live && setError(e.message));
     return () => { live = false; };
   }, [facility, toggles]);
+
+  // Swapping the facility clears the scenario: the old toggles name equipment that may not exist any more.
+  const swapFacility = async (what: string, load: () => Promise<{ name: string; nodes: number }>) => {
+    try {
+      const r = await load();
+      setToggles({}); setHighlight([]); setZone('all');
+      await loadFacility();
+      setFindings(await pf.findings());
+      setNotice(`Loaded ${r.name}: ${r.nodes} nodes.`); setError('');
+    } catch (e) {
+      setError(`${what} failed: ${(e as Error).message.replace(/^import failed: /, '')}`);
+    }
+  };
 
   const toggle = useCallback((id: string) => setToggles((t) => {
     const next = NEXT[String(t[id])];
@@ -64,13 +79,19 @@ export default function Preflight() {
             {zones.map((z) => <option key={z} value={z}>{z === 'all' ? 'Whole site' : `Zone ${z}`}</option>)}
           </select>
           <Button onClick={() => { setToggles({}); setHighlight([]); }} disabled={!Object.keys(toggles).length}><RotateCcw size={14} /> Reset scenario</Button>
+          <input ref={fileInput} type="file" accept=".csv,.json,text/csv,application/json" className="hidden" aria-label="Facility file"
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) swapFacility('Import', () => pf.importFacility(f)); }} />
+          <Button onClick={() => fileInput.current?.click()} title="Load a facility from CSV or JSON. Replaces the demo hall and its records."><Upload size={14} /> Import</Button>
+          <a href="/api/preflight/export.csv" download="facility.csv" className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border hairline text-[13px] hover:bg-surface-2" title="Download the current graph as CSV"><Download size={14} /> Export</a>
+          <Button onClick={() => swapFacility('Restoring the demo', pf.restoreDemo)}>Restore demo</Button>
         </div>
       </header>
 
       <div className="flex items-start gap-2 rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-[12.5px]" role="note">
         <Info size={14} className="shrink-0 mt-0.5 text-muted" /> <span><b>Simplified model.</b> {facility.fidelity}</span>
       </div>
-      {error && <div className="text-critical text-[13px]" role="alert">{error}</div>}
+      {error && <div className="text-critical text-[13px] whitespace-pre-wrap" role="alert">{error}</div>}
+      {notice && !error && <div className="text-muted text-[13px]" role="status">{notice}</div>}
 
       <div className="flex flex-wrap gap-2 items-center text-[12px]">
         <span className="text-muted">Scenario:</span>

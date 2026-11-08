@@ -80,6 +80,23 @@ def test_csv_round_trip_and_import(client):
     assert bad.status_code == 422 and "row 2" in bad.json()["detail"]
 
 
+def test_an_imported_facility_does_not_inherit_the_demo_records_and_the_demo_can_be_restored(client):
+    from app.preflight.data.generator import generate_facility
+
+    r = client.post("/api/preflight/import", content=to_csv(generate_facility(1)), headers={"content-type": "text/csv"})
+    assert r.status_code == 200
+    assert client.get("/api/preflight/findings").json()["findings"] == []
+    node = client.get("/api/preflight/facility").json()["nodes"][0]["id"]
+    task = {"name": "t", "nodes": [node], "duration_h": 4, "earliest": 0, "latest": 24}
+    assert client.post("/api/preflight/plans/search", json={"task": task}).json()["top"]
+
+    assert client.post("/api/preflight/facility/demo").json()["nodes"] == 43
+    ids = [f["id"] for f in client.get("/api/preflight/findings").json()["findings"]]
+    assert "F-MCC-B-ATS-1" in ids
+    events = [a["action"] for a in client.get("/api/preflight/audit").json()]
+    assert "facility.imported" in events and "facility.restored_demo" in events
+
+
 def test_agent_streams_tool_calls_and_a_traced_answer(client):
     with client.stream("POST", "/api/preflight/agent", json={"question": "What happens if ATS-1 fails?"}) as r:
         body = "".join(r.iter_text())

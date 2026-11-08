@@ -208,7 +208,8 @@ def findings() -> dict:
     return {
         "findings": [to_dict(f) for f in ws.findings()],
         "rejected": [r.__dict__ for r in res.rejected],
-        "metrics": score(res, ws.labels),
+        "metrics": score(res, ws.labels) if ws.labels else None,  # only labelled corpora can be scored
+        "records": len(ws.docs),
     }
 
 
@@ -255,6 +256,12 @@ async def import_facility(request: Request) -> dict:
         raise HTTPException(422, f"import failed: {e}") from e
     workspace().replace_facility(fac, request.headers.get("x-actor", "engineer"))
     return {"name": fac.name, "nodes": len(fac.nodes)}
+
+
+@router.post("/facility/demo")
+def restore_demo(request: Request) -> dict:
+    workspace().restore_demo(request.headers.get("x-actor", "engineer"))
+    return {"name": workspace().documented.name, "nodes": len(workspace().documented.nodes)}
 
 
 @router.post("/agent")

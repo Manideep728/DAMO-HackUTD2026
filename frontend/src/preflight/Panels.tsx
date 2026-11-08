@@ -140,7 +140,9 @@ export function FindingsPanel({ data, onDecide, onShow }: { data: Findings | nul
         <summary className="cursor-pointer text-muted">Documented edges confirmed by records ({confirms.length})</summary>
         <ul className="mt-2 grid gap-1">{confirms.map((f) => <li key={f.id} className="mono">{f.consumer} ← {f.supplier} <span className="text-muted">({f.supporting.map((s) => s.doc_id).join(', ')})</span></li>)}</ul>
       </details>
-      <p className="text-[11.5px] text-faint">On the labelled demo corpus: precision {data.metrics.precision}, recall {data.metrics.recall}.</p>
+      {data.metrics
+        ? <p className="text-[11.5px] text-faint">On the labelled demo corpus: precision {data.metrics.precision}, recall {data.metrics.recall}.</p>
+        : <p className="text-[11.5px] text-faint">{data.records ? `${data.records} records read; no labels to score against.` : 'No maintenance records are loaded for this facility.'}</p>}
     </div>
   );
 }

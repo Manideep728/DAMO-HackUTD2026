@@ -96,7 +96,7 @@ export function DependencyMap({ facility, sim, toggles, highlight, shared, zone,
   const rows = [...new Set(facility.nodes.filter((n) => visible.has(n.id)).map((n) => n.layer))].sort((a, b) => a - b);
   return (
     <div className="relative h-full min-h-[520px] rounded-xl border hairline bg-surface overflow-hidden" aria-label="Dependency map">
-      <ReactFlow key={zone} nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08 }}
+      <ReactFlow key={`${zone}:${facility.name}:${facility.nodes.length}`} nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08 }}
         minZoom={0.15} maxZoom={1.6} nodesConnectable={false} proOptions={{ hideAttribution: true }}>
         <Background gap={24} color="var(--border)" />
         <Controls showInteractive={false} />

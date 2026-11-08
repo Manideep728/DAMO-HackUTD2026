@@ -32,7 +32,7 @@ export interface Finding {
   confidence: number; supporting: Evidence[]; contradicting: Evidence[]; set_aside: Evidence[]; status: string; claim: string;
   impact: { new_single_points?: string[]; single_points_after?: string[]; services_downgraded?: string[]; redundancy_after?: Record<string, string> };
 }
-export interface Findings { findings: Finding[]; rejected: { doc_id: string; quote: string; reason: string }[]; metrics: { precision: number; recall: number } }
+export interface Findings { findings: Finding[]; rejected: { doc_id: string; quote: string; reason: string }[]; metrics: { precision: number; recall: number } | null; records: number }
 export interface PlanEval {
   start: number; end: number; mitigations: string[]; lost_services: string[]; lost_load: string[]; lost_kw?: number;
   min_cut_order: number; single_points: string[]; min_margin: number; tightest: string | null; tightest_hour?: number | null; reasons: string[];
@@ -56,6 +56,17 @@ export const pf = {
   maintenanceCuts: (maintenance: string[], max_order = 2) => j<CutSets>('/cutsets', { max_order, maintenance }),
   redundancy: (state_changes: Record<string, Toggle>) => j<{ services: ServiceRed[] }>('/redundancy', { state_changes }),
   findings: () => j<Findings>('/findings'),
+  /** Upload a facility as CSV or JSON (the format Export writes). Replaces the demo records too. */
+  async importFacility(file: File): Promise<{ name: string; nodes: number }> {
+    const isJson = file.name.toLowerCase().endsWith('.json') || file.type.includes('json');
+    const r = await fetch('/api/preflight/import', {
+      method: 'POST', headers: { 'Content-Type': isJson ? 'application/json' : 'text/csv' }, body: await file.text(),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((data as { detail?: string }).detail || `${r.status} ${r.statusText}`);
+    return data as { name: string; nodes: number };
+  },
+  restoreDemo: () => j<{ name: string; nodes: number }>('/facility/demo', {}),
   decide: (id: string, decision: 'confirmed' | 'rejected', actor: string, note = '') =>
     j<Finding>(`/findings/${encodeURIComponent(id)}/decision`, { decision, actor, note }),
   searchPlans: (task: { name: string; nodes: string[]; duration_h: number; earliest: number; latest: number }) =>
