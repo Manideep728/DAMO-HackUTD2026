@@ -1,109 +1,165 @@
-# The Gauntlet: Devpost submission draft
-
-> Fill every ⟦…⟧ from a live run before submitting, and delete any line you could not demo. Every other number here comes from the repo, and the command that reproduces it is next to it.
-
-**Tagline:** Rehearse a data center change before you make it.
-
-## Inspiration
-
-Before taking a pump offline, a facilities engineer checks capacity. Can the remaining pump carry the load? Usually it can, and the work goes ahead.
-
-That check misses a shared upstream dependency. In our demo hall, Pump A and Pump B can each carry the full chilled-water load, and the one-line diagram puts them on separate power paths. A 2023 work order, a maintenance log and a change ticket say otherwise: MCC-B was re-fed from ATS-1 during an ATS-2 replacement and never moved back. Both pump panels now sit behind one transfer switch. On paper the cooling plant is 2N. In practice it's N, and ATS-1 is the single point of failure.
-
-That kind of drift lives in records nobody re-reads before a change. We built a preflight check that reads them.
-
-## What it does
-
-The Gauntlet answers three questions about a proposed change: what fails, what's affected, and what's the safest way to do it.
-
-- **Simulate.** Click equipment on the dependency map to put it in maintenance or fail it. The simulator propagates power and cooling, sheds the least critical load first when a supplier is overloaded, and gives every failed rack a causal trace.
-- **Weak points.** Minimal cut sets up to order 3: the smallest combinations of failures that take down a critical service. During a maintenance window it shows which sets shrink. For each service it reports redundancy two ways, by capacity (2N, N+1, N) and by independence (how many failures it takes to lose every supplier), and the effective level is the lower of the two.
-- **Findings.** Discovery reads work orders, logs, change tickets and the one-line text. It resolves names like "transfer sw 1" or "pump mcc b" to inventory ids, extracts "X is fed from Y" claims with exact quotes, and compares them with the documented graph. Each finding says whether it confirms, contradicts or adds an edge, how confident it is, and what changes if it's true. An engineer confirms or rejects it, and the decision goes to an audit log.
-- **Plan.** Give it equipment, a duration and a range of hours. It simulates every start hour, ranks the windows on critical loss, shed load, cut-set order, single points and headroom, and tries mitigations: shedding flexible GPU load, temporary cooling, postponing overlapping work, and switching equipment the records moved back to its documented feed. Every rejected window says where it loses to the recommended one. After the ATS-1 finding is confirmed, the 6-hour utility test is recommended at hour 0–6 with MCC-B switched back to ATS-2 first; without that switch the same hour has ATS-1 and GEN-1 as single points.
-- **Meters.** Power readings live in Tiger (TimescaleDB). The planner simulates against measured load, the worst hourly average at each hour of the week over 4 weeks, instead of a hand-written profile. Discovery reconciles the meters against the drawings as a source independent of every document.
-- **Ask.** A Nemotron agent answers questions like "When is the safest time to take CRAH-3 offline for 4 hours?" by calling the simulator's tools and explaining the results.
-
-In the demo, confirming the ATS-1 finding drops all 8 racks in R1, plus the inference workload, from 2N or N+1 to N. Failing ATS-1 then takes down 18 racks and workloads, 400 kW. The planner recommends hour 6 to hour 12 for six hours of Pump A work, out of 52 options it simulated.
-
-## How we built it
-
-**The simulator decides; the model never does.** Every number on screen comes from `backend/engine/`, a pure Python package with no web framework and no LLM. A CI grep check fails the build if a demo node id appears in it.
-
-**Propagation.** Each node has requirement groups: `all`, `any`, `k_of_n` and `capacity`. Support is computed as a least fixpoint from the sources, so a loop with no outside source never powers itself. Capacity runs after support: an overloaded supplier sheds its lowest-criticality end loads, and demand splits across live suppliers in proportion to capacity, or first-available for transfer switches.
-
-**Cut sets.** Each critical service becomes a fault tree:
-
-- `all` becomes an OR gate.
-- `any` becomes an AND gate.
-- `k_of_n` becomes an (n−k+1)-of-n vote.
-- `capacity` becomes the minimal supplier sets that can no longer carry the baseline load.
-
-MOCUS expands the tree, and the simulator re-checks every candidate. On graphs up to 40 nodes, tests check the result against brute-force enumeration. Order 3 on a 307-node generated facility takes 1.96–1.99 s across 3 runs on an M1, which is the perf test in `tests/preflight/test_fuzz_perf_guard.py`.
-
-**Discovery.** Names resolve in three steps:
-
-1. Aliases built from ids, labels and type words.
-2. A typo-tolerant match: one edit away from a single node's alias, with the last character and every digit exact.
-3. Nemotron, for phrases nothing else could place. Its answer counts only if the node exists and the phrase contains that node's suffix.
-
-**Read with Nemotron** has the model read every record and propose feeds. A proposal counts only if three checks pass: the quote is in the record word for word; the rules' grammar finds that feed in the quote, in that direction; and the same temporary/proposed check passes. An adversarial test pins real sentences on random pairs across 10 seeds, and the demo findings don't change. Live numbers: ⟦proposed / kept / rejected⟧.
-
-Every quote must appear verbatim in the cited record. Sentences describing temporary, proposed or uninstalled connections are set aside with a reason. On 10 seeded sets of messy generated records, precision is 1.0 on every set, and recall has a mean of 0.943 (lowest 0.867).
-
-**Meters in Tiger.** `preflight.readings` is a hypertable of power readings. A continuous aggregate keeps hourly averages current, and the planner's profile per leaf load is the maximum of those averages at each hour of the week over 4 weeks. Reconciliation is one SQL query: bucket to 15 minutes with `time_bucket`, subtract each supplier's documented loads from its own meter, and `corr()` what's left against each candidate consumer. A move needs both sides: the new supplier's gap rises with the consumer (r ≥ 0.9), the documented supplier's falls with it (r ≤ −0.9), and the gap is within 15% of the consumer's load. The one-sided case is the trap: PUMP-B's load is in ATS-1's gap too (r = 0.96), but MCC-B balances, so it isn't flagged.
-
-We have no real meters. The readings are synthetic: the simulator runs on the as-built wiring every 15 minutes for 28 days (115,584 rows), with load shapes, weekend variation, independent pump speed and 0.2% meter error. On Tiger, seeding takes 4.4 s and a sync 3.6 s. The sync finds exactly one difference, MCC-B on ATS-1 (r = 0.96 / −0.97, a 16.7 kW gap), and lifts that finding from 0.97 to 0.99. With no records at all, the meters alone raise it at 0.8. Meters generated from the documented wiring find nothing, which is a test. When the meters balance the drawings, they halve a contradicting finding instead. Venue Wi-Fi blocked Tiger's port, so every sync also writes a local snapshot the app can start from.
-
-**Agent.** Nemotron runs over NVIDIA's OpenAI-compatible API with native tool calling: `simulate`, `find_cut_sets`, `evaluate_plan`, `search_plans`, `search_docs`, `get_node`, `get_neighbors` and `propose_dependency`. The final answer is structured, with a recommendation, rejected alternatives, risks and assumptions, and each claim cites tool-call ids. A checker rejects any answer that names a node or number missing from the results it cites, and sends the rejection back to the model. Questions about CFD, load flow or anything outside the facility get a refusal.
-
-**Product.** FastAPI with server-sent events, SQLite for decisions and the audit log, Tiger (TimescaleDB) for meter data, and React with @xyflow/react for the map. A banner on every screen says what the model doesn't cover.
-
-## Challenges we ran into
-
-- **Shedding the wrong thing.** The first capacity pass shed a whole PDU when one rack would do. A property test caught it: failing more equipment must never raise supply or remaining capacity. Shedding now picks end loads only.
-- **Modality leaks.** "Briefly powered from ATS-1 on a temporary cable. Temporary cable removed the same day." The "removed" is in the next sentence. Applying it to the whole document threw away real claims, so modality now covers the claim's sentence and the one after it.
-- **An eval that couldn't fail.** If the Nemotron call errored, the agent fell back to the scripted planner, and the eval counted that as a pass. It also graded against the scripted planner's exact wording. Grading now checks the engine's numbers and node ids, and a fallback counts as a failure.
-- **Rejections that didn't explain anything.** The planner listed hour 9 as rejected for the same single point of failure the recommended hour 6 had. Rejected plans now name the first criterion they lose on, and single points became a ranking criterion. On the documented graph, that's how the GEN-2 overlap at hours 32–38 ranks lower.
-- **Typos that are other real tags.** "PDU21B" written for PDU-12B is one transposition away and also a valid tag. No matcher can tell, so those records stay missed. That's most of the remaining recall gap.
-- **CI time.** Order-3 cut sets took 8.1 s on the CI runner. Compiling each node's supplier lists once and shedding in a single round brought it to about 2 s.
-
-## Accomplishments that we're proud of
-
-- **The headline is a computed result.** The ATS-1 single point comes from three verbatim quotes and a re-run of the cut sets. Nothing in the engine knows about it.
-- **Live Nemotron eval:** ⟦N⟧/⟦72⟧ passes across 3 runs of 24 questions with ⟦model id⟧. Expected answers are computed by the engine at test time. Reproduce with `cd backend && .venv/bin/python -m tests.preflight.eval.run_live --runs 3`.
-- **131 tests** covering:
-  - each requirement mode
-  - monotonicity and determinism properties
-  - a golden demo
-  - fuzzing on generated facilities
-  - the perf bound
-  - discovery precision and recall
-  - the API
-  - the agent eval in scripted mode
-  - a check that random model answers can't change the demo findings
-  - meter reconciliation, run as real SQL against TimescaleDB in CI, with a no-rewire control
-- **Fails closed.** No key, a rate limit or a dropped connection falls back to a labeled scripted planner using the same tools and the same checker. Nothing that ran scripted is presented as live.
-
-## What we learned
-
-The difference between capacity and redundancy is one shared node, and a capacity check by design doesn't look for it. You have to ask what has to fail together. The model does best when it picks which questions to ask the simulator, and does worse when it tries to answer them itself.
-
-## What's next
-
-- **Real inventories.** Import already reads CSV or JSON. Next is a DCIM export adapter, and checking discovery against a real work-order archive.
-- **Better physics where it changes decisions.** Busbar and hydraulic splits instead of proportional sharing, and failure rates on cut sets so likely failures rank above unlikely ones.
-- **Change tickets as input.** Run preflight automatically when a change ticket names equipment, and attach the result to the ticket.
-
-## Also in the repo
-
-**Modernize, Verify a change and the console**, the team's earlier track work, are still in the app, on the same hall H1 as Preflight. Modernize retires an inherited Nagios check by proof: the real Texas Tech HPCC plugin runs against a Redfish mock, Prometheus rules are tested with `promtool` and `amtool`, and a held-out suite rejects a wrong-recipient mutant and an alert-everything decoy. The console replays an alarm-first night shift (scripted readings) where alerting never depends on the model. See `docs/modernize-demo.md`.
-
-## Built With
-
-nvidia-nemotron · tiger-data · timescaledb · postgresql · python · fastapi · sqlite · react · typescript · vite · tailwindcss · xyflow · github-actions
-
-## Try it out
-
-- GitHub: https://github.com/Manideep728/DAMO-HackUTD2026
-- Demo video: ⟦link⟧
-- Setup and the demo script: `docs/DEMO.md`
+# DAMO
+ 
+**DAMO helps make existing data centers AI-ready.** It reconciles the records, surfaces the conflicts, and proves every change before anyone touches the floor.
+ 
+HackUTD 2026 · Tracks: **NMC²** · **NVIDIA Nemotron** · **8090** · MLH: **Best Use of Tiger Data**
+ 
+---
+ 
+## The problem
+ 
+The IEA projects that data-center electricity demand will roughly double by 2030 ([IEA, *Energy and AI*](https://www.iea.org/reports/energy-and-ai)). Building new capacity takes power, land and permits, so operators are also retrofitting the buildings they already have. A liquid-cooling retrofit costs around $2M per MW, against more than $11M per MW for a new liquid-cooled build ([STL Partners, 2026](https://stlpartners.com/press/liquid-cooling-retrofits-can-cost-roughly-80-less/)).
+ 
+But adding cooling isn't just installing pipes. Engineers have to work out where the cooling unit fits, whether the building can support it, and how to install it without disrupting existing customers. Then the building management system has to understand the new equipment.
+ 
+The answers are scattered across floor plans, cooling schematics, equipment manuals, BMS point lists and maintenance records, and those records disagree:
+ 
+- **A backup that isn't independent.** On paper, Pump A and Pump B each carry the full cooling load on separate power paths. A 2023 work order and a 2024 IR scan show both running through the same transfer switch. One failure takes out both.
+- **An alarm that goes to the wrong place.** The point list says a leak sensor belongs to Rack B, but a newer drawing says it moved to Rack A. The alarm works, and sends the technician to the wrong rack.
+- **Monitoring nobody can retire.** The checks that page the night shift (Nagios plugins, BMS limits, DCIM alarms) are years old, and nobody can prove a replacement catches everything they did.
+## How DAMO helps
+ 
+DAMO brings those records together, surfaces the conflicts, helps engineers evaluate options before the work starts, and produces reviewable integration changes with test evidence. **The engineer decides what to approve;** DAMO gets them there with far less manual reconciliation.
+ 
+| The engineer needs to… | DAMO |
+|---|---|
+| Know what the building is really wired like | **Discovery** reads work orders, logs, tickets and the one-line diagram, and flags every place they disagree with the documented design, with exact quotes. |
+| Know what a change will break | **Preflight** simulates the work on the power and cooling graph, finds single points of failure, and ranks safe windows and plans. |
+| Change the monitoring without losing anything | **Modernize** and **Verify** turn legacy checks into new rules and test them against the real legacy plugin. |
+| Respond when something fails | **Console** alerts from the verified rules before the old check would page, with the steps to hand off. |
+ 
+## What DAMO does
+ 
+| Screen | Route | What it does |
+|---|---|---|
+| **Modernize** | `/modernize/*` | Takes a real legacy check (the Texas Tech HPCC Redfish plugin) through five steps. **M1** imports it and lists the gaps. **M2**: Nemotron recovers its behaviour and asks the operator where the code is ambiguous. **M3** generates the new rules. **M4** tests them. **M5** repairs, reviews, runs in shadow, rolls back or releases. |
+| **Verify a change** | `/verify` | Proves the alarm path still works. Candidate rules v1 and v2 run through the harness: the real plugin, `promtool` and `amtool`. Held-out cases, a wrong-recipient mutant and an alert-everything decoy make sure the tests can actually fail. |
+| **Console** | `/` | The night shift on hall H1. Fan 4 on Compute2 (rack R1-03) stops, and the released rules warn before the old Nagios check would page. The alarm comes first, with steps to acknowledge, investigate, dispatch, verify recovery and hand off. Alerting never depends on the model. |
+| **Preflight** | `/preflight` | A what-if simulator for equipment work. Before you take a pump offline or add a row of GPUs, see what depends on it, what could fail, and the safest window and plan. |
+ 
+`/about` is the landing page. Rack and feed chips on the Console open the same equipment in Preflight.
+ 
+### The finding Preflight is built to show
+ 
+*Enough capacity is not the same as independent backup.* In the demo hall, Pump A and Pump B can each carry the full cooling load, and the one-line diagram puts them on separate power paths. A 2023 work order and a 2024 IR scan show both pump panels running through **ATS-1**. When an engineer confirms that finding, every critical service drops from **2N to N**, and ATS-1 shows up as the shared single point of failure.
+ 
+## Why this isn't "just pasting the script into an LLM"
+ 
+An LLM gives you a translation. DAMO gives you a translation plus evidence that it's right.
+ 
+- **The real legacy code is the reference.** The harness runs the original plugin, not the model's reading of it.
+- **The tests can fail.** Held-out cases, a mutant and a decoy check that the test suite catches a wrong rule rather than passing everything.
+- **Every model claim is checked.** The agent's validator rejects any answer that names a node or number not in the tool results it cites. Discovery rejects quotes that are not verbatim.
+- **People decide.** An engineer confirms or rejects every discovered dependency, and every rule goes through review, shadow mode and rollback before release, with an audit log throughout.
+Nemotron writes sentences, rules and plans. Execution decides whether they're right.
+ 
+## Where Nemotron fits
+ 
+| Job | How |
+|---|---|
+| Recover legacy behaviour (Modernize M2) | Reads the plugin and its Nagios objects, explains what they do, asks the operator where the code is ambiguous |
+| Generate and repair rules (M3–M5) | Drafts rules; harness failures are fed back until they pass |
+| Preflight agent | Tool calling over `simulate`, `find_cut_sets`, `evaluate_plan`, `search_plans`, `search_docs`, `get_node`, `get_neighbors`, `propose_dependency` |
+| Console investigation | Optional; the offline path is labelled and alerting works without it |
+ 
+Models come from [build.nvidia.com](https://build.nvidia.com) through the OpenAI-compatible API. Without a key, the agent runs a scripted planner over the same tools and labels itself **"scripted planner (no model)"**.
+ 
+## Quick start
+ 
+```bash
+make setup        # backend venv + pip, frontend npm ci
+make dev          # backend :8000, frontend :5173
+make test         # engine, discovery, API and agent eval
+```
+ 
+Open **http://localhost:5173/#/** for the Console, or **/#/preflight** for the simulator.
+ 
+To run the Verify harness on your own machine, install the real plugin and fetch `promtool`:
+ 
+```bash
+sudo apt install monitoring-plugins-basic
+make promtool
+```
+ 
+## Configuration
+ 
+All settings live in `backend/.env` (start from `.env.example`).
+ 
+| Variable | Purpose |
+|---|---|
+| `NVIDIA_API_KEY` | Nemotron access, from build.nvidia.com |
+| `NVIDIA_BASE_URL` | Defaults to `https://integrate.api.nvidia.com/v1` |
+| `NEMOTRON_MODEL` | The current tool-calling model ID from build.nvidia.com; falls back to `NEMOTRON_SUPER` |
+| `NEMOTRON_SUPER`, `NEMOTRON_NANO` | Model IDs for the larger and faster roles |
+| `GAUNTLET_MODE` | `live` calls Nemotron and caches every response · `cached` replays the cache (demo offline) · `mock` serves fixtures. The badge in the top bar always shows which |
+| `LEGACY_PLUGIN` | Path to the real plugin, e.g. `/usr/lib/nagios/plugins/check_snmp` |
+| `METERS_DATABASE_URL` | A Tiger (TimescaleDB) service for meter data |
+| `GAUNTLET_GITHUB_REPO` | `owner/repo`; with `gh auth login`, accepted findings open real GitHub issues |
+ 
+**Tiger meters:** set `METERS_DATABASE_URL`, then run `make meters-check meters-seed`. Every sync is also written to `backend/.work/telemetry.json`, and the app starts from that snapshot when Tiger is unreachable. Venue Wi-Fi often blocks Tiger's port; a phone hotspot works. `make db-up test-db` runs the meter SQL tests against a local TimescaleDB container, never against Tiger.
+ 
+**Agent eval:** `make eval` runs the 24-question eval against the scripted planner. Run it with `EVAL_MODE=live` and a key set to test Nemotron. See `docs/devpost.md` for the latest live results.
+ 
+## Demos
+ 
+- **Preflight (2–3 min):** [`docs/DEMO.md`](docs/DEMO.md). `make rehearse` clicks through it and checks every number.
+- **Modernize + Console (3 min):** [`docs/modernize-demo.md`](docs/modernize-demo.md).
+- **Keyboard:** `?` help · `Ctrl+Shift+D` Director panel (replay, jump to end, planned failures, speed).
+## How it's built
+ 
+**Preflight engine** (`backend/engine/`, pure Python, no model):
+ 
+| Part | What it does | File |
+|---|---|---|
+| Simulator | Requirement groups (`all`, `any`, `k_of_n`, `capacity`) over a power and cooling graph. Support is a least fixpoint, so cycles are safe. Overloaded suppliers shed the lowest-criticality load first. Every failed node gets a causal trace. | `engine/propagate.py` |
+| Weak points | Minimal cut sets up to order 3 by exact MOCUS expansion, checked by the simulator and cross-checked against brute-force enumeration in tests. A maintenance view shows which sets shrink during a work window. | `engine/cutsets.py` |
+| Independence | For each redundant group, how many failures it takes to lose every supplier, and the shared nodes when that number is 1. | `engine/redundancy.py` |
+| Planner | Scores hourly windows on critical loss, shed load, cut-set order and headroom. Tries shedding flexible GPU load, postponing overlapping work, temporary cooling, and moving equipment back to its documented feed. Returns ranked plans, plus rejected ones with reasons. | `engine/planner.py` |
+ 
+**Application** (`backend/app/`):
+ 
+| Part | What it does | File |
+|---|---|---|
+| Discovery | Reads work orders, logs, tickets and the one-line diagram text. Resolves names like "transfer sw 1" or "ATS1" to node IDs. Extracts feeds with exact quotes, rejects quotes that aren't verbatim, and rejects claims that were temporary or never built. Shows the impact if a claim is true; an engineer confirms or rejects it. | `app/preflight/discovery.py` |
+| Meters | Power readings in Tiger: a hypertable plus an hourly continuous aggregate. The load profile is the worst hourly average at each hour of the week over 4 weeks. Reconciliation correlates each meter's unexplained load with candidate consumers to catch equipment wired to a different supplier than documented. | `app/preflight/meters.py`, `telemetry.py` |
+| Agent | Nemotron tool calling with a citation validator | `app/preflight/agent.py` |
+| Modernize | Inputs, agent, harness and release operations for the TTU Redfish check | `app/ttu/` |
+| Verify | Real plugin + `promtool` + `amtool` harness | `app/verify/` |
+ 
+**Repo layout**
+ 
+```
+frontend/   React + Vite + Tailwind
+            src/console (Console, Verify) · src/preflight (Preflight, FacilityMap, Panels)
+            src/modern (Modernize M1–M5) · src/components (shell, ui) · src/screens (Landing, older screens)
+backend/    FastAPI · engine/ (simulator, cut sets, planner) · app/preflight · app/ttu · app/verify · app/prompts
+legacy/     pinned TTU Redfish plugins and Nagios objects (legacy/ttu); the earlier check_rack_inlet config
+docs/       DEMO.md · modernize-demo.md · devpost.md · DESIGN.md · ux-audit.md · v4-gaps.md
+```
+ 
+## What's real and what's simulated
+ 
+**Real:** the legacy plugins (pinned, unmodified), `promtool`, `amtool`, the simulator and cut-set math, the discovery validator, the Tiger SQL, and Nemotron tool calling (smoke-tested with a key).
+ 
+**Simulated or simplified:**
+ 
+- The facility, records and load profiles are synthetic. Meter data is generated from the as-built wiring (28 days, 15-minute steps, 0.2% meter error); the queries are what would run on real meters.
+- Power and cooling are kW budgets on a dependency graph. There is no CFD, no electrical load flow and no protection coordination, and the UI says so on every screen.
+- Demand splits across live suppliers in proportion to capacity (first-available for transfer switches). Real busbars and chilled-water hydraulics don't split that neatly.
+- Transients are steady-state snapshots with default timings: generator start 15 s, UPS 5–8 min, chiller restart 6 min, rack ride-through 4 min.
+- Cut sets treat whole nodes as failing. Every candidate is re-checked with the full simulator, but above order 1 a set that matters only through load moving far from the failure can be missed.
+- Meters can only check suppliers whose consumers each have one feed. Dual (2N) rack feeds and transfer-switch sources can't be separated from meters alone.
+- Discovery scores 1.0 precision and recall on the hand-written demo corpus. On 10 seeded sets of noisy records it keeps 1.0 precision with 0.867–0.983 recall; most misses are digit-swap typos that spell another real tag.
+## What's built and what's next
+ 
+**Built today:** record reconciliation into a dependency map (Discovery), what-if simulation and planning (Preflight), legacy monitoring checks converted to new rules and proven against the real plugin (Modernize, Verify), and an operator console on the verified rules.
+ 
+**Next:** the full liquid-cooling retrofit flow. That means helping controls engineers place a CDU and leak sensors, map them to racks, and integrate them into the existing BMS with tested, reviewable point-list changes, then using that verified equipment map for incident response. The leak-sensor example above is the kind of conflict this step will catch. The checklist of what's still missing is in [`docs/v4-gaps.md`](docs/v4-gaps.md).
+ 
+## Team workflow
+ 
+1. Accept the collaborator invite: https://github.com/Manideep728/DAMO-HackUTD2026/invitations
+2. `gh auth login`
+3. `gh repo clone Manideep728/DAMO-HackUTD2026` and open the folder in Claude Code.
+Each teammate's Claude agent coordinates through this repo's Issues, following the protocol in `CLAUDE.md`. Your inbox is the open issues assigned to you; it prints at the start of every Claude Code session, or run `scripts/inbox.sh`.
+ 
