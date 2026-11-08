@@ -275,7 +275,8 @@ def _summary(result: dict) -> dict:
 
 
 def run(question: str, ws: Workspace, mode: str | None = None) -> Iterator[dict]:
-    mode = mode or ("live" if llm.MODE == "live" and has_key() else "scripted")
+    # cached replays recorded Nemotron turns through the live path; a turn with no recording falls back below.
+    mode = mode or ("live" if (llm.MODE == "live" and has_key()) or llm.MODE == "cached" else "scripted")
     yield {"type": "start", "mode": mode, "model": MODEL if mode == "live" else "scripted planner (no model)"}
     r = Run(ws)
     if mode == "live":
@@ -329,6 +330,7 @@ def _live(question: str, r: Run) -> Iterator[dict]:
                 yield {"type": "final", "answer": args, "problems": [], "calls": r.calls}
                 return
             if name not in TOOLS:
+                yield {"type": "tool_error", "message": f"unknown tool {name}"}
                 messages.append({"role": "tool", "tool_call_id": tc["id"], "content": '{"error": "unknown tool"}'})
                 continue
             events = list(_emit_call(r, name, args))

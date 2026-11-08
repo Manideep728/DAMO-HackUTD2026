@@ -156,10 +156,22 @@ def search_plans(ws: Workspace, task: dict[str, Any], constraints: dict[str, Any
         "task": asdict(res.task),
         "evaluated": res.evaluated,
         "top": [slim(e) for e in res.top],
-        "rejected": [slim(e) for e in res.rejected[:12]],
+        "rejected": [slim(e) for e in _varied(res.rejected, 8)],
         "rejected_total": len(res.rejected),
         "other_windows": [asdict(w) for w in ws.windows],
     }
+
+
+def _varied(rejected: list, n: int) -> list:
+    """One rejected plan per distinct reason first (best-ranked of each), then the next best. Most rejections
+    are "same risk, later start", and listing only those hides the windows that lose for a real reason."""
+    kind = lambda e: re.sub(r"\d+%?", "#", e.reasons[-1]) if e.reasons else ""
+    firsts: dict[str, Any] = {}
+    for e in rejected:
+        firsts.setdefault(kind(e), e)
+    picked = list(firsts.values())[:n]
+    picked += [e for e in rejected if e not in picked][: n - len(picked)]
+    return sorted(picked, key=lambda e: e.score, reverse=True)
 
 
 def transient_check(ws: Workspace, failed: list[str]) -> dict:

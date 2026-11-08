@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Check, X, FileText, CircleAlert } from 'lucide-react';
 import { Badge, Button, StatusPill, cx } from '../components/ui';
-import type { CutSets, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
+import type { CutSets, Evidence, ModelRead, Transient, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-export function ImpactPanel({ sim, red, onPick }: { sim: SimResult | null; red: ServiceRed[]; onPick: (nodes: string[]) => void }) {
+export function ImpactPanel({ sim, red, transient, onPick }: { sim: SimResult | null; red: ServiceRed[]; transient: Transient | null; onPick: (nodes: string[]) => void }) {
   if (!sim) return <p className="text-muted text-[13px]">Simulating…</p>;
   const traced = Object.entries(sim.traces);
   return (
@@ -16,6 +16,7 @@ export function ImpactPanel({ sim, red, onPick }: { sim: SimResult | null; red: 
         <Stat label="Lowest headroom" value={sim.tightest ? `${pct(sim.min_margin)} on ${sim.tightest}` : 'n/a'} tone={sim.min_margin < 0.1 ? 'warning' : 'ok'} />
         <Stat label="Degraded equipment" value={sim.degraded.length} tone={sim.degraded.length ? 'warning' : 'ok'} />
       </div>
+      {transient && transient.events.length > 0 && <TransientTimeline t={transient} onPick={onPick} />}
       <section>
         <h3 className="text-[13px] font-semibold mb-2">Redundancy of critical services</h3>
         <p className="text-[12px] text-muted mb-2">Capacity asks whether there are enough suppliers. Independence asks how many failures it takes to lose them all. Click a row to show its shared dependencies.</p>
@@ -50,9 +51,45 @@ export function ImpactPanel({ sim, red, onPick }: { sim: SimResult | null; red: 
   );
 }
 
+const clock = (s: number) => (s < 60 ? `${+s.toFixed(1)} s` : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')} min`);
+
+function TransientTimeline({ t, onPick }: { t: Transient; onPick: (nodes: string[]) => void }) {
+  const events = [...t.events].sort((a, b) => a.t_s - b.t_s);
+  const end = Math.max(...events.map((e) => e.t_s)) * 1.08 || 1;
+  const onlyDuring = t.lost_transient.filter((n) => !t.lost_steady.includes(n));
+  const bad = (what: string) => /exhausted|exceed|drops/.test(what);
+  return (
+    <section>
+      <h3 className="text-[13px] font-semibold mb-1 flex items-center gap-2">First minutes after the failure <Badge>simplified</Badge></h3>
+      <p className="text-[12px] text-muted mb-2">Steady-state snapshots with default timings, not a dynamic simulation. Click an event to show its equipment.</p>
+      {onlyDuring.length > 0 && (
+        <p className="text-[12.5px] text-critical mb-2" role="alert">
+          {onlyDuring.length} racks or workloads come back once things settle, but trip during the transition: <span className="mono">{onlyDuring.slice(0, 6).join(', ')}{onlyDuring.length > 6 ? '…' : ''}</span>
+        </p>
+      )}
+      <div className="relative h-6 mb-2 border-b hairline" aria-hidden>
+        {events.map((e, i) => (
+          <div key={i} title={`${clock(e.t_s)}: ${e.what}`} className={cx('absolute bottom-0 w-[3px] h-4 rounded-sm', bad(e.what) ? 'bg-critical' : 'bg-ok')} style={{ left: `${(e.t_s / end) * 100}%` }} />
+        ))}
+      </div>
+      <ol className="grid gap-1 text-[12px]">
+        {events.map((e, i) => (
+          <li key={i}>
+            <button type="button" className="text-left hover:underline" onClick={() => onPick(e.nodes)}>
+              <span className="mono font-semibold inline-block min-w-[64px]">{clock(e.t_s)}</span>
+              <span className={bad(e.what) ? 'text-critical' : 'text-text'}>{e.what}</span>
+              <span className="text-muted"> · {e.nodes.length > 4 ? `${e.nodes.slice(0, 4).join(', ')} +${e.nodes.length - 4}` : e.nodes.join(', ')}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 function Stat({ label, value, tone }: { label: string; value: string | number; tone: 'ok' | 'warning' | 'critical' }) {
   return (
-    <div className="rounded-lg border hairline px-3 py-2">
+    <div className="rounded-lg border hairline px-3 py-2" data-testid={`stat-${label}`}>
       <div className="text-[11.5px] text-muted">{label}</div>
       <div className={cx('mono text-[15px] font-semibold', tone === 'critical' ? 'text-critical' : tone === 'warning' ? 'text-warning' : 'text-text')}>{value}</div>
     </div>
@@ -90,7 +127,7 @@ export function CutSetPanel({ cuts, maintenance, picked, onPick }: { cuts: CutSe
   );
 }
 
-export function FindingsPanel({ data, onDecide, onShow }: { data: Findings | null; onDecide: (f: Finding, d: 'confirmed' | 'rejected', actor: string, note: string) => Promise<void>; onShow: (nodes: string[]) => void }) {
+export function FindingsPanel({ data, onDecide, onShow, onModelRead }: { data: Findings | null; onDecide: (f: Finding, d: 'confirmed' | 'rejected', actor: string, note: string) => Promise<void>; onShow: (nodes: string[]) => void; onModelRead: () => Promise<void> }) {
   const [actor, setActor] = useState(() => { try { return localStorage.getItem('pf-actor') ?? ''; } catch { return ''; } });
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -104,12 +141,24 @@ export function FindingsPanel({ data, onDecide, onShow }: { data: Findings | nul
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(''); }
   };
+  const readWithModel = async () => {
+    setBusy('model'); setError('');
+    try { await onModelRead(); }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(''); }
+  };
   return (
     <div className="grid gap-4">
       <label className="flex items-center gap-2 text-[12.5px]">Engineer
         <input id="pf-actor" value={actor} onChange={(e) => setActor(e.target.value)} placeholder="your name" className="h-8 px-2 rounded-md border hairline bg-surface flex-1" />
       </label>
       {error && <p className="text-critical text-[12.5px]">{error}</p>}
+      {data.records > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-[12px]">
+          <Button disabled={busy === 'model'} onClick={readWithModel}>{busy === 'model' ? 'Nemotron is reading…' : 'Read with Nemotron'}</Button>
+          {data.model_read && <ModelReadLine r={data.model_read} />}
+        </div>
+      )}
       {open.map((f) => (
         <article key={f.id} className="rounded-xl border hairline p-3 grid gap-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -140,19 +189,36 @@ export function FindingsPanel({ data, onDecide, onShow }: { data: Findings | nul
         <summary className="cursor-pointer text-muted">Documented edges confirmed by records ({confirms.length})</summary>
         <ul className="mt-2 grid gap-1">{confirms.map((f) => <li key={f.id} className="mono">{f.consumer} ← {f.supplier} <span className="text-muted">({f.supporting.map((s) => s.doc_id).join(', ')})</span></li>)}</ul>
       </details>
-      <p className="text-[11.5px] text-faint">On the labelled demo corpus: precision {data.metrics.precision}, recall {data.metrics.recall}.</p>
+      {data.metrics
+        ? <p className="text-[11.5px] text-faint">On the labelled demo corpus: precision {data.metrics.precision}, recall {data.metrics.recall}.</p>
+        : <p className="text-[11.5px] text-faint">{data.records ? `${data.records} records read; no labels to score against.` : 'No maintenance records are loaded for this facility.'}</p>}
     </div>
   );
 }
 
-function Quotes({ title, items }: { title: string; items: { doc_id: string; date: string; kind: string; quote: string; reason: string }[] }) {
+function ModelReadLine({ r }: { r: ModelRead }) {
+  const rej = r.rejected.not_verbatim + r.rejected.wrong_pair + r.rejected.unknown_node;
+  const parts = [
+    `kept ${r.kept}`,
+    rej && `rejected ${rej} (${[r.rejected.not_verbatim && `${r.rejected.not_verbatim} quote not in the record`, r.rejected.wrong_pair && `${r.rejected.wrong_pair} quote doesn't say that`, r.rejected.unknown_node && `${r.rejected.unknown_node} not in the inventory`].filter(Boolean).join(', ')})`,
+    r.set_aside && `set aside ${r.set_aside} temporary or proposed`,
+  ].filter(Boolean);
+  return (
+    <span className="text-muted" title={r.model}>
+      Nemotron read {r.answered} of {r.records} records and proposed {r.proposed} feeds: {parts.join('; ')}.
+      {r.new_findings.length > 0 && <> New: <span className="mono">{r.new_findings.join(', ')}</span>.</>}
+    </span>
+  );
+}
+
+function Quotes({ title, items }: { title: string; items: Evidence[] }) {
   return (
     <div className="text-[12px]">
       <div className="text-muted mb-1">{title}</div>
       <ul className="grid gap-1">
         {items.map((q, i) => (
           <li key={i} className="flex gap-1.5"><FileText size={12} className="shrink-0 mt-0.5 text-faint" />
-            <span><span className="mono">{q.doc_id}</span> <span className="text-faint">{q.date} · {q.kind.replace('_', ' ')}</span> “{q.quote}”{q.reason && <span className="text-muted"> · {q.reason}</span>}</span></li>
+            <span><span className="mono">{q.doc_id}</span> <span className="text-faint">{q.date} · {q.kind.replace('_', ' ')}</span> “{q.quote}”{q.extractor?.includes('nemotron-read') && <span className="text-accent"> · {q.extractor.startsWith('rules') ? 'read by the rules and Nemotron' : 'read by Nemotron'}</span>}{q.extractor?.includes('nemotron-resolve') && <span className="text-muted"> · name resolved by Nemotron</span>}{q.reason && <span className="text-muted"> · {q.reason}</span>}</span></li>
         ))}
       </ul>
     </div>

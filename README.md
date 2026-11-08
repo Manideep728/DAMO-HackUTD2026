@@ -33,7 +33,7 @@ Nemotron settings in `backend/.env`: `NVIDIA_API_KEY`, `NVIDIA_BASE_URL` (defaul
 - Transients are a sequence of steady-state snapshots with default timings (generator start 15 s, UPS 5–8 min, chiller restart 6 min, rack ride-through 4 min).
 - Cut sets treat whole nodes as failing and use baseline loads to build candidates. Every candidate is re-checked with the full simulator, but above order 1 a set that only matters through load moving somewhere far from the failure can be missed.
 - Under load shedding, failing a load frees capacity, so "more failures never improve any margin" holds for supply and remaining capacity, not for every individual margin. The property tests assert those monotone versions.
-- The facility, records and load profiles are synthetic. Discovery scores 1.0 precision and recall on the hand-written demo corpus; on seeded noisy records it keeps 1.0 precision with 0.83–0.95 recall, mostly lost to typos.
+- The facility, records and load profiles are synthetic. Discovery scores 1.0 precision and recall on the hand-written demo corpus. On 10 seeded sets of noisy records it keeps 1.0 precision with 0.867–0.983 recall; most misses are digit-swap typos that spell another real tag.
 - Live Nemotron tool calling has not been run in this repo yet: no API key was available while building it.
 
 ## Modernize and Operate (earlier Damo work)
@@ -88,7 +88,7 @@ frontend/   React + Vite + Tailwind. src/screens (Checks, Read, Find, Prove, Han
 backend/    FastAPI. app/main.py (SSE endpoints), app/llm.py (Nemotron via build.nvidia.com, cache), app/verify (sweep.py, traces.py), app/prompts
 legacy/     the real Nagios config for check_rack_inlet, inventory.csv, oncall_roster.csv, plugin stand-in, README with declared drift
 .cursor/    build rules used to design this (domain, UX, design system, engine, verification UI, Nemotron API, QA)
-docs/       build spec, DEMO.md, DESIGN.md, PROMPT.md (the build prompt)
+docs/       DEMO.md (preflight demo), modernize-demo.md, devpost.md, DESIGN.md, PROMPT.md (the build prompt)
 ```
 
 ## Honest limits

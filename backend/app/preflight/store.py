@@ -26,11 +26,10 @@ class Store:
         path = pathlib.Path(path)
         if str(path) != ":memory:":
             path.parent.mkdir(parents=True, exist_ok=True)
+        # One connection shared by the API's worker threads; the lock keeps statements from interleaving.
+        self.lock = threading.RLock()
         self.db = sqlite3.connect(str(path), check_same_thread=False)
         self.db.row_factory = sqlite3.Row
-        # One connection is shared by FastAPI's worker threads; without a lock, concurrent requests
-        # (the page loads /facility and /findings together) interleave and return corrupt rows.
-        self.lock = threading.RLock()
         self.db.executescript(SCHEMA)
 
     def audit(self, actor: str, action: str, detail: dict[str, Any]) -> None:
@@ -44,7 +43,7 @@ class Store:
     def audit_log(self, limit: int = 200) -> list[dict]:
         with self.lock:
             rows = self.db.execute("select * from audit order by id desc limit ?", (limit,)).fetchall()
-            return [{**dict(r), "detail": json.loads(r["detail"])} for r in rows]
+        return [{**dict(r), "detail": json.loads(r["detail"])} for r in rows]
 
     def save_scenario(self, name: str, states: dict[str, str], notes: str, actor: str) -> int:
         with self.lock:
@@ -54,28 +53,27 @@ class Store:
             )
             self.db.commit()
             sid = int(cur.lastrowid or 0)
-            self.audit(actor, "scenario.saved", {"id": sid, "name": name, "states": states})
-            return sid
+        self.audit(actor, "scenario.saved", {"id": sid, "name": name, "states": states})
+        return sid
 
     def scenarios(self) -> list[dict]:
         with self.lock:
             rows = self.db.execute("select * from scenarios order by id").fetchall()
-            return [{**dict(r), "states": json.loads(r["states"])} for r in rows]
+        return [{**dict(r), "states": json.loads(r["states"])} for r in rows]
 
     def decide(self, finding_id: str, decision: str, actor: str, note: str) -> None:
+        if decision not in ("confirmed", "rejected", "open"):
+            raise ValueError("decision must be confirmed, rejected or open")
         with self.lock:
-            if decision not in ("confirmed", "rejected", "open"):
-                raise ValueError("decision must be confirmed, rejected or open")
             self.db.execute(
                 "insert into decisions (finding_id, decision, actor, note, at) values (?, ?, ?, ?, ?)",
                 (finding_id, decision, actor, note, time.time()),
             )
             self.db.commit()
-            self.audit(actor, f"finding.{decision}", {"finding": finding_id, "note": note})
+        self.audit(actor, f"finding.{decision}", {"finding": finding_id, "note": note})
 
     def decisions(self) -> dict[str, dict]:
         """Latest decision per finding."""
         with self.lock:
             rows = self.db.execute("select * from decisions order by id").fetchall()
-            return {r["finding_id"]: dict(r) for r in rows}
-
+        return {r["finding_id"]: dict(r) for r in rows}

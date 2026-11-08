@@ -16,6 +16,7 @@ from engine.model import NodeType
 
 from . import agent, tools
 from .discovery import score, to_dict
+from .extract_model import ModelUnavailable
 from .importers import from_csv, from_json, to_csv
 from .store import DEFAULT_DB, Store
 from .workspace import Workspace
@@ -208,8 +209,18 @@ def findings() -> dict:
     return {
         "findings": [to_dict(f) for f in ws.findings()],
         "rejected": [r.__dict__ for r in res.rejected],
-        "metrics": score(res, ws.labels),
+        "metrics": score(res, ws.labels) if ws.labels else None,  # only labelled corpora can be scored
+        "records": len(ws.docs),
+        "model_read": ws.model_read,
     }
+
+
+@router.post("/findings/model-read")
+def model_read(request: Request) -> dict:
+    try:
+        return workspace().read_with_model(request.headers.get("x-actor", "engineer"))
+    except ModelUnavailable as e:
+        raise HTTPException(503, str(e)) from e
 
 
 @router.post("/findings/{finding_id}/decision")
@@ -255,6 +266,12 @@ async def import_facility(request: Request) -> dict:
         raise HTTPException(422, f"import failed: {e}") from e
     workspace().replace_facility(fac, request.headers.get("x-actor", "engineer"))
     return {"name": fac.name, "nodes": len(fac.nodes)}
+
+
+@router.post("/facility/demo")
+def restore_demo(request: Request) -> dict:
+    workspace().restore_demo(request.headers.get("x-actor", "engineer"))
+    return {"name": workspace().documented.name, "nodes": len(workspace().documented.nodes)}
 
 
 @router.post("/agent")

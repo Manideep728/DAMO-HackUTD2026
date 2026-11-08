@@ -16,7 +16,7 @@ const ICON: Record<string, typeof Zap> = {
   utility_feed: Zap, generator: Fuel, ats: ArrowLeftRight, switchgear: ToggleRight, ups: BatteryCharging, rpp: Plug, pdu: Plug,
   chiller: Snowflake, pump: Waves, cooling_loop: Droplets, crah: Fan, rack: Server, workload: Cpu, rack_group: Rows3,
 };
-export const rowOf = (id: string) => id.split('-')[0];            // R1-03 → R1
+export const rowOf = (id: string) => id.split('-').slice(0, -1).join('-') || id;   // R1-03 → R1, RK-11-01 → RK-11
 export const groupId = (row: string) => `row:${row}`;
 
 export type Tone = 'ok' | 'degraded' | 'maint' | 'down';
@@ -43,7 +43,7 @@ const EquipmentNode = memo(function EquipmentNode({ data }: NodeProps<Node<MapNo
     ? (members.down ? `${members.down} of ${members.total} down` : members.degraded ? `${members.degraded} of ${members.total} degraded` : `${members.total} racks · OK`)
     : TONE_WORD[tone];
   return (
-    <div style={{ transitionDelay: `${delay}ms`, width: NODE_W, height: NODE_H }}
+    <div data-testid={`node-${id}`} data-state={tone} style={{ transitionDelay: `${delay}ms`, width: NODE_W, height: NODE_H }}
       className={cx('fm-node relative rounded-xl px-2.5 py-1.5 text-left', `fm-${tone}`, group && 'fm-group', selected && 'fm-selected', picked && 'fm-picked', focus === 'dim' && 'fm-dim')}
       aria-label={`${data.label}: ${word}`}>
       <Handle type="target" position={Position.Left} className="!opacity-0 !w-1 !h-1 !min-w-0 !min-h-0 !border-0" />
@@ -177,7 +177,7 @@ export function FacilityMap({ facility, sim, toggles, selected, hover, picked, e
       id: `${e.supplier}->${e.consumer}:${i}`, source: e.supplier, target: e.consumer, animated: inChain && !broken,
       style: { stroke: color, strokeWidth: inChain || suspected || broken ? 2.2 : 1.4, strokeDasharray: suspected ? '6 5' : broken ? '4 5' : undefined, opacity, transition: 'opacity .25s ease, stroke .4s ease' },
       markerEnd: inChain || suspected ? { type: MarkerType.ArrowClosed, color, width: 14, height: 14 } : undefined,
-      label: suspected && (!chain || inChain) ? 'suspected · 97%' : undefined,
+      label: suspected && (!chain || inChain) ? (e.status === 'suspected' ? `suspected · ${Math.round(e.confidence * 100)}%` : 'from records') : undefined,
       labelStyle: { fill: 'var(--untrusted)', fontSize: 11, fontWeight: 600 }, labelBgStyle: { fill: 'var(--panel)' }, labelBgPadding: [4, 2] as [number, number],
     };
   });

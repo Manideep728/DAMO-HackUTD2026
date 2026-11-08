@@ -1,77 +1,103 @@
-# Damo — Devpost submission draft
+# The Gauntlet: Devpost submission draft
 
-> Fill every ⟦…⟧ from the live run before submitting. Delete anything you could not demo. Every other number below is checked against the repo.
+> Fill every ⟦…⟧ from a live run before submitting, and delete any line you could not demo. Every other number here comes from the repo, and the command that reproduces it is next to it.
 
-**Tagline:** Retire the monitoring you inherited, without missing a page.
+**Tagline:** Rehearse a data center change before you make it.
 
 ## Inspiration
 
-Data center paging still runs on static checks that nobody on today's team wrote. We pulled a real one: the public Texas Tech HPCC Nagios–Redfish temperature check. Every alert it raises goes to `nagios@localhost`. Its config calls eight scripts that do not exist. It never compares a temperature to a limit; it trusts whatever the BMC says.
+Before taking a pump offline, a facilities engineer checks capacity. Can the remaining pump carry the load? Usually it can, and the work goes ahead.
 
-Teams can't retire checks like this, because nobody can prove what they actually do. Meanwhile, facilities are retrofitting liquid-cooled AI racks onto exactly this kind of monitoring. A missed page can be a leak.
+That check misses a shared upstream dependency. In our demo hall, Pump A and Pump B can each carry the full chilled-water load, and the one-line diagram puts them on separate power paths. A 2023 work order, a maintenance log and a change ticket say otherwise: MCC-B was re-fed from ATS-1 during an ATS-2 replacement and never moved back. Both pump panels now sit behind one transfer switch. On paper the cooling plant is 2N. In practice it's N, and ATS-1 is the single point of failure.
 
-So Damo does what an engineer would do with an inherited check, and proves every step. It reads the old check, recovers its intent, writes the replacement, and tests the whole alert path. Then it runs operations on the result: alerts, investigation and shift handoff.
+That kind of drift lives in records nobody re-reads before a change. We built a preflight check that reads them.
 
 ## What it does
 
-**Modernize (five steps, a human approves each gate).**
-1. **Import** pins the real TTU repo (commit `d55eadf`, BSD-3, byte-for-byte). Gap analysis is computed from the files, not typed in: 8 referenced scripts missing, an undefined `check-host-alive` command, undefined email macros, no request timeout, and `root:redfish` hardcoded in every plugin.
-2. **Recover** sends a Nemotron agent to read the plugin and templates. It then runs the unmodified plugin against a simulated BMC for OK, Warning, Critical, missing and unreachable, to confirm each behavior by execution. Every behavior carries its source. Policy choices go to the operator; "who should actually be paged?" blocks acceptance until it is answered.
-3. **Generate** produces Prometheus rules, Alertmanager routing and a collector config, listing what is preserved and what is intentionally changed.
-4. **Test** runs old and new on identical scenarios: normal, sustained Critical, brief spike, missing feed, recovery, and a fan failure. It compares missed or extra alerts, severity, timing, recipient and recovery. Three held-out cases stay sealed from the agent. A wrong-recipient mutant and an alert-everything decoy must fail, so passing actually means something.
-5. **Repair and release:** Nemotron reads only the visible failures, rewrites the candidate and reruns the suite. Then an engineer reviews the diff, the change runs in shadow beside the old check, rollback is tested, and the operations lead releases a versioned update.
+The Gauntlet answers three questions about a proposed change: what fails, what's affected, and what's the safest way to do it.
 
-**Operate.** Alerting and delivery never call the model. Released rules evaluate telemetry with stable asset IDs and freshness; missing data is never shown as healthy. Pages route by the owner map, a failed receiver falls back, and duplicate events reuse the same work order. Technician notes are append-only, so a correction never overwrites the original. Recovery needs a fresh, executed plugin reading; closing the ticket alone does not close the incident. The incoming shift explicitly accepts the handoff. When an incident needs investigating, a Nemotron agent queries telemetry, the asset map, the logbook and the runbook, and returns cited hypotheses. It says "verify" when evidence conflicts. It cannot assign owners, approve itself or touch infrastructure.
+- **Simulate.** Click equipment on the dependency map to put it in maintenance or fail it. The simulator propagates power and cooling, sheds the least critical load first when a supplier is overloaded, and gives every failed rack a causal trace.
+- **Weak points.** Minimal cut sets up to order 3: the smallest combinations of failures that take down a critical service. During a maintenance window it shows which sets shrink. For each service it reports redundancy two ways, by capacity (2N, N+1, N) and by independence (how many failures it takes to lose every supplier), and the effective level is the lower of the two.
+- **Findings.** Discovery reads work orders, logs, change tickets and the one-line text. It resolves names like "transfer sw 1" or "pump mcc b" to inventory ids, extracts "X is fed from Y" claims with exact quotes, and compares them with the documented graph. Each finding says whether it confirms, contradicts or adds an edge, how confident it is, and what changes if it's true. An engineer confirms or rejects it, and the decision goes to an audit log.
+- **Plan.** Give it equipment, a duration and a range of hours. It simulates every start hour, ranks the windows on critical loss, shed load, cut-set order, single points and headroom, and tries mitigations: shedding flexible GPU load, temporary cooling, postponing overlapping work. Every rejected window says where it loses to the recommended one.
+- **Ask.** A Nemotron agent answers questions like "When is the safest time to take CRAH-3 offline for 4 hours?" by calling the simulator's tools and explaining the results.
 
-**One step ahead.** The old check pages only after the BMC flips to thermal Critical. Damo adds an operator-approved fan-stall early warning. In our fan-failure scenario, it fires **8 minutes before the old check pages**.
+In the demo, confirming the ATS-1 finding drops all 8 racks in R1, plus the inference workload, from 2N or N+1 to N. Failing ATS-1 then takes down 18 racks and workloads, 400 kW. The planner recommends hour 6 to hour 12 for six hours of Pump A work, out of 52 options it simulated.
 
 ## How we built it
 
-**Old side, real.** The vendored `check_temperature.sh` runs unmodified under bash against an HTTPS Redfish mock that serves the DMTF Chassis/Thermal and Manager shapes the plugin reads. A Nagios soft/hard scheduler reproduces the service's behavior using values parsed from the real `templates.cfg`: 4 attempts, 1-minute retry, 5-minute check interval and 60-minute re-notify. The recipient is parsed from `contacts.cfg`.
+**The simulator decides; the model never does.** Every number on screen comes from `backend/engine/`, a pure Python package with no web framework and no LLM. A CI grep check fails the build if a demo node id appears in it.
 
-**New side, real.** `promtool test rules` evaluates the candidate minute by minute. promtool only reports pass or fail, so we assert "no alerts" at every minute and parse its `got:` report back into the candidate's actual firing timeline. `amtool config routes test` resolves who would actually be paged.
+**Propagation.** Each node has requirement groups: `all`, `any`, `k_of_n` and `capacity`. Support is computed as a least fixpoint from the sources, so a loop with no outside source never powers itself. Capacity runs after support: an overloaded supplier sheds its lowest-criticality end loads, and demand splits across live suppliers in proportion to capacity, or first-available for transfer switches.
 
-**Expectations the agent can't touch.** Expected behavior comes from the old check's real notifications plus the operator's recorded decisions, never from the candidate. Held-out results leave the harness as pass/fail only.
+**Cut sets.** Each critical service becomes a fault tree:
 
-**Agents.** Nemotron Super (recover, repair) and Nemotron Nano (investigate) run through NVIDIA's API with native tool calling, plus a JSON-action fallback when an endpoint lacks tool support. Their tools include `read_file`, `run_plugin`, `record_behavior`, `ask_operator`, `write_candidate`, `run_tests`, `query_telemetry`, `lookup_asset`, `read_logbook` and `search_runbook`. The backend executes every call, and the UI streams each one with model and tool timings. Clean live runs are saved and replayed, labelled "cached", if the venue Wi-Fi drops.
+- `all` becomes an OR gate.
+- `any` becomes an AND gate.
+- `k_of_n` becomes an (n−k+1)-of-n vote.
+- `capacity` becomes the minimal supplier sets that can no longer carry the baseline load.
 
-**Product.** React 19, Vite, Tailwind 4 and strict TypeScript on the front end; FastAPI with server-sent events on the back. Every screen shows a status strip saying exactly which parts are live and which are scripted.
+MOCUS expands the tree, and the simulator re-checks every candidate. On graphs up to 40 nodes, tests check the result against brute-force enumeration. Order 3 on a 307-node generated facility takes 1.96–1.99 s across 3 runs on an M1, which is the perf test in `tests/preflight/test_fuzz_perf_guard.py`.
+
+**Discovery.** Names resolve in three steps:
+
+1. Aliases built from ids, labels and type words.
+2. A typo-tolerant match: one edit away from a single node's alias, with the last character and every digit exact.
+3. Nemotron, for phrases nothing else could place. Its answer counts only if the node exists and the phrase contains that node's suffix.
+
+**Read with Nemotron** has the model read every record and propose feeds. A proposal counts only if three checks pass: the quote is in the record word for word; the rules' grammar finds that feed in the quote, in that direction; and the same temporary/proposed check passes. An adversarial test pins real sentences on random pairs across 10 seeds, and the demo findings don't change. Live numbers: ⟦proposed / kept / rejected⟧.
+
+Every quote must appear verbatim in the cited record. Sentences describing temporary, proposed or uninstalled connections are set aside with a reason. On 10 seeded sets of messy generated records, precision is 1.0 on every set, and recall has a mean of 0.943 (lowest 0.867).
+
+**Agent.** Nemotron runs over NVIDIA's OpenAI-compatible API with native tool calling: `simulate`, `find_cut_sets`, `evaluate_plan`, `search_plans`, `search_docs`, `get_node`, `get_neighbors` and `propose_dependency`. The final answer is structured, with a recommendation, rejected alternatives, risks and assumptions, and each claim cites tool-call ids. A checker rejects any answer that names a node or number missing from the results it cites, and sends the rejection back to the model. Questions about CFD, load flow or anything outside the facility get a refusal.
+
+**Product.** FastAPI with server-sent events, SQLite for decisions and the audit log, and React with @xyflow/react for the map. A banner on every screen says what the model doesn't cover.
 
 ## Challenges we ran into
 
-- **Prometheus never forgets fast enough.** With a 5-minute staleness lookback, a lost temperature feed kept the last "healthy" value alive for five minutes. We model feed loss as an explicit `scrape_success == 0` signal instead, which matches the old plugin's UNKNOWN.
-- **Fair timing is subtle.** The old check samples every 5 minutes, so a 2-minute spike is invisible to it. Requiring the new rules to page at the same instant would reward copying bugs. The rule we settled on: never before the old check's 3-minute debounce, and never after the old check paged.
-- **Our own harness lied once.** Recovery reported "verified" from *modelled* plugin runs on a machine without `jq`. Now a modelled run can never verify recovery.
-- **Config that looked like config.** The `.env.example` placeholder key counted as "configured", and blank model IDs overrode the defaults. The result was a 400 ("model field is required") that looked like a Nemotron outage. Keys are now validated by format, and blanks fall back to defaults.
-- **A cached run that wasn't.** A failed agent attempt got saved as a "recorded live run". Now only completed, error-free runs can ever be replayed.
-- **Line endings break legacy bash.** Git on Windows would have rewritten the vendored plugin to CRLF. `.gitattributes` keeps it byte-for-byte.
-- **Gap analysis cried wolf.** The first pass flagged 15 stock Monitoring Plugins and four sibling TTU scripts as "missing". We now classify them separately, leaving 8 genuinely absent scripts.
-- **No WSL, no Linux.** The plugin hardcodes HTTPS, so the mock BMC generates a self-signed certificate and the plugin runs through Git Bash.
+- **Shedding the wrong thing.** The first capacity pass shed a whole PDU when one rack would do. A property test caught it: failing more equipment must never raise supply or remaining capacity. Shedding now picks end loads only.
+- **Modality leaks.** "Briefly powered from ATS-1 on a temporary cable. Temporary cable removed the same day." The "removed" is in the next sentence. Applying it to the whole document threw away real claims, so modality now covers the claim's sentence and the one after it.
+- **An eval that couldn't fail.** If the Nemotron call errored, the agent fell back to the scripted planner, and the eval counted that as a pass. It also graded against the scripted planner's exact wording. Grading now checks the engine's numbers and node ids, and a fallback counts as a failure.
+- **Rejections that didn't explain anything.** The planner listed hour 9 as rejected for the same single point of failure the recommended hour 6 had. Rejected plans now name the first criterion they lose on, and single points became a ranking criterion. On the documented graph, that's how the GEN-2 overlap at hours 32–38 ranks lower.
+- **Typos that are other real tags.** "PDU21B" written for PDU-12B is one transposition away and also a valid tag. No matcher can tell, so those records stay missed. That's most of the remaining recall gap.
+- **CI time.** Order-3 cut sets took 8.1 s on the CI runner. Compiling each node's supplier lists once and shedding in a single round brought it to about 2 s.
 
 ## Accomplishments that we're proud of
 
-- **The proof has teeth.** Candidate v1 fails ⟦5 of 6⟧ visible cases and ⟦0 of 3⟧ held-out. After Nemotron's repair, v2 passes ⟦6 of 6⟧ and ⟦3 of 3⟧, and the mutant and decoy are rejected, all on ⟦real promtool, amtool and plugin executions⟧ in ⟦N⟧ seconds.
-- **Nemotron does real work.** In a live run it made ⟦N⟧ tool calls, executed the plugin ⟦N⟧ times, and repaired its own failing candidate in ⟦N⟧ rounds against expectations it could not see or change.
-- **8 minutes ahead** of the old check in the fan-failure scenario, with the warning routed to the right owner.
-- **Alerts survive a model outage.** Take Nemotron offline and pages still fire, fall back and open exactly one work order.
-- **Honest by construction.** Gaps come from the files, and recovery needs executed evidence. Scripted fallbacks are labelled on screen, and we say "bounded evidence on these scenarios, not equivalence".
+- **The headline is a computed result.** The ATS-1 single point comes from three verbatim quotes and a re-run of the cut sets. Nothing in the engine knows about it.
+- **Live Nemotron eval:** ⟦N⟧/⟦72⟧ passes across 3 runs of 24 questions with ⟦model id⟧. Expected answers are computed by the engine at test time. Reproduce with `cd backend && .venv/bin/python -m tests.preflight.eval.run_live --runs 3`.
+- **97 tests** covering:
+  - each requirement mode
+  - monotonicity and determinism properties
+  - a golden demo
+  - fuzzing on generated facilities
+  - the perf bound
+  - discovery precision and recall
+  - the API
+  - the agent eval in scripted mode
+  - a check that random model answers can't change the demo findings
+- **Fails closed.** No key, a rate limit or a dropped connection falls back to a labeled scripted planner using the same tools and the same checker. Nothing that ran scripted is presented as live.
 
 ## What we learned
 
-The model is most useful when it is never the judge. Nemotron is good at reading unfamiliar code, proposing changes and explaining failures. promtool, amtool and the real plugin decide whether it was right.
+The difference between capacity and redundancy is one shared node, and a capacity check by design doesn't look for it. You have to ask what has to fail together. The model does best when it picks which questions to ask the simulator, and does worse when it tries to answer them itself.
 
-## What's next for Damo
+## What's next
 
-- **Liquid-cooling retrofits.** The same engine, pointed at a coolant unit's point list. The first target is a leak alarm that works locally but never reaches central monitoring, plus change verification after firmware or ownership updates.
-- **Real integrations.** BACnet and Modbus adapters, verified against pinned manufacturer documentation, with the BMS or DCIM as the system of record.
-- **Measured pilots.** Engineering time and missed-alarm rates measured with a commissioning team before we claim any improvement.
+- **Real inventories.** Import already reads CSV or JSON. Next is a DCIM export adapter, and checking discovery against a real work-order archive.
+- **Better physics where it changes decisions.** Busbar and hydraulic splits instead of proportional sharing, and failure rates on cut sets so likely failures rank above unlikely ones.
+- **Change tickets as input.** Run preflight automatically when a change ticket names equipment, and attach the result to the ticket.
+
+## Also in the repo
+
+**Modernize and Operate**, the team's earlier track work, is still in the app. It retires an inherited Nagios check by proof: the real Texas Tech HPCC plugin runs against a Redfish mock, Prometheus rules are tested with `promtool` and `amtool`, and a held-out suite rejects a wrong-recipient mutant and an alert-everything decoy. See `docs/modernize-demo.md`.
 
 ## Built With
 
-nvidia-nemotron · python · fastapi · react · typescript · vite · tailwindcss · prometheus · promtool · alertmanager · nagios · redfish · bash · jq · openssl
+nvidia-nemotron · python · fastapi · sqlite · react · typescript · vite · tailwindcss · xyflow · github-actions
 
 ## Try it out
 
 - GitHub: https://github.com/Manideep728/DAMO-HackUTD2026
 - Demo video: ⟦link⟧
-- Setup and the 3-minute demo script: `docs/DEMO.md`
+- Setup and the demo script: `docs/DEMO.md`
