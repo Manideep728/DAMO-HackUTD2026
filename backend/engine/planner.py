@@ -5,7 +5,7 @@ Plans are ranked lexicographically, best first:
 2. no load lost at all (shed racks count)
 3. the smallest cut-set order during the window (higher is safer; a 1 is a single point of failure)
 4. the lowest headroom during the window, capped at 20% (above that, more headroom is not a reason to pick)
-5. fewer mitigations, then the earliest start
+5. fewer single points of failure, then fewer mitigations, then the earliest start
 """
 
 from __future__ import annotations
@@ -184,6 +184,7 @@ def evaluate_plan(
         0 if lost_any else 1,
         min_order,
         round(min(worst[0], COMFORTABLE), 3),
+        -len(singles),
         -len(mitig),
         -plan.start,
     )
@@ -266,18 +267,30 @@ def search_plans(
             top.append(e)
             seen_starts.add(e.start)
     rejected = [e for e in evals if e not in top]
-    for e in rejected:
-        if not e.reasons and top:
-            ref = top[0]
-            if e.score[2] < ref.score[2]:
-                e.reasons.append(f"cut-set order {e.min_cut_order} vs {ref.min_cut_order} for the recommended plan")
-            elif e.score[3] < ref.score[3]:
-                e.reasons.append(
-                    f"lower headroom ({e.min_margin:.0%}) than the recommended plan ({ref.min_margin:.0%})"
-                )
-            else:
-                e.reasons.append("ranked below the recommended plans")
+    if top:
+        for e in rejected:
+            if not e.lost_services:  # a critical loss already explains itself
+                e.reasons.append(_why_below(e, top[0]))
     return PlanSearch(task, top, rejected, count)
+
+
+def _why_below(e: Evaluation, ref: Evaluation) -> str:
+    """The first ranking criterion on which a rejected plan loses to the recommended one."""
+    if e.score[1] < ref.score[1]:
+        return "sheds load; the recommended plan sheds none"
+    if e.score[2] < ref.score[2]:
+        return f"cut-set order {e.min_cut_order} vs {ref.min_cut_order} for the recommended plan"
+    if e.score[3] < ref.score[3]:
+        return f"lower headroom ({e.min_margin:.0%}) than the recommended plan ({ref.min_margin:.0%})"
+    if e.score[4] < ref.score[4]:
+        extra = sorted(set(e.single_points) - set(ref.single_points))
+        return f"more single points of failure than the recommended plan ({', '.join(extra) or len(e.single_points)})"
+    if e.score[5] < ref.score[5]:
+        n = len(e.mitigations)
+        return f"same risk but needs {n} mitigation{'s' * (n != 1)}; the recommended plan needs {len(ref.mitigations)}"
+    if e.start != ref.start:
+        return f"same risk as the recommended plan (hour {ref.start}), but a later start"
+    return "same risk as the recommended plan, which was found first"
 
 
 def compare(a: Evaluation, b: Evaluation) -> dict[str, tuple]:

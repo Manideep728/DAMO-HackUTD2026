@@ -72,3 +72,17 @@ def test_transient_battery_runs_out_without_a_second_path(f):
     rep = transient(f, ["SWGR-A"])
     assert any("battery" in e.what and e.nodes == ["UPS-A"] for e in rep.events)
     assert rep.lost_transient == []  # the B side carries the racks
+
+
+def test_every_rejected_plan_says_where_it_loses_to_the_recommended_one():
+    from app.preflight.data.demo import demo_facility, demo_profiles, demo_windows
+    from engine.planner import Task, search_plans
+
+    res = search_plans(demo_facility(), Task("t", ["PUMP-A"], 6, 0, 48), demo_profiles(), demo_windows())
+    best = res.top[0]
+    for r in res.rejected:
+        assert any("recommended plan" in why or why.startswith("loses ") for why in r.reasons), r
+    # A window that overlaps GEN-2's service adds UTIL-B as a single point; that must rank it lower and say so.
+    overlap = next(r for r in res.rejected if r.start == 33 and not r.mitigations)
+    assert "UTIL-B" in overlap.single_points and "UTIL-B" not in best.single_points
+    assert any(why == "more single points of failure than the recommended plan (UTIL-B)" for why in overlap.reasons)
