@@ -202,5 +202,5 @@ def replay(job):
     for ev in d["events"]:
         if ev["type"] == "start":
             continue
-        time.sleep(0.25)
+        time.sleep(0.5)
         yield {**ev, "mode": "cached"} if ev["type"] == "done" else ev

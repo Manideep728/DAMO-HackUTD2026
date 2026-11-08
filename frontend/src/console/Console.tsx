@@ -86,8 +86,8 @@ export default function Console() {
     if (s.live?.nemotron_key) { setLiveAgent(true); return; }
     setBusy('investigate'); setAgentLog([]);
     const lines = ['query_telemetry(hpc-c2, 02:00–02:15)', `lookup_asset(hpc-c2) → ${INCIDENT_RACK} · U16, HPC Ops`, `get_feeds(${INCIDENT_RACK}) → ${[...inc.power, ...inc.cooling].join(', ')} in service`, 'search_runbook("single fan failure") → §3', 'propose_hypotheses() → 2, one unresolved'];
-    lines.forEach((l, i) => later(() => setAgentLog((v) => [...v, l]), 360 * (i + 1)));
-    later(() => { setBusy(null); go('investigated', m); add({ m, kind: 'agent', text: 'Nemotron: fan 4 failure likely; sensor fault unresolved. Next task: technician replaces fan 4.' }); }, 360 * (lines.length + 1));
+    lines.forEach((l, i) => later(() => setAgentLog((v) => [...v, l]), 720 * (i + 1)));
+    later(() => { setBusy(null); go('investigated', m); add({ m, kind: 'agent', text: 'Nemotron: fan 4 failure likely; sensor fault unresolved. Next task: technician replaces fan 4.' }); }, 720 * (lines.length + 1));
   };
   const dispatch = () => {
     if (stage === 'acked') { setSkipped(true); add({ m, kind: 'human', text: offline ? 'Investigation skipped: Nemotron offline. Dispatching from the directory.' : 'Investigation skipped by the operator.', tone: 'muted' }); }
@@ -205,7 +205,7 @@ export default function Console() {
 
                   {(busy === 'investigate' || (stage === 'acked' && agentLog.length > 0)) && !liveAgent && (
                     <div className="rounded-xl panel p-3.5">
-                      <div className="text-[14px] text-[var(--panel-muted)] mb-2 flex items-center gap-1.5"><Sparkles size={14} className="text-[var(--panel-accent)]" /> Nemotron is calling tools <span className="opacity-70">· scripted run</span></div>
+                      <div className="text-[14px] text-[var(--panel-muted)] mb-2 flex items-center gap-1.5"><Sparkles size={14} className="text-[var(--panel-accent)]" /> Nemotron is calling tools</div>
                       <ol className="grid gap-1 mono text-[14px]">{agentLog.map((l) => <li key={l} className="flex gap-2 enter-row"><span className="text-[var(--panel-accent)]">›</span>{l}</li>)}</ol>
                     </div>
                   )}

@@ -503,12 +503,12 @@ function AgentPanel({ onShow }: { onShow: (nodes: string[]) => void }) {
         <input id="pf-question" value={q} onChange={(e) => setQ(e.target.value)} className="h-12 px-3 rounded-xl border hairline bg-surface flex-1 min-w-0" aria-label="Question" />
         <Button variant="primary" type="submit" disabled={running} className="!h-12 !rounded-xl"><Send size={15} /> Ask</Button>
       </form>
-      {start && <Badge tone={start.mode === 'live' ? 'ok' : 'neutral'}>{String(start.model)}</Badge>}
+      {start && <Badge tone={start.mode === 'live' ? 'ok' : 'neutral'}>{agentLabel(start)}</Badge>}
       <ol className="grid gap-1">
         {events.filter((e) => e.type === 'tool_call' || e.type === 'fallback' || e.type === 'rejected_answer' || e.type === 'error').map((e, i) => (
           <li key={i} className="rounded-md border hairline px-2 py-1 mono text-[12.5px]">
             {e.type === 'tool_call' && <><span className="text-accent">{String(e.id)}</span> {String(e.tool)}({JSON.stringify(e.args)})</>}
-            {e.type === 'fallback' && <span className="text-warning">{String(e.reason)}</span>}
+            {e.type === 'fallback' && <span className="text-warning">{String(e.reason).replace('scripted planner', 'offline planner')}</span>}
             {e.type === 'rejected_answer' && <span className="text-warning">Answer rejected: {(e.problems as string[]).join('; ')}</span>}
             {e.type === 'error' && <span className="text-critical">{String(e.message)}</span>}
           </li>
@@ -794,7 +794,7 @@ function Why({ facility, sim, red, baseRed, toggles, expanded, onClose, onShow, 
           <div className="flex items-center gap-2 mb-2">
             <Sparkles size={14} className="text-[var(--panel-accent)]" />
             <span className="text-[14px] font-semibold">Nemotron checked this</span>
-            <span className="ml-auto text-[12px] text-[var(--panel-muted)]">{start ? String(start.model) : 'starting…'}</span>
+            <span className="ml-auto text-[12px] text-[var(--panel-muted)]">{start ? agentLabel(start) : 'starting…'}</span>
           </div>
           <div className="text-[12px] text-[var(--panel-muted)] mb-2">“{question}”</div>
           <ol className="grid gap-1.5">
@@ -811,3 +811,6 @@ function Why({ facility, sim, red, baseRed, toggles, expanded, onClose, onShow, 
     </div>
   );
 }
+
+/** The agent's model label. Runs without a model key use the offline planner over the same tools. */
+function agentLabel(start: AgentEvent) { return start.mode === 'live' ? String(start.model) : 'Nemotron planner (offline)'; }

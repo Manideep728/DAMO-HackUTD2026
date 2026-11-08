@@ -4,17 +4,17 @@ import { Sun, Moon, HelpCircle, X, Play, SkipForward, RotateCcw } from 'lucide-r
 import { useStore } from '../state/store';
 import { Button, Badge, Kbd, ModeBadge, cx } from './ui';
 import type { Screen, DirectorFlag } from '../data/types';
+import { useRetrofit, STEPS } from '../retrofit/store';
 
 const nav: { to: string; match: string; label: string; tag: string; exact?: boolean }[] = [
   { to: '/', match: '/', label: 'Console', tag: '', exact: true },
-  { to: '/verify', match: '/verify', label: 'Verify a change', tag: '' },
   { to: '/preflight', match: '/preflight', label: 'Preflight', tag: 'what-if' },
-  { to: '/modernize/import', match: '/modernize', label: 'Modernize', tag: 'M1–M5' },
 ];
-const keyRoutes: Record<string, string> = { '1': '/', '2': '/verify', '3': '/preflight', '4': '/modernize/import' };
+const keyRoutes: Record<string, string> = { '1': '/', '2': '/preflight' };
 
 export function Shell({ children }: { children: ReactNode }) {
   const { state } = useStore();
+  const { st: setup } = useRetrofit();
   const nav$ = useNavigate();
   const loc = useLocation();
   const [theme, setTheme] = useState<'dark' | 'light'>(() => { try { return (localStorage.getItem('theme') as 'dark' | 'light') || 'light'; } catch { return 'light'; } });
@@ -40,6 +40,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <NavLink to="/" className="h-12 px-1 flex items-center gap-2.5 shrink-0 rounded-lg" aria-label="Damo, home">
           <Logo />
         </NavLink>
+        {!setup.done ? <NavLink to="/setup" className="flex items-center gap-2 text-[14px] min-w-0"><span className="font-semibold whitespace-nowrap">Modernization</span><span className="text-muted whitespace-nowrap hidden sm:inline">· step {setup.step + 1} of {STEPS.length} · {STEPS[setup.step]}</span><span className="hidden md:inline-flex"><Badge tone="warning">required before operations</Badge></span></NavLink> :
         <nav className="flex items-center gap-1 min-w-0 overflow-x-auto" aria-label="Workflows">
           {nav.map(({ to, match, label, tag, exact }) => {
             const active = exact ? loc.pathname === match : loc.pathname.startsWith(match);
@@ -49,8 +50,9 @@ export function Shell({ children }: { children: ReactNode }) {
               </NavLink>
             );
           })}
-        </nav>
+        </nav>}
         <div className="ml-auto flex items-center gap-2 shrink-0">
+          {setup.done && <NavLink to="/setup" className="hidden sm:inline-flex" title="Liquid-cooling retrofit, hall H1 row 3: open the accepted package"><Badge tone="ok">Modernization · complete</Badge></NavLink>}
           {loc.pathname.startsWith('/preflight') ? <span className="hidden sm:inline-flex"><Badge title="Results computed by the simulator on a synthetic facility">Simulated facility</Badge></span> : legacy ? <ModeBadge mode={state.mode} /> : null}
           <button className="h-12 w-12 grid place-items-center rounded-xl text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
           <button className="h-12 w-12 hidden lg:grid place-items-center rounded-xl text-muted hover:text-text hover:bg-surface-2 t" onClick={() => setHelp(true)} aria-label="Keyboard shortcuts"><HelpCircle size={16} /></button>
@@ -63,7 +65,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="card p-6 w-[440px] shadow-[var(--shadow)]" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Keyboard shortcuts">
             <div className="flex items-center justify-between mb-4"><span className="font-semibold text-[15px]">Keyboard shortcuts</span><button className="text-muted hover:text-text" onClick={() => setHelp(false)} aria-label="Close"><X size={16} /></button></div>
             <table className="w-full text-[14px]"><tbody>
-              {[['Enter', 'Do the next action on the console'], ['1', 'Console'], ['2', 'Verify a change'], ['3', 'Preflight'], ['4', 'Modernize (M1–M5)'], ['?', 'This panel'], ['Esc', 'Close']].map(([k, v]) => <tr key={k}><td className="py-1.5 w-32"><Kbd k={k} /></td><td className="text-muted">{v}</td></tr>)}
+              {[['Enter', 'Do the next action on the console'], ['1', 'Console'], ['2', 'Preflight'], ['?', 'This panel'], ['Esc', 'Close']].map(([k, v]) => <tr key={k}><td className="py-1.5 w-32"><Kbd k={k} /></td><td className="text-muted">{v}</td></tr>)}
             </tbody></table>
           </div>
         </div>

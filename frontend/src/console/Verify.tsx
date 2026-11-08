@@ -51,8 +51,8 @@ export default function Verify() {
   };
   const repair = () => {
     setPhase('repairing'); setLog([]);
-    repairLines.forEach((l, i) => later(() => setLog((v) => [...v, l]), 520 * (i + 1)));
-    later(() => runTests(2), 520 * (repairLines.length + 1));
+    repairLines.forEach((l, i) => later(() => setLog((v) => [...v, l]), 1040 * (i + 1)));
+    later(() => runTests(2), 1040 * (repairLines.length + 1));
   };
   const reset = () => { timers.current.forEach(clearTimeout); timers.current = []; setPhase('idle'); setFilled(0); setLog([]); setReports({}); };
 

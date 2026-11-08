@@ -117,7 +117,7 @@ test('Pump A and ATS-1 demo, as scripted in docs/DEMO.md', async ({ page }) => {
     await tab(page, 'Ask').click();
     await page.locator('#pf-question').fill('Are Pump A and Pump B independent?');
     await page.locator('form').getByRole('button', { name: 'Ask' }).click();
-    await expect(page.getByText('scripted planner (no model)')).toBeVisible();
+    await expect(page.getByText('Nemotron planner (offline)')).toBeVisible();
     const log = page.locator('li', { hasText: /^t\d+ / });
     await expect(page.getByText('PUMP-A and PUMP-B share a single point of failure: ATS-1')).toBeVisible({ timeout: 30_000 });
     const tools = (await log.allInnerTexts()).map((t) => t.split(' ')[1].split('(')[0]);
