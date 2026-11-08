@@ -44,7 +44,9 @@ Between rehearsals, **Reset scenario** clears the toggles. Finding decisions liv
 
    *Optional (20 s), if time allows:* **Reset scenario**, then fail **UTIL-A** and **UTIL-B**. The steady-state numbers say nothing is lost, because the generators carry it. *First minutes after the failure* says otherwise. Chillers need 6 minutes to restart and racks ride through 4 without cooling, so 18 racks and workloads trip in between.
 
-6. **Pick the window (25 s).** *Plan* tab: PUMP-A, 6 hours, hours 0–48 → **Find the safest window**. Recommended: **hour 6 to hour 12**, out of 52 options simulated. Every window, the recommended one included, lists ATS-1 as a single point of failure. "No hour of the day fixes this. The fix is the feed, not the schedule." The rejected list says why each alternative lost; hour 0, for example, has 18% headroom against 33%.
+6. **Pick the window (40 s).** *Plan* tab: PUMP-A, 6 hours, hours 0–48 → **Find the safest window**. Recommended: **hour 6 to hour 12**, out of 61 options simulated. Every window lists a single point of failure, because with one pump out, the other pump's whole feed chain carries the plant. Switching MCC-B back doesn't help here, so the planner doesn't suggest it.
+
+   Now the utility breaker test: UTIL-A, 6 hours → **Find the safest window**. Recommended: **hour 0–6 with MCC-B switched back to its documented feed** (ATS-2). The same hour without that switch is rejected, "cut-set order 1 vs 2", because ATS-1 and GEN-1 would be single points. "The finding turns into the first step of the work order."
 
 7. **Ask (30 s).** *Ask* tab: "Are Pump A and Pump B independent?" The tool log streams `get_neighbors` for each pump, then `find_cut_sets` and `search_docs`. The answer is "PUMP-A and PUMP-B share a single point of failure: ATS-1", and each claim cites the tool calls it came from. A claim that names a node or number not in those results gets the answer sent back to the model. (Asked before step 4, the agent finds the record evidence and calls `propose_dependency` instead.)
 

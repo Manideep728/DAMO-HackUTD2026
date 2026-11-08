@@ -56,8 +56,24 @@ def test_shedding_flexible_load_rescues_a_night_window(f):
 
 def test_planner_flags_the_hidden_single_point_of_failure(actual):
     task = Task("Utility A breaker test", ["UTIL-A"], 6, 24, 48)
-    best = search_plans(actual, task, demo_profiles(), demo_windows()).top[0]
+    best = search_plans(actual, task, demo_profiles(), demo_windows(), mitigate=False).top[0]
     assert best.min_cut_order == 1 and "GEN-1" in best.single_points and "ATS-1" in best.single_points
+
+
+def test_planner_offers_switching_back_to_the_documented_feed(actual):
+    task = Task("Utility A breaker test", ["UTIL-A"], 6, 24, 48)
+    res = search_plans(actual, task, demo_profiles(), demo_windows())
+    best = res.top[0]
+    assert best.mitigations == ["restore:MCC-B"] and best.min_cut_order == 2 and best.single_points == []
+    assert "assumes MCC-B is switched back to its documented feed ATS-2 first" in best.reasons
+    plain = next(e for e in res.rejected if e.start == best.start and not e.mitigations)
+    assert any(r == "cut-set order 1 vs 2 for the recommended plan" for r in plain.reasons)
+
+
+def test_nothing_to_restore_on_the_documented_graph(f):
+    assert f.restorable() == []
+    res = search_plans(f, Task("t", ["UTIL-A"], 6, 0, 48), demo_profiles(), demo_windows())
+    assert all(not m.startswith("restore:") for e in [*res.top, *res.rejected] for m in e.mitigations)
 
 
 def test_transient_generator_start_and_thermal_ride_through(f):

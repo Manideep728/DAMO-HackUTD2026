@@ -362,6 +362,21 @@ def _hours(question: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+def _mitigations(ms: list[str]) -> str:
+    words = {"shed_flexible_load": "flexible load shed", "temporary_cooling": "temporary cooling"}
+    out = []
+    for m in ms:
+        kind, _, arg = m.partition(":")
+        out.append(
+            f"{arg} postponed"
+            if kind == "postpone"
+            else f"{arg} back on its documented feed"
+            if kind == "restore"
+            else words.get(m, m)
+        )
+    return ", ".join(out)
+
+
 def _scripted(question: str, r: Run) -> Iterator[dict]:
     q = question.lower()
     nodes = _nodes(question, r)
@@ -568,11 +583,11 @@ def _plan(question: str, nodes: list[str], r: Run) -> Iterator[dict]:
     cuts = list(_emit_call(r, "find_cut_sets", {"max_order": 2, "maintenance": nodes}))
     yield from cuts
     cid = cuts[-1]["id"]
-    mit = f" with {', '.join(best['mitigations'])}" if best["mitigations"] else ""
+    mit = f" with {_mitigations(best['mitigations'])}" if best["mitigations"] else ""
     rec = f"Do it from hour {best['start']} to hour {best['end']}{mit}"
     rejected = [
         {
-            "option": f"hour {e['start']}" + (f" with {', '.join(e['mitigations'])}" if e["mitigations"] else ""),
+            "option": f"hour {e['start']}" + (f" with {_mitigations(e['mitigations'])}" if e["mitigations"] else ""),
             "reason": "; ".join(e["reasons"]) or "ranked lower",
             "evidence": [sid],
         }

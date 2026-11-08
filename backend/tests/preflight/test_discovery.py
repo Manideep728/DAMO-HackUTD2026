@@ -68,9 +68,13 @@ def test_confirming_the_finding_changes_the_risk_picture(result):
     f = next(x for x in result.findings if x.classification == "contradicts")
     after = apply_finding(demo_facility(), f)
     group = next(g for g in after.by_id()["MCC-B"].requires if g.name == "power")
-    edge = group.suppliers[0]
-    assert edge.supplier == "ATS-1" and edge.source.value == "engineer_confirmed" and edge.citations
+    assert group.live_suppliers() == ["ATS-1"]
+    edge = next(s for s in group.suppliers if s.supplier == "ATS-1")
+    assert edge.source.value == "engineer_confirmed" and edge.citations
     assert [c.nodes for c in find_cut_sets(after, max_order=1).cut_sets] == [["ATS-1"]]
+    # The documented feed is remembered, and switching back to it removes the single point.
+    assert after.restorable() == [("MCC-B", "power", "ATS-1", "ATS-2")]
+    assert find_cut_sets(after.with_restored("MCC-B"), max_order=1).cut_sets == []
 
 
 def test_precision_and_recall_on_the_demo_corpus(result):
