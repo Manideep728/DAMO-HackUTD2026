@@ -591,10 +591,13 @@ function Why({ facility, sim, red, baseRed, toggles, expanded, onClose, onShow, 
     return `What happens if ${parts.join(' and ')}?`;
   })();
   const [events, setEvents] = useState<AgentEvent[]>([]);
+  // Wait until the scenario settles: with a key every run spends Nemotron calls, and clicking through a few
+  // changes should not start one run per click.
   useEffect(() => {
     setEvents([]);
-    const stop = pf.ask(question, (e) => setEvents((xs) => [...xs, e]));
-    return stop;
+    let stop = () => {};
+    const timer = window.setTimeout(() => { stop = pf.ask(question, (e) => setEvents((xs) => [...xs, e])); }, 800);
+    return () => { window.clearTimeout(timer); stop(); };
   }, [question]);
   const start = events.find((e) => e.type === 'start');
   const calls = events.filter((e) => e.type === 'tool_call');
