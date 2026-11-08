@@ -18,7 +18,7 @@ import json
 import pathlib
 import re
 from collections.abc import Callable, Iterable
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 
 from engine.cutsets import find_cut_sets
 from engine.model import Citation, EdgeSource, EdgeStatus, Facility, Mode, NodeType, Resource, Supply
@@ -256,6 +256,27 @@ def _model_mention(resolver: Resolver, clause: str, sentence: str, lo: int, hi: 
     return [Mention(nid, clause[a:b], a, b, "nemotron")] if nid else []
 
 
+def modality(context: str, clause: str) -> tuple[bool, bool, str]:
+    """(current, planned, reason) for a claim, from its clause and the sentence context around it (lower case)."""
+    for pattern, why in NOT_CURRENT:
+        if pattern.search(context):
+            return False, False, why
+    if PLANNED.search(clause):
+        return True, True, "planned or temporary change; weak evidence of current state"
+    return True, False, ""
+
+
+def quote_context(doc: Doc, quote: str) -> tuple[str, str] | None:
+    """The sentence holding a quote plus the next one, and the sentence itself (lower case), or None."""
+    squash = lambda t: " ".join(t.split()).lower()
+    q = squash(quote)
+    sentences = chunks(doc)
+    for idx, (_, sentence) in enumerate(sentences):
+        if q in squash(sentence):
+            return " ".join(squash(s) for _, s in sentences[idx : idx + 2]), squash(sentence)
+    return None
+
+
 def extract(doc: Doc, resolver: Resolver) -> tuple[list[Claim], list[Rejection]]:
     claims: list[Claim] = []
     rejected: list[Rejection] = []
@@ -294,17 +315,9 @@ def extract(doc: Doc, resolver: Resolver) -> tuple[list[Claim], list[Rejection]]
                         continue
                     if c.node == s.node:
                         continue
-                    how = "nemotron" if "nemotron" in (c.how, s.how) else "rules"
+                    how = "nemotron-resolve" if "nemotron" in (c.how, s.how) else "rules"
                     claim = Claim(c.node, s.node, doc.id, doc.date, doc.kind, quote, extractor=how)
-                    for pattern, why in NOT_CURRENT:
-                        if pattern.search(context):
-                            claim.current, claim.reason = False, why
-                            break
-                    if claim.current and PLANNED.search(low):
-                        claim.planned, claim.reason = (
-                            True,
-                            "planned or temporary change; weak evidence of current state",
-                        )
+                    claim.current, claim.planned, claim.reason = modality(context, low)
                     claims.append(claim)
     return claims, rejected
 
@@ -392,12 +405,25 @@ def impact(facility: Facility, f: Finding, max_order: int = 2) -> dict:
     }
 
 
+def _one_per_doc(claims: list[Claim]) -> list[Claim]:
+    """A record read by both the rules and the model counts once; its citation names both readers."""
+    by_doc: dict[str, Claim] = {}
+    for c in claims:
+        seen = by_doc.get(c.doc_id)
+        if seen is None:
+            by_doc[c.doc_id] = c
+        elif c.extractor not in seen.extractor.split("+"):
+            by_doc[c.doc_id] = replace(seen, extractor=f"{seen.extractor}+{c.extractor}")
+    return list(by_doc.values())
+
+
 def discover(
     facility: Facility,
     docs: list[Doc],
     extra_claims: Iterable[Claim] = (),
     with_impact: bool = True,
     model: ModelResolver | None = None,
+    extra_rejected: Iterable[Rejection] = (),
 ) -> DiscoveryResult:
     resolver = Resolver(facility, model)
     by_doc = {d.id: d for d in docs}
@@ -409,15 +435,19 @@ def discover(
         rejected += r
     extra_ok, extra_bad = validate(extra_claims, by_doc)
     rule_ok, rule_bad = validate(claims, by_doc)
-    claims, rejected = rule_ok + extra_ok, rejected + rule_bad + extra_bad
+    claims, rejected = rule_ok + extra_ok, rejected + rule_bad + extra_bad + list(extra_rejected)
+    set_aside: dict[tuple[str, str], list[Claim]] = {}
     for c in claims:
         if not c.current:
-            rejected.append(Rejection(c.doc_id, c.quote, c.reason))
+            set_aside.setdefault((c.consumer, c.supplier), []).append(c)
+    set_aside = {k: _one_per_doc(v) for k, v in set_aside.items()}
+    rejected += [Rejection(c.doc_id, c.quote, c.reason) for cs in set_aside.values() for c in cs]
 
     current = [c for c in claims if c.current]
     pairs: dict[tuple[str, str], list[Claim]] = {}
     for c in current:
         pairs.setdefault((c.consumer, c.supplier), []).append(c)
+    pairs = {k: _one_per_doc(v) for k, v in pairs.items()}
 
     findings: list[Finding] = []
     for (consumer, supplier), support in sorted(pairs.items()):
@@ -435,7 +465,7 @@ def discover(
             classification, replaces = "new", None
             against = []
         conf = _confidence(support, against)
-        aside = [_cite(c) for c in claims if not c.current and (c.consumer, c.supplier) == (consumer, supplier)]
+        aside = [_cite(c) for c in set_aside.get((consumer, supplier), [])]
         f = Finding(
             id=f"F-{consumer}-{supplier}",
             consumer=consumer,

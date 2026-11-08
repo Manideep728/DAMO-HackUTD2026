@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, X, FileText, CircleAlert } from 'lucide-react';
 import { Badge, Button, StatusPill, cx } from '../components/ui';
-import type { CutSets, Evidence, Transient, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
+import type { CutSets, Evidence, ModelRead, Transient, Finding, Findings, PlanEval, PlanSearch, ServiceRed, SimResult } from './api';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
@@ -127,7 +127,7 @@ export function CutSetPanel({ cuts, maintenance, picked, onPick }: { cuts: CutSe
   );
 }
 
-export function FindingsPanel({ data, onDecide, onShow }: { data: Findings | null; onDecide: (f: Finding, d: 'confirmed' | 'rejected', actor: string, note: string) => Promise<void>; onShow: (nodes: string[]) => void }) {
+export function FindingsPanel({ data, onDecide, onShow, onModelRead }: { data: Findings | null; onDecide: (f: Finding, d: 'confirmed' | 'rejected', actor: string, note: string) => Promise<void>; onShow: (nodes: string[]) => void; onModelRead: () => Promise<void> }) {
   const [actor, setActor] = useState(() => { try { return localStorage.getItem('pf-actor') ?? ''; } catch { return ''; } });
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -141,12 +141,24 @@ export function FindingsPanel({ data, onDecide, onShow }: { data: Findings | nul
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(''); }
   };
+  const readWithModel = async () => {
+    setBusy('model'); setError('');
+    try { await onModelRead(); }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(''); }
+  };
   return (
     <div className="grid gap-4">
       <label className="flex items-center gap-2 text-[12.5px]">Engineer
         <input id="pf-actor" value={actor} onChange={(e) => setActor(e.target.value)} placeholder="your name" className="h-8 px-2 rounded-md border hairline bg-surface flex-1" />
       </label>
       {error && <p className="text-critical text-[12.5px]">{error}</p>}
+      {data.records > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-[12px]">
+          <Button disabled={busy === 'model'} onClick={readWithModel}>{busy === 'model' ? 'Nemotron is reading…' : 'Read with Nemotron'}</Button>
+          {data.model_read && <ModelReadLine r={data.model_read} />}
+        </div>
+      )}
       {open.map((f) => (
         <article key={f.id} className="rounded-xl border hairline p-3 grid gap-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -184,6 +196,21 @@ export function FindingsPanel({ data, onDecide, onShow }: { data: Findings | nul
   );
 }
 
+function ModelReadLine({ r }: { r: ModelRead }) {
+  const rej = r.rejected.not_verbatim + r.rejected.wrong_pair + r.rejected.unknown_node;
+  const parts = [
+    `kept ${r.kept}`,
+    rej && `rejected ${rej} (${[r.rejected.not_verbatim && `${r.rejected.not_verbatim} quote not in the record`, r.rejected.wrong_pair && `${r.rejected.wrong_pair} quote doesn't say that`, r.rejected.unknown_node && `${r.rejected.unknown_node} not in the inventory`].filter(Boolean).join(', ')})`,
+    r.set_aside && `set aside ${r.set_aside} temporary or proposed`,
+  ].filter(Boolean);
+  return (
+    <span className="text-muted" title={r.model}>
+      Nemotron read {r.answered} of {r.records} records and proposed {r.proposed} feeds: {parts.join('; ')}.
+      {r.new_findings.length > 0 && <> New: <span className="mono">{r.new_findings.join(', ')}</span>.</>}
+    </span>
+  );
+}
+
 function Quotes({ title, items }: { title: string; items: Evidence[] }) {
   return (
     <div className="text-[12px]">
@@ -191,7 +218,7 @@ function Quotes({ title, items }: { title: string; items: Evidence[] }) {
       <ul className="grid gap-1">
         {items.map((q, i) => (
           <li key={i} className="flex gap-1.5"><FileText size={12} className="shrink-0 mt-0.5 text-faint" />
-            <span><span className="mono">{q.doc_id}</span> <span className="text-faint">{q.date} · {q.kind.replace('_', ' ')}</span> “{q.quote}”{q.extractor === 'nemotron' && <span className="text-muted"> · name resolved by Nemotron</span>}{q.reason && <span className="text-muted"> · {q.reason}</span>}</span></li>
+            <span><span className="mono">{q.doc_id}</span> <span className="text-faint">{q.date} · {q.kind.replace('_', ' ')}</span> “{q.quote}”{q.extractor?.includes('nemotron-read') && <span className="text-accent"> · {q.extractor.startsWith('rules') ? 'read by the rules and Nemotron' : 'read by Nemotron'}</span>}{q.extractor?.includes('nemotron-resolve') && <span className="text-muted"> · name resolved by Nemotron</span>}{q.reason && <span className="text-muted"> · {q.reason}</span>}</span></li>
         ))}
       </ul>
     </div>

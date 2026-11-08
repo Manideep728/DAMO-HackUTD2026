@@ -117,7 +117,11 @@ export default function Preflight() {
           <div className="p-4 overflow-auto min-h-0">
             {tab === 'impact' && <ImpactPanel sim={sim} red={red} transient={trans} onPick={setHighlight} />}
             {tab === 'weak' && <CutSetPanel cuts={cuts} maintenance={maintenance} picked={highlight.join('+')} onPick={setHighlight} />}
-            {tab === 'findings' && <FindingsPanel data={findings} onShow={setHighlight} onDecide={async (f, d, actor, note) => {
+            {tab === 'findings' && <FindingsPanel data={findings} onShow={setHighlight} onModelRead={async () => {
+              await pf.modelRead();
+              setFindings(await pf.findings());
+              await loadFacility();
+            }} onDecide={async (f, d, actor, note) => {
               await pf.decide(f.id, d, actor, note);
               setFindings(await pf.findings());
               await loadFacility();

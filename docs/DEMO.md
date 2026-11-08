@@ -36,6 +36,8 @@ Between rehearsals, **Reset scenario** clears the toggles. Finding decisions liv
    - Not counted, and why. WO-3920 describes a temporary cable that was later removed. WO-5108 proposes feeding PUMP-C, which was never installed.
    - *If true*: ATS-1 becomes a new single point of failure. All 8 racks in R1 and WL-INFER drop to N.
 
+   *Optional (20 s), needs the key:* **Read with Nemotron**. Nemotron reads all 12 records and proposes feeds. The line under the button says how many it proposed, how many were kept, and how many were rejected because the quote isn't in the record or doesn't say that feed. Quotes it read are tagged on the finding. "The model reads; the checks decide what counts." Live numbers: ⟦⟧.
+
 4. **Confirm it (20 s).** **Confirm**, with a name and a note. The edge goes into the graph and the decision into the audit log. *Weak points* with nothing in maintenance: **ATS-1**. "Enough capacity, no independence. Both pump panels hang off one transfer switch."
 
 5. **What that costs (15 s).** Fail **ATS-1**: 18 racks and workloads, 400 kW, each with a "why it failed" trace back to ATS-1.
@@ -50,7 +52,7 @@ Between rehearsals, **Reset scenario** clears the toggles. Finding decisions liv
 
 ## Questions to expect
 
-- **Where is Nemotron in this?** It chooses which simulations to run and writes the answer. It also resolves equipment names in records that the alias and typo rules can't place. Nothing it says reaches the screen unchecked. Answers must cite tool results. A name it resolves counts only if the node exists and the phrase carries that node's suffix ("b" for MCC-B), and the quote must be verbatim.
+- **Where is Nemotron in this?** It chooses which simulations to run and writes the answer. It also reads the records (*Read with Nemotron*) and resolves equipment names the alias and typo rules can't place. Nothing it says reaches the screen unchecked. A claim it reads must quote the record word for word, and the rules' grammar must find that feed, in that direction, in the quote. Answers must cite tool results. A name it resolves counts only if the node exists and the phrase carries that node's suffix ("b" for MCC-B), and the quote must be verbatim.
 - **Isn't capacity math enough?** Step 4 is the counterexample. Capacity says 2N. Cut sets say one switch takes out both pumps.
 - **Where does the graph come from?** **Import** on the preflight page takes the same CSV or JSON that **Export** writes. In production that would be a DCIM export.
 - **How accurate is the model?** It's a kW budget on a dependency graph. No CFD, no load flow, no protection coordination. The banner on every screen says that.

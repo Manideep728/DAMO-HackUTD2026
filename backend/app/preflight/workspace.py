@@ -9,7 +9,8 @@ from engine.model import Facility, State
 from engine.timestep import Window
 
 from .data.demo import demo_facility, demo_profiles, demo_windows
-from .discovery import DiscoveryResult, Doc, Finding, apply_finding, discover, load_corpus
+from .discovery import Claim, DiscoveryResult, Doc, Finding, Rejection, apply_finding, discover, load_corpus
+from .extract_model import ReadModel, read_records
 from .resolve_model import nemotron_resolver
 from .store import Store
 
@@ -23,12 +24,21 @@ class Workspace:
     profiles: dict[str, list[float]] = field(default_factory=demo_profiles)
     windows: list[Window] = field(default_factory=demo_windows)
     _discovery: DiscoveryResult | None = None
+    model_claims: list[Claim] = field(default_factory=list)
+    model_rejected: list[Rejection] = field(default_factory=list)
+    model_read: dict | None = None
     _lock: threading.Lock = field(default_factory=threading.Lock)
 
     def discovery(self) -> DiscoveryResult:
         with self._lock:
             if self._discovery is None:
-                self._discovery = discover(self.documented, self.docs, model=nemotron_resolver(self.documented))
+                self._discovery = discover(
+                    self.documented,
+                    self.docs,
+                    extra_claims=self.model_claims,
+                    extra_rejected=self.model_rejected,
+                    model=nemotron_resolver(self.documented),
+                )
             return self._discovery
 
     def findings(self) -> list[Finding]:
@@ -71,12 +81,29 @@ class Workspace:
         self.store.audit(actor, "finding.proposed", {"finding": finding.id, "claim": finding.claim_text()})
         return finding
 
+    def read_with_model(self, actor: str, model: ReadModel | None = None) -> dict:
+        """Have Nemotron read every record; its claims join discovery after the same checks as the rules'."""
+        before = {f.id for f in self.discovery().findings if f.classification != "confirms"}
+        read = read_records(self.documented, self.docs, *([model] if model else []))
+        with self._lock:
+            self.model_claims, self.model_rejected = read.claims, read.rejected
+            self._discovery = None
+        after = [f for f in self.discovery().findings if f.classification != "confirms"]
+        stats = {**read.stats, "new_findings": sorted(f.id for f in after if f.id not in before)}
+        self.model_read = stats
+        self.store.audit(actor, "discovery.model_read", stats)
+        return stats
+
+    def _clear_model_read(self) -> None:
+        self.model_claims, self.model_rejected, self.model_read = [], [], None
+
     def replace_facility(self, facility: Facility, actor: str) -> None:
         """Swap in an imported facility. The demo's records, load profiles and maintenance windows describe the
         demo hall, so they go too; otherwise its work orders would produce findings about look-alike ids."""
         with self._lock:
             self.documented = facility
             self.docs, self.labels, self.profiles, self.windows = [], [], {}, []
+            self._clear_model_read()
             self._discovery = None
         self.store.audit(actor, "facility.imported", {"name": facility.name, "nodes": len(facility.nodes)})
 
@@ -85,6 +112,7 @@ class Workspace:
         with self._lock:
             self.documented, self.docs, self.labels = fresh.documented, fresh.docs, fresh.labels
             self.profiles, self.windows = fresh.profiles, fresh.windows
+            self._clear_model_read()
             self._discovery = None
         self.store.audit(actor, "facility.restored_demo", {"name": self.documented.name})
 

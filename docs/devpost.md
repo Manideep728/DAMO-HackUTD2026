@@ -45,6 +45,8 @@ MOCUS expands the tree, and the simulator re-checks every candidate. On graphs u
 2. A typo-tolerant match: one edit away from a single node's alias, with the last character and every digit exact.
 3. Nemotron, for phrases nothing else could place. Its answer counts only if the node exists and the phrase contains that node's suffix.
 
+**Read with Nemotron** has the model read every record and propose feeds. A proposal counts only if three checks pass: the quote is in the record word for word; the rules' grammar finds that feed in the quote, in that direction; and the same temporary/proposed check passes. An adversarial test pins real sentences on random pairs across 10 seeds, and the demo findings don't change. Live numbers: ⟦proposed / kept / rejected⟧.
+
 Every quote must appear verbatim in the cited record. Sentences describing temporary, proposed or uninstalled connections are set aside with a reason. On 10 seeded sets of messy generated records, precision is 1.0 on every set, and recall has a mean of 0.943 (lowest 0.867).
 
 **Agent.** Nemotron runs over NVIDIA's OpenAI-compatible API with native tool calling: `simulate`, `find_cut_sets`, `evaluate_plan`, `search_plans`, `search_docs`, `get_node`, `get_neighbors` and `propose_dependency`. The final answer is structured, with a recommendation, rejected alternatives, risks and assumptions, and each claim cites tool-call ids. A checker rejects any answer that names a node or number missing from the results it cites, and sends the rejection back to the model. Questions about CFD, load flow or anything outside the facility get a refusal.

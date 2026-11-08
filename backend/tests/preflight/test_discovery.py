@@ -112,7 +112,7 @@ def test_model_fallback_resolves_a_leftover_phrase_and_keeps_the_quote_verbatim(
     doc = _doc("Electrician found the B side pump panel fed from ATS-1.")
     res = discover(demo_facility(), [doc], model=model, with_impact=False)
     claim = next(c for c in res.claims if c.supplier == "ATS-1")
-    assert claim.consumer == "MCC-B" and claim.extractor == "nemotron"
+    assert claim.consumer == "MCC-B" and claim.extractor == "nemotron-resolve"
     assert claim.quote in doc.text and phrase_seen == ["the B side pump panel"]
 
 
@@ -142,3 +142,147 @@ def test_demo_findings_are_identical_whatever_the_model_answers():
         assert s["precision"] == 1.0 and s["recall"] == 1.0
         f = next(x for x in r.findings if x.consumer == "MCC-B" and x.supplier == "ATS-1")
         assert f.classification == "contradicts" and f.impact["new_single_points"] == ["ATS-1"]
+
+
+# ------------------------------------------------------------------ Nemotron reading the records
+
+
+def _reader(answers: dict[str, list[dict]]):
+    """A fake model that answers per record id, read from the prompt."""
+    import json
+    import re
+
+    def model(prompt: str) -> str:
+        doc_id = re.search(r"^Record (\S+) \(", prompt, re.M).group(1)
+        return json.dumps({"feeds": answers.get(doc_id, [])})
+
+    return model
+
+
+def test_model_read_keeps_checked_claims_and_says_why_it_drops_the_rest():
+    from app.preflight.extract_model import read_records
+
+    docs, _ = load_corpus()
+    feed = lambda c, s, q, st="current": {"consumer": c, "supplier": s, "quote": q, "status": st}
+    read = read_records(
+        demo_facility(),
+        docs,
+        _reader(
+            {
+                "WO-4471": [
+                    feed("MCC-B", "ATS-1", "pump mcc b still back-fed from transfer sw 1"),  # kept
+                    feed("MCC-B", "ATS-1", "pump MCC-B is back-fed from ATS-1"),  # paraphrase
+                    feed("MCC-A", "ATS-1", "pump mcc b still back-fed from transfer sw 1"),  # wrong pair
+                    feed("PUMP-C", "ATS-1", "pump mcc b still back-fed from transfer sw 1"),  # not installed
+                ],
+                # The model calls it current; the next sentence says the cable was removed.
+                "WO-3920": [feed("MCC-B", "ATS-1", "MCC-B was briefly powered from ATS-1 on a temporary cable")],
+                "WO-5230": [feed("CRAH-3", "SWGR-A", "CRAH-3 is fed from swgr A", "proposed")],
+            }
+        ),
+    )
+    s = read.stats
+    assert (s["proposed"], s["kept"], s["set_aside"]) == (6, 1, 2)
+    assert s["rejected"] == {"unknown_node": 1, "not_verbatim": 1, "wrong_pair": 1}
+    kept = [c for c in read.claims if c.current]
+    assert [(c.consumer, c.supplier, c.doc_id, c.extractor) for c in kept] == [
+        ("MCC-B", "ATS-1", "WO-4471", "nemotron-read")
+    ]
+    aside = {c.doc_id: c.reason for c in read.claims if not c.current}
+    assert aside == {
+        "WO-3920": "temporary connection that was later removed",
+        "WO-5230": "Nemotron read it as proposed",
+    }
+
+
+def test_a_record_read_by_rules_and_model_counts_once():
+    from app.preflight.extract_model import read_records
+
+    docs, _ = load_corpus()
+    read = read_records(
+        demo_facility(),
+        docs,
+        _reader(
+            {
+                "WO-4471": [
+                    {"consumer": "MCC-B", "supplier": "ATS-1", "quote": "pump mcc b still back-fed from transfer sw 1"}
+                ]
+            }
+        ),
+    )
+    base = discover(demo_facility(), docs, with_impact=False)
+    both = discover(demo_facility(), docs, extra_claims=read.claims, with_impact=False)
+    f0 = next(f for f in base.findings if f.id == "F-MCC-B-ATS-1")
+    f1 = next(f for f in both.findings if f.id == "F-MCC-B-ATS-1")
+    assert f1.confidence == f0.confidence
+    assert len(f1.supporting) == len(f0.supporting)
+    wo = next(c for c in f1.supporting if c["doc_id"] == "WO-4471")
+    assert wo["extractor"] == "rules+nemotron-read"
+
+
+def test_no_model_answer_at_all_is_reported_as_unavailable():
+    from app.preflight.extract_model import ModelUnavailable, read_records
+
+    with pytest.raises(ModelUnavailable):
+        read_records(demo_facility(), load_corpus()[0], lambda prompt: None)
+
+
+def test_demo_findings_survive_a_model_that_pins_real_sentences_on_random_pairs():
+    import random
+
+    from app.preflight.discovery import chunks
+    from app.preflight.extract_model import read_records
+
+    docs, labels = load_corpus()
+    ids = [n.id for n in demo_facility().nodes]
+    baseline = discover(demo_facility(), docs)
+    key = lambda r: [(f.id, f.classification, f.confidence, f.status) for f in r.findings]
+    for seed in range(10):
+        rnd = random.Random(seed)
+        answers = {
+            d.id: [
+                {
+                    "consumer": rnd.choice(ids),
+                    "supplier": rnd.choice(ids),
+                    "quote": s,
+                    "status": rnd.choice(["current", "temporary", "proposed"]),
+                }
+                for _, s in chunks(d)
+            ]
+            for d in docs
+        }
+        read = read_records(demo_facility(), docs, _reader(answers))
+        r = discover(demo_facility(), docs, extra_claims=read.claims, extra_rejected=read.rejected)
+        assert key(r) == key(baseline), seed
+        assert score(r, labels)["precision"] == 1.0
+
+
+def test_the_model_reads_a_name_the_rules_cannot_place():
+    from app.preflight.extract_model import read_records
+
+    doc = _doc("Electrician found the B side pump panel fed from ATS-1.")
+    assert discover(demo_facility(), [doc], with_impact=False).claims == []  # the rules alone find nothing
+    read = read_records(
+        demo_facility(),
+        [doc],
+        _reader(
+            {"WO-T1": [{"consumer": "MCC-B", "supplier": "ATS-1", "quote": "the B side pump panel fed from ATS-1"}]}
+        ),
+    )
+    assert read.stats["kept"] == 1
+    r = discover(demo_facility(), [doc], extra_claims=read.claims, with_impact=False)
+    assert [(f.consumer, f.supplier, f.classification) for f in r.findings] == [("MCC-B", "ATS-1", "contradicts")]
+
+
+def test_a_set_aside_record_read_by_rules_and_model_is_listed_once():
+    from app.preflight.extract_model import read_records
+
+    docs, _ = load_corpus()
+    quote = "MCC-B was briefly powered from ATS-1 on a temporary cable"
+    read = read_records(
+        demo_facility(), docs, _reader({"WO-3920": [{"consumer": "MCC-B", "supplier": "ATS-1", "quote": quote}]})
+    )
+    r = discover(demo_facility(), docs, extra_claims=read.claims, with_impact=False)
+    f = next(f for f in r.findings if f.id == "F-MCC-B-ATS-1")
+    assert [(a["doc_id"], a["extractor"]) for a in f.set_aside] == [("WO-3920", "rules+nemotron-read")]
+    assert [x.doc_id for x in r.rejected].count("WO-3920") == 1

@@ -144,3 +144,30 @@ def test_the_store_survives_concurrent_requests(tmp_path):
     with ThreadPoolExecutor(8) as pool:
         list(pool.map(work, range(8)))  # re-raises any worker exception
     assert len(store.decisions()) == 24
+
+
+def test_model_read_without_a_model_is_a_clear_503(client):
+    r = client.post("/api/preflight/findings/model-read")
+    assert r.status_code == 503 and "Nemotron unavailable" in r.json()["detail"]
+    assert client.get("/api/preflight/findings").json()["model_read"] is None
+
+
+def test_model_read_feeds_findings_and_is_audited(client):
+    import json
+
+    ws = api.WS
+    quote = "the B side pump panel fed from ATS-1"
+    ws.docs = [*ws.docs, type(ws.docs[0])("WO-9001", "work_order", "2024-09-01", "t", f"Found {quote}.")]
+    ws._discovery = None
+
+    def model(prompt: str) -> str:
+        feeds = [{"consumer": "MCC-B", "supplier": "ATS-1", "quote": quote}] if "WO-9001" in prompt else []
+        return json.dumps({"feeds": feeds})
+
+    stats = ws.read_with_model("maya", model)
+    assert stats["kept"] == 1 and stats["new_findings"] == []  # it supports the existing ATS-1 finding
+    d = client.get("/api/preflight/findings").json()
+    assert d["model_read"]["kept"] == 1
+    f = next(f for f in d["findings"] if f["id"] == "F-MCC-B-ATS-1")
+    assert any(s["doc_id"] == "WO-9001" and s["extractor"] == "nemotron-read" for s in f["supporting"])
+    assert "discovery.model_read" in [a["action"] for a in client.get("/api/preflight/audit").json()]

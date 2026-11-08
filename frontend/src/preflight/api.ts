@@ -36,7 +36,11 @@ export interface Finding {
   confidence: number; supporting: Evidence[]; contradicting: Evidence[]; set_aside: Evidence[]; status: string; claim: string;
   impact: { new_single_points?: string[]; single_points_after?: string[]; services_downgraded?: string[]; redundancy_after?: Record<string, string> };
 }
-export interface Findings { findings: Finding[]; rejected: { doc_id: string; quote: string; reason: string }[]; metrics: { precision: number; recall: number } | null; records: number }
+export interface Findings { findings: Finding[]; rejected: { doc_id: string; quote: string; reason: string }[]; metrics: { precision: number; recall: number } | null; records: number; model_read: ModelRead | null }
+export interface ModelRead {
+  model: string; records: number; answered: number; proposed: number; kept: number; set_aside: number;
+  rejected: { unknown_node: number; not_verbatim: number; wrong_pair: number }; new_findings: string[]; seconds: number;
+}
 export interface PlanEval {
   start: number; end: number; mitigations: string[]; lost_services: string[]; lost_load: string[]; lost_kw?: number;
   min_cut_order: number; single_points: string[]; min_margin: number; tightest: string | null; tightest_hour?: number | null; reasons: string[];
@@ -60,6 +64,7 @@ export const pf = {
   maintenanceCuts: (maintenance: string[], max_order = 2) => j<CutSets>('/cutsets', { max_order, maintenance }),
   redundancy: (state_changes: Record<string, Toggle>) => j<{ services: ServiceRed[] }>('/redundancy', { state_changes }),
   findings: () => j<Findings>('/findings'),
+  modelRead: () => j<ModelRead>('/findings/model-read', {}),
   transient: (failed: string[]) => j<Transient>('/transient', { failed }),
   /** Upload a facility as CSV or JSON (the format Export writes). Replaces the demo records too. */
   async importFacility(file: File): Promise<{ name: string; nodes: number }> {
